@@ -18,17 +18,21 @@ import getpass
 from datetime import datetime
 import errno
 
-PATH_TO_SAMPLE_DIR = os.path.join(os.getcwd(),"sample1")
+
+PATH_TO_SAMPLE_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1")
 PATH_TO_SAMPLE_OUTDIR = os.path.join(PATH_TO_SAMPLE_DIR, "output")
 PATH_TO_SAMPLE_INPUT_DIR = os.path.join(PATH_TO_SAMPLE_DIR, "input")
 INPUT_FILENAME = "params_vel.py"
 # print "PATH_TO_SAMPLE_OUTDIR: ",PATH_TO_SAMPLE_OUTDIR
-SYMLINK_PATH = os.path.join(os.getcwd(), INPUT_FILENAME)
+
+SYMLINK_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),INPUT_FILENAME)
 DIR_NAME = (os.path.join("/home/",getpass.getuser(),("tmp_" + os.path.basename(__file__)[:-3] + '_' + ''.join(str(datetime.now()).split())).replace('.', '_')).replace(
             ':', '_'))
 # print "PATH_TO_NEW_OUTDIR: ", DIR_NAME
-PATH_FOR_PRG_TOBE_TESTED = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "gen_coords.py"))
-# print "PATH_FOR_PRG_TOBE_TESTED: ",PATH_FOR_PRG_TOBE_TESTED
+# PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.abspath(os.path.dirname(__file__)), "../gen_coords.py")
+# print "first PATH_FOR_PRG_TOBE_TESTED: **** ",PATH_FOR_PRG_TOBE_TESTED
+PATH_FOR_PRG_TOBE_TESTED = os.path.abspath("/home/aas105/qcore/qcore/gen_coords.py")
+print "second PATH_FOR_PRG_TOBE_TESTED: **** ",PATH_FOR_PRG_TOBE_TESTED
 
 
 def setup_module(scope="module"):
@@ -40,6 +44,7 @@ def setup_module(scope="module"):
         if e.errno != errno.EEXIST:
             raise
     sample_path = os.path.join(PATH_TO_SAMPLE_INPUT_DIR, INPUT_FILENAME)
+    print "sample_path ********** ",
     os.symlink(sample_path,SYMLINK_PATH)
 
 
