@@ -31,7 +31,8 @@ DIR_NAME = (os.path.join("/home/",getpass.getuser(),("tmp_" + os.path.basename(_
 # print "PATH_TO_NEW_OUTDIR: ", DIR_NAME
 # PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.abspath(os.path.dirname(__file__)), "../gen_coords.py")
 # print "first PATH_FOR_PRG_TOBE_TESTED: **** ",PATH_FOR_PRG_TOBE_TESTED
-PATH_FOR_PRG_TOBE_TESTED = os.path.abspath("/home/aas105/qcore/qcore/gen_coords.py")
+prg_path = "/home/"+getpass.getuser()+"/qcore/qcore/gen_coords.py"
+PATH_FOR_PRG_TOBE_TESTED = os.path.abspath(prg_path)
 print "second PATH_FOR_PRG_TOBE_TESTED: **** ",PATH_FOR_PRG_TOBE_TESTED
 
 
