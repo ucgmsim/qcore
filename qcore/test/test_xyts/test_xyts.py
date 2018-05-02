@@ -11,7 +11,7 @@ import errno
 
 XYTS_ACTUAL_PATH =os.path.abspath("/nesi/projects/nesi00213/sample_data/test_qcore/xyts.e3d")
 SAMPLE_OUT_DIR_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1/output")
-XYTS_FILE = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1/input/xyts.e3d")
+XYTS_FILE = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1/xyts.e3d")
 os.symlink(XYTS_ACTUAL_PATH, XYTS_FILE)
 OBJ_XYTS = xyts.XYTSFile(XYTS_FILE)
 SAMPLE_PGV = os.path.join(SAMPLE_OUT_DIR_PATH,"sample_pgvout")
