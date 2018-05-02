@@ -1,5 +1,5 @@
 pwd
-cd /qcore/qcore/test
+cd /qcore/test
 echo "from run script"
 DIRS='test_*'
 curdir=$PWD
@@ -9,7 +9,7 @@ cd ${curdir}/${DIR}
 pwd
 echo ${DIR}
 pytest --junitxml ${DIR}.xml
-#cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/fromlocal/${DIR}.xml
+cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/testtrial/${DIR}.xml
 done
 
 #py.test --junitxml results.xml qcore/test/test_geo/test_geo.py
