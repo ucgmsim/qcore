@@ -6,9 +6,10 @@ do
 cd ${curdir}/${DIR}
 pwd
 echo ${DIR}
-pytest -s -v
+pytest --junitxml results.xml
 done
 
+cp -r ./results.xml /home/aas105/.jenkins/workspace/testtrial/results.xml
 
 #py.test --junitxml results.xml qcore/test/test_geo/test_geo.py
 
