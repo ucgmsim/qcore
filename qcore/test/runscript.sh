@@ -1,4 +1,5 @@
-cd /home/aas105/qcore/qcore/test
+pwd
+cd /qcore/qcore/test
 echo "from run script"
 DIRS='test_*'
 curdir=$PWD
