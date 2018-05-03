@@ -6,6 +6,7 @@ Shared functions to work on time-series.
 """
 
 from math import ceil, log, pi
+import os
 
 try:
     from scipy.signal import butter
@@ -167,3 +168,78 @@ def pgv2MMI(pgv):
                     3.78 + 1.47 * np.log10(pgv),
                     2.89 + 3.16 * np.log10(pgv))
 
+###
+### PROCESSING OF LF BINARY CONTAINER
+###
+class LFSeis:
+    pass
+
+###
+### PROCESSING OF HF BINARY CONTAINER
+###
+class HFSeis:
+    HEAD_SIZE = 0x200
+    HEAD_STAT = 0x18
+    N_COMP = 3
+
+    def __init__(self, hf_path):
+        """
+        Load HF binary store.
+        hf_path: path to the HF binary file
+        """
+
+        hfs = os.stat(hf_path).st_size
+        hff = open(hf_path, 'rb')
+        # determine endianness by checking file size
+        nstat, nt = np.fromfile(hff, dtype = '<i4', count = 2)
+        if hfs == self.HEAD_SIZE + nstat * self.HEAD_STAT \
+                                   + nstat * nt * self.N_COMP * 4:
+            endian = '<'
+        elif hfs == self.HEAD_SIZE \
+                    + nstat.byteswap() * self.HEAD_STAT \
+                    + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+            endian = '>'
+        else:
+            hff.close()
+            raise ValueError('File is not an HF seis file: %s' % (hf_path))
+        hff.seek(0)
+
+        # read header - integers
+        self.nstat, self.nt, self.seed, siteamp, self.pdur_model, \
+                nrayset, rayset1, rayset2, rayset3, rayset4, \
+                self.nbu, self.ift, self.nlskip, icflag, same_seed, \
+                site_specific_vm = \
+                        np.fromfile(hff, dtype = '%si4' % (endian), count = 16)
+        self.siteamp = bool(siteamp)
+        self.rayset = [rayset1, rayset2, rayset3, rayset4][:nrayset]
+        self.icflag = bool(icflag)
+        self.seed_inc = not bool(same_seed)
+        self.site_specific_vm = bool(site_specific_vm)
+        # read header - floats
+        self.duration, self.dt, self.start_sec, self.sdrop, self.flo, self.fhi, \
+                self.rvfac, self.rvfac_shal, self.rvfac_deep, \
+                self.czero, self.calpha, self.mom, self.rupv, self.vs_moho, \
+                self.vp_sig, self.vsh_sig, self.rho_sig, self.qs_sig, \
+                self.fa_sig1, self.fa_sig2, self.rv_sig1 = \
+                        np.fromfile(hff, dtype = '%sf4' % (endian), count = 21)
+        # read header - strings
+        self.stoch_file, self.velocity_model = \
+                np.fromfile(hff, dtype = '|S64', count = 2)
+
+        # load station info
+        hff.seek(self.HEAD_SIZE)
+        self.stations = np.fromfile(hff, count = self.nstat, \
+                dtype = [('lon', 'f4'), ('lat', 'f4'), ('name', '|S8'), \
+                         ('e_dist', 'f4'), ('seed_inc', 'i4')])
+        hff.close()
+
+        # only map the timeseries
+        self.data = np.memmap(hf_path, dtype = '%sf4' % (endian), \
+                mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
+                shape = (self.nstat, self.nt, self.N_COMP))
+
+###
+### PROCESSING OF BB BINARY CONTAINER
+###
+class BBSeis:
+    pass
