@@ -5,7 +5,8 @@ Shared functions to work on time-series.
 @date 13/09/2016
 """
 
-from math import ceil, log, pi
+from glob import glob
+import math
 import os
 
 try:
@@ -39,7 +40,7 @@ def bwfilter(data, dt, freq, band, match_powersb = True):
     #x = 1.0 / (2.0 * order)
     #if band == 'lowpass':
     #    x *= -1
-    #freq *= exp(x * log(sqrt(2.0) - 1.0))
+    #freq *= exp(x * math.log(sqrt(2.0) - 1.0))
     nyq = 1.0 / (2.0 * dt)
     if match_powersb:
         if band == 'highpass':
@@ -55,7 +56,7 @@ def get_ft_len(nt):
     Length the fourier transform should be
     given timeseries length nt.
     """
-    return int(2 ** ceil(log(nt) / log(2)))
+    return int(2 ** math.ceil(math.log(nt) / math.log(2)))
 
 def ampdeamp(timeseries, ampf, amp = True):
     """
@@ -99,7 +100,7 @@ def transf(vs_soil, rho_soil, damp_soil, height_soil, \
     # the last value isn't an ft value
     ft_freq = np.arange(0, ft_len / 2) * (1 / (ft_len * dt))
 
-    omega = 2.0 * pi * ft_freq
+    omega = 2.0 * math.pi * ft_freq
     Gs = rho_soil * vs_soil ** 2.0
     Gr = rho_rock * vs_rock ** 2.0
 
@@ -193,7 +194,7 @@ def seis2txt(seis, dt, prefix, stat, comp, \
         txt.write('%-10s %3s %s\n' % (stat, comp, title))
         txt.write('%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n' % \
                  (nt, dt, start_hr, start_min, start_sec, edist, az, baz))
-        # values below header lines, 6 per line
+        # values below header lines, vpl per line
         divisible = nt - nt % vpl
         np.savetxt(txt, seis[:divisible].reshape(-1, vpl), fmt = '%13.5e')
         np.savetxt(txt, np.atleast_2d(seis[divisible:]), fmt = '%13.5e')
@@ -202,7 +203,72 @@ def seis2txt(seis, dt, prefix, stat, comp, \
 ### PROCESSING OF LF BINARY CONTAINER
 ###
 class LFSeis:
-    pass
+    # format constants
+    HEAD_STAT = 0x30
+    N_COMP = 9
+
+    def __init__(self, outbin):
+        """
+        Load LF binary store.
+        outbin: path to OutBin folder containing seis files
+        """
+        seis = glob(os.path.join(outbin, '*seis-*.e3d'))
+
+        # determine endianness by checking file size
+        lfs = os.stat(seis[0]).st_size
+        with open(seis[0], 'rb') as lf0:
+            nstat, nt = np.fromfile(lf0, dtype = '<i4', count = 6)[0::5]
+            if lfs == 4 + nstat * self.HEAD_STAT + nstat * nt * self.N_COMP * 4:
+                endian = '<'
+                self.nt = nt
+            elif lfs == 4 + nstat.byteswap() * self.HEAD_STAT \
+                        + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+                endian = '>'
+                self.nt = nt.byteswap()
+            else:
+                raise ValueError('File is not an LF seis file: %s' % (seis[0]))
+            # load rest of common metadata from first station in first file
+            self.dt, self.hh, self.rot = \
+                    np.fromfile(lf0, dtype = '%sf4' % (endian), count = 3)
+
+        # rotation matrix for converting to 090, 000, ver is inverted (* -1)
+        theta = math.radians(self.rot)
+        self.rot_matrix = np.array([[ math.cos(theta), -math.sin(theta),  0], \
+                                    [-math.sin(theta), -math.cos(theta),  0], \
+                                    [               0,                0, -1]])
+
+        # load nstats to determine total size
+        nstats = np.zeros(len(seis), dtype = 'i')
+        for i, s in enumerate(seis):
+            nstats[i] = np.fromfile(s, dtype = '%si4' % (endian), count = 1)
+        self.stations = np.zeros(np.sum(nstats), dtype = \
+                            [('stat_pos', '%si4' % (endian)), \
+                            ('x', '%si4' % (endian)), \
+                            ('y', '%si4' % (endian)), \
+                            ('z', '%si4' % (endian)), \
+                            ('seis_idx', '%si4' % (endian)), \
+                            ('lat', '%sf4' % (endian)), \
+                            ('lon', '%sf4' % (endian)), \
+                            ('name', '|S8')])
+
+        for i, s in enumerate(seis):
+            with open(s) as f:
+                f.seek(4)
+                stations = np.rec.array(np.fromfile(f, count = nstats[i], \
+                    dtype = [('stat_pos', '%si4' % (endian)), \
+                            ('x', '%si4' % (endian)), \
+                            ('y', '%si4' % (endian)), \
+                            ('z', '%si4' % (endian)), \
+                            ('seis_idx', '%si4' % (endian)), \
+                            ('dt', '%sf4' % (endian)), \
+                            ('hh', '%sf4' % (endian)), \
+                            ('rot', '%sf4' % (endian)), \
+                            ('lat', '%sf4' % (endian)), \
+                            ('lon', '%sf4' % (endian)), \
+                            ('name', '|S8')]))
+            stations['seis_idx'] = i
+            self.stations[np.sum(nstats[:i]):np.sum(nstats[:i]) + nstats[i]] = stations
+        print self.stations
 
 ###
 ### PROCESSING OF HF BINARY CONTAINER
@@ -272,7 +338,7 @@ class HFSeis:
         hff.close()
 
         # allow indexing by station names
-        self.stat_idx = dict(zip(self.stations['name'], np.arange(self.stations.shape[0])))
+        self.stat_idx = dict(zip(self.stations['name'], np.arange(self.nstat)))
         # only map the timeseries
         self.data = np.memmap(hf_path, dtype = '%sf4' % (endian), \
                 mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
