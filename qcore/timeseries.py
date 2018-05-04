@@ -168,6 +168,36 @@ def pgv2MMI(pgv):
                     3.78 + 1.47 * np.log10(pgv),
                     2.89 + 3.16 * np.log10(pgv))
 
+def seis2txt(seis, dt, prefix, stat, comp, \
+             start_hr=0, start_min=0, start_sec=0.0, \
+             edist=0.0, az=0.0, baz=0.0, title='', vpl = 6):
+    """
+    Store timeseries data as standard EMOD3D text file {prefix}{stat}.{comp}.
+    seis: timeseries
+    dt: timestep
+    prefix: filename excluding station name and extention
+    stat: station name
+    comp: same as file extention ('090', '000', 'ver')
+    start_hr: start time (hours, generally not used)
+    start_min: start time (minutes, generally not used)
+    start_sec: start time (seconds)
+    edist: epicentre distance
+    az: generally not used
+    baz: generally not used
+    title: used in header
+    vpl: values per line, more is faster
+    """
+    nt = seis.shape[0]
+    with open('%s%s.%s' % (prefix, stat, comp), 'w') as txt:
+        # same format strings as fdbin2wcc
+        txt.write('%-10s %3s %s\n' % (stat, comp, title))
+        txt.write('%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n' % \
+                 (nt, dt, start_hr, start_min, start_sec, edist, az, baz))
+        # values below header lines, 6 per line
+        divisible = nt - nt % vpl
+        np.savetxt(txt, seis[:divisible].reshape(-1, vpl), fmt = '%13.5e')
+        np.savetxt(txt, np.atleast_2d(seis[divisible:]), fmt = '%13.5e')
+
 ###
 ### PROCESSING OF LF BINARY CONTAINER
 ###
@@ -178,9 +208,15 @@ class LFSeis:
 ### PROCESSING OF HF BINARY CONTAINER
 ###
 class HFSeis:
+    # format constants
     HEAD_SIZE = 0x200
-    HEAD_STAT = 0x18
+    HEAD_STAT = 0x14
     N_COMP = 3
+    # indexing constants
+    X = 0
+    Y = 1
+    Z = 2
+    COMP = {'090':X, '000':Y, 'ver':Z}
 
     def __init__(self, hf_path):
         """
@@ -229,14 +265,45 @@ class HFSeis:
         # load station info
         hff.seek(self.HEAD_SIZE)
         self.stations = np.fromfile(hff, count = self.nstat, \
-                dtype = [('lon', 'f4'), ('lat', 'f4'), ('name', '|S8'), \
-                         ('e_dist', 'f4'), ('seed_inc', 'i4')])
+                dtype = [('lon', '%sf4' % (endian)), \
+                         ('lat', '%sf4' % (endian)), \
+                         ('name', '|S8'), \
+                         ('e_dist', '%sf4' % (endian))])
         hff.close()
 
+        # allow indexing by station names
+        self.stat_idx = dict(zip(self.stations['name'], np.arange(self.stations.shape[0])))
         # only map the timeseries
         self.data = np.memmap(hf_path, dtype = '%sf4' % (endian), \
                 mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
                 shape = (self.nstat, self.nt, self.N_COMP))
+
+    def acc(self, station, comp = Ellipsis):
+        """
+        Returns timeseries (acceleration) for station.
+        station: station name, must exist
+        comp: component (default all) examples: 0, self.X, self.COMP['090']
+        """
+        return self.data[self.stat_idx[station], :, comp]
+
+    def acc2txt(self, station, prefix = './', title = ''):
+        """
+        Creates standard EMOD3D text files for the station.
+        """
+        i = self.stat_idx[station]
+        for c in self.COMP:
+            seis2txt(self.data[i, :, self.COMP[c]], self.dt, \
+                     prefix, station, c, start_sec = self.start_sec, \
+                     edist = self.stations[i]['e_dist'], title = title)
+
+    def all2txt(self, prefix = './'):
+        """
+        Produces outputs as if the HF binary produced individual text files.
+        For compatibility. Should run slices in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
+        """
+        for s in self.stations['name']:
+            self.acc2txt(s, prefix = prefix, title = prefix)
 
 ###
 ### PROCESSING OF BB BINARY CONTAINER
