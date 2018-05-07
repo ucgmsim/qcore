@@ -1,6 +1,5 @@
 pwd
-cd /qcore/test
-echo
+echo -e "\r"
 echo "from run script"
 DIRS='test_*'
 curdir=$PWD
@@ -9,7 +8,7 @@ for DIR in $DIRS
 do
 cd ${curdir}/${DIR}
 pwd
-echo
+echo -e "\r"
 echo ${DIR}
 pytest --junitxml ${DIR}.xml
 cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
