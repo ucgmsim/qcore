@@ -1,16 +1,11 @@
-pwd
-echo -e "\r"
 printf '\n'
-echo "from run script"
+printf "from run script-first \n\n\n"
 DIRS='test_*'
 curdir=$PWD
-echo
 for DIR in $DIRS
 do
 cd ${curdir}/${DIR}
-pwd
-echo -e "\r"
-printf '\n'
+printf '\n\n\n'
 echo ${DIR}
 pytest --junitxml ${DIR}.xml
 cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
