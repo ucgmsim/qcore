@@ -7,6 +7,7 @@ do
 cd ${curdir}/${DIR}
 pytest --junitxml ${DIR}.xml
 cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
+printf "___________________________________________________________________________________________________________________________\n"
 done
 
 
