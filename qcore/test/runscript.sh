@@ -1,6 +1,5 @@
 
-printf "from run script-first"
-<br><br>
+printf "FROM RUNSCRIPT.SH"
 DIRS='test_*'
 curdir=$PWD
 for DIR in $DIRS
