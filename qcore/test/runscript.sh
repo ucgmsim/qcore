@@ -2,13 +2,13 @@
 printf "FROM RUNSCRIPT.SH"
 DIRS='test_*'
 curdir=$PWD
-printf "___________________________________________________________________________________________________________________________<br>"
+printf "<br><br><br>"
 for DIR in $DIRS
 do
 cd ${curdir}/${DIR}
 pytest --junitxml ${DIR}.xml
 cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
-printf "___________________________________________________________________________________________________________________________<br>"
+printf "<br><br><br>"
 done
 
 
