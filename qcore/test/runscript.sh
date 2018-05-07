@@ -5,7 +5,6 @@ curdir=$PWD
 for DIR in $DIRS
 do
 cd ${curdir}/${DIR}
-${DIR}
 pytest --junitxml ${DIR}.xml
 cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
 done
