@@ -155,11 +155,18 @@ def vel2acc(timeseries, dt):
     """
     return np.diff(np.hstack(([0], timeseries)) * (1.0 / dt))
 
+def vel2acc3d(timeseries, dt):
+    """
+    vel2acc for x,y,z arrays
+    """
+    return np.diff(np.vstack(([0, 0, 0], timeseries)), axis = 0) * (1.0 / dt)
+
 def acc2vel(timeseries, dt):
     """
     Integrates following Rob Graves' code logic (simple).
+    also works for x,y,z arrays
     """
-    return np.cumsum(timeseries) * dt
+    return np.cumsum(timeseries, axis = 0) * dt
 
 def pgv2MMI(pgv):
     """
@@ -251,10 +258,10 @@ class LFSeis:
             nstats[i] = np.fromfile(s, dtype = self.i4, count = 1)
         self.nstat = np.sum(nstats)
         # container for station data
-        self.stations = np.zeros(self.nstat, dtype = \
-                            [('x', self.i4), ('y', self.i4), ('z', self.i4), \
-                             ('seis_idx', self.i4, 2), ('lat', self.f4), \
-                             ('lon', self.f4), ('name', '|S8')])
+        self.stations = np.rec.array(np.zeros(self.nstat, dtype = \
+                            [('x', 'i4'), ('y', 'i4'), ('z', 'i4'), \
+                             ('seis_idx', 'i4', 2), ('lat', 'f4'), \
+                             ('lon', 'f4'), ('name', '|S8')]))
         # populate station data from headers
         for i, s in enumerate(seis):
             with open(s) as f:
@@ -271,7 +278,7 @@ class LFSeis:
             self.stations[stations['stat_pos']] = \
                     stations[list(stations.dtype.names[1:])]
         # allow indexing by station names
-        self.stat_idx = dict(zip(self.stations['name'], np.arange(self.nstat)))
+        self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
 
         # only map the timeseries
         self.data = []
@@ -288,6 +295,12 @@ class LFSeis:
         file_no, file_idx = self.stations[self.stat_idx[station]]['seis_idx']
         return np.dot(self.data[file_no][:, file_idx, :3], self.rot_matrix)
 
+    def acc(self, station):
+        """
+        Like vel but also converts to acceleration.
+        """
+        return vel2acc3d(self.vel(station), self.dt)
+
     def vel2txt(self, station, prefix = './', title = ''):
         """
         Creates standard EMOD3D text files for the station.
@@ -302,7 +315,7 @@ class LFSeis:
         For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
         """
-        for s in self.stations['name']:
+        for s in self.stations.name:
             self.vel2txt(s, prefix = prefix, title = prefix)
 
 ###
@@ -365,15 +378,15 @@ class HFSeis:
 
         # load station info
         hff.seek(self.HEAD_SIZE)
-        self.stations = np.fromfile(hff, count = self.nstat, \
+        self.stations = np.rec.array(np.fromfile(hff, count = self.nstat, \
                 dtype = [('lon', '%sf4' % (endian)), \
                          ('lat', '%sf4' % (endian)), \
                          ('name', '|S8'), \
-                         ('e_dist', '%sf4' % (endian))])
+                         ('e_dist', '%sf4' % (endian))]))
         hff.close()
 
         # allow indexing by station names
-        self.stat_idx = dict(zip(self.stations['name'], np.arange(self.nstat)))
+        self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
         # only map the timeseries
         self.data = np.memmap(hf_path, dtype = '%sf4' % (endian), \
                 mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
@@ -395,7 +408,7 @@ class HFSeis:
         for c in self.COMP:
             seis2txt(self.data[i, :, self.COMP[c]], self.dt, \
                      prefix, station, c, start_sec = self.start_sec, \
-                     edist = self.stations[i]['e_dist'], title = title)
+                     edist = self.stations.e_dist[i], title = title)
 
     def all2txt(self, prefix = './'):
         """
@@ -403,7 +416,7 @@ class HFSeis:
         For compatibility. Should run slices in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
         """
-        for s in self.stations['name']:
+        for s in self.stations.name:
             self.acc2txt(s, prefix = prefix, title = prefix)
 
 ###
