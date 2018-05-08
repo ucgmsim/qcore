@@ -1,13 +1,13 @@
 DIRS='test_*'
 curdir=$PWD
 for DIR in $DIRS
-printf "<br><br><br>"
 do
+printf '<br><br><br>'
 cd ${curdir}/${DIR}
 pytest --junitxml ${DIR}.xml
 cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
 done
-printf "<br><br><br>"
+printf '<br><br><br>'
 
 #py.test --junitxml results.xml qcore/test/test_geo/test_geo.py
 
