@@ -9,4 +9,5 @@ done
 LOG=/home/aas105/.jenkins/jobs/qcore-tests/builds/$BUILD_NUMBER/log
 cp ${LOG} ${LOG}.html
 sed -i 's/$/<br>/' ${LOG}.html
+cp -r ${LOG}.html /home/aas105/.jenkins/workspace/qcore-tests/${LOG}.html
 cat ${LOG}.html
