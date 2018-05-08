@@ -11,6 +11,8 @@ cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
 printf "<br><br><br><br>"
 done
 
+echo "?????????"
+echo $BUILD_LOG
 
 #py.test --junitxml results.xml qcore/test/test_geo/test_geo.py
 
