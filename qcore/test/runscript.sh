@@ -1,19 +1,12 @@
-
-printf "from runscript"
 DIRS='test_*'
 curdir=$PWD
-printf "<br><br><br><br>"
 for DIR in $DIRS
 do
 cd ${curdir}/${DIR}
 pytest --junitxml ${DIR}.xml
 cp -r ./${DIR}.xml /home/aas105/.jenkins/workspace/qcore-tests/${DIR}.xml
-printf "<br><br><br><br>"
 done
 
-echo "?????????"
-log=$BUILD_LOG
-echo ${log}
 
 #py.test --junitxml results.xml qcore/test/test_geo/test_geo.py
 
