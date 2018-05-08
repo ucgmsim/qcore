@@ -12,7 +12,8 @@ printf "<br><br><br><br>"
 done
 
 echo "?????????"
-echo $BUILD_LOG
+log=$BUILD_LOG
+echo ${log}
 
 #py.test --junitxml results.xml qcore/test/test_geo/test_geo.py
 
