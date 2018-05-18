@@ -51,13 +51,6 @@ def bwfilter(data, dt, freq, band, match_powersb = True):
             butter(4, freq / nyq, btype = band, output = 'sos'), \
             data, padtype = None)
 
-def get_ft_len(nt):
-    """
-    Length the fourier transform should be
-    given timeseries length nt.
-    """
-    return int(2 ** math.ceil(math.log(nt) / math.log(2)))
-
 def ampdeamp(timeseries, ampf, amp = True):
     """
     Amplify or Deamplify timeseries.
@@ -65,7 +58,7 @@ def ampdeamp(timeseries, ampf, amp = True):
     nt = len(timeseries)
 
     # length the fourier transform should be
-    ft_len = get_ft_len(nt)
+    ft_len = ampf.size + ampf.size + 1
 
     # taper 5% on the right using the hanning method
     ntap = int(nt * 0.05)
@@ -78,7 +71,7 @@ def ampdeamp(timeseries, ampf, amp = True):
 
     # ampf modified for de-amplification
     if not amp:
-        ampf = 1 / ampf
+        ampf = 1.0 / ampf
     # last value of fft is some identity value
     fourier[:-1] *= ampf
 
@@ -324,7 +317,7 @@ class LFSeis:
 class HFSeis:
     # format constants
     HEAD_SIZE = 0x200
-    HEAD_STAT = 0x14
+    HEAD_STAT = 0x18
     N_COMP = 3
     # indexing constants
     X = 0
@@ -382,7 +375,8 @@ class HFSeis:
                 dtype = [('lon', '%sf4' % (endian)), \
                          ('lat', '%sf4' % (endian)), \
                          ('name', '|S8'), \
-                         ('e_dist', '%sf4' % (endian))]))
+                         ('e_dist', '%sf4' % (endian)), \
+                         ('vs', '%sf4' % (endian))]))
         hff.close()
 
         # allow indexing by station names
@@ -423,4 +417,94 @@ class HFSeis:
 ### PROCESSING OF BB BINARY CONTAINER
 ###
 class BBSeis:
-    pass
+    # format constants
+    HEAD_SIZE = 0x500
+    HEAD_STAT = 0x2c
+    N_COMP = 3
+    # indexing constants
+    X = 0
+    Y = 1
+    Z = 2
+    COMP = {'090':X, '000':Y, 'ver':Z}
+
+    def __init__(self, bb_path):
+        """
+        Load HF binary store.
+        hf_path: path to the HF binary file
+        """
+
+        bbs = os.stat(bb_path).st_size
+        bbf = open(bb_path, 'rb')
+        # determine endianness by checking file size
+        nstat, nt = np.fromfile(bbf, dtype = '<i4', count = 2)
+        if bbs == self.HEAD_SIZE + nstat * self.HEAD_STAT \
+                                 + nstat * nt * self.N_COMP * 4:
+            endian = '<'
+        elif bbs == self.HEAD_SIZE \
+                    + nstat.byteswap() * self.HEAD_STAT \
+                    + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+            endian = '>'
+        else:
+            bbf.close()
+            print self.HEAD_SIZE + nstat * self.HEAD_STAT + nstat * nt * self.N_COMP * 4, bbs
+            raise ValueError('File is not an BB seis file: %s' % (bb_path))
+        bbf.seek(0)
+
+        # read header - integers
+        self.nstat, self.nt = np.fromfile(bbf, dtype = '%si4' % (endian), \
+                                          count = 2)
+        # read header - floats
+        self.duration, self.dt, self.start_sec \
+                = np.fromfile(bbf, dtype = '%sf4' % (endian), count = 3)
+        # read header - strings
+        self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(bbf, count = 3, \
+                                                            dtype = '|S256')
+
+        # load station info
+        bbf.seek(self.HEAD_SIZE)
+        self.stations = np.rec.array(np.fromfile(bbf, count = self.nstat, \
+                dtype = [('lon', 'f4'), \
+                         ('lat', 'f4'), \
+                         ('name', '|S8'), \
+                         ('x', 'i4'), \
+                         ('y', 'i4'), \
+                         ('z', 'i4'), \
+                         ('e_dist', 'f4'), \
+                         ('hf_vs_ref', 'f4'), \
+                         ('lf_vs_ref', 'f4'), \
+                         ('vsite', 'f4')]))
+        bbf.close()
+
+        # allow indexing by station names
+        self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
+        # only map the timeseries
+        self.data = np.memmap(bb_path, dtype = '%sf4' % (endian), \
+                mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
+                shape = (self.nstat, self.nt, self.N_COMP))
+
+    def acc(self, station, comp = Ellipsis):
+        """
+        Returns timeseries (acceleration) for station.
+        station: station name, must exist
+        comp: component (default all) examples: 0, self.X, self.COMP['090']
+        """
+        return self.data[self.stat_idx[station], :, comp]
+
+    def acc2txt(self, station, prefix = './', title = ''):
+        """
+        Creates standard EMOD3D text files for the station.
+        """
+        i = self.stat_idx[station]
+        for c in self.COMP:
+            seis2txt(self.data[i, :, self.COMP[c]], self.dt, \
+                     prefix, station, c, start_sec = self.start_sec, \
+                     edist = self.stations.e_dist[i], title = title)
+
+    def all2txt(self, prefix = './'):
+        """
+        Produces outputs as if the HF binary produced individual text files.
+        For compatibility. Should run slices in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
+        """
+        for s in self.stations.name:
+            self.acc2txt(s, prefix = prefix, title = prefix)
