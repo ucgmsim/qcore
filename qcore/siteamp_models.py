@@ -69,13 +69,9 @@ def cb_amp(dt, n, vref, vsite, vpga, pga, version = '2008', \
         return (c10[T] + k2[T] * scon_n) * log(1100.0 / k1[T])
     def fs_auto(T, vs30):
         return fs_low if vs30 < k1[T] else fs_mid if vs30 < 1100.0 else fs_high
-    fs1100 = fs_high(0)
 
-    # default amplification is 1.0 (keeping values the same)
-    ampf = np.ones(n / 2, dtype = np.float)
-
-    fs_vpga = fs_auto(0, vpga)(0, vpga, pga)
-    a1100 = pga * exp(fs1100 - fs_vpga)
+    #                 fs1100     - fs_vpga
+    a1100 = pga * exp(fs_high(0) - fs_auto(0, vpga)(0, vpga, pga))
 
     # calculate factor for each period
     it = (exp(fs_auto(T, vsite)(T, vsite, a1100) \
@@ -91,6 +87,7 @@ def cb_amp(dt, n, vref, vsite, vpga, pga, version = '2008', \
 
     # frequencies of fourier transform
     ftfreq = np.arange(1, n / 2) * (1.0 / (n * dt))
+    #ftfreq = ftfreq[24:]
 
     # calculate ampv based on period group
     j = freqs.size - 1
@@ -100,10 +97,24 @@ def cb_amp(dt, n, vref, vsite, vpga, pga, version = '2008', \
     a1 = a0
     dadf = 0.0
     ampvA = np.zeros(ftfreq.size)
+    # default amplification is 1.0 (keeping values the same)
+    ampf = np.ones(ftfreq.size + 1, dtype = np.float)
+    #ftfreq[-2] = 1000.3
+    #ftfreq[-1] = 1000.8
+    #digi = np.digitize(freqs, ftfreq)
+    #digi[-1] = 0
+    #print digi
+    #print len(ftfreq)
+    #print digi[freqs]
+    #a0A = np.zeros(ftfreq.size)
+    #dadfA = np.zeros(ftfreq.size)
+    #dadf0 = [0]
+    #f0A = np.zeros(ftfreq.size)
 
     # TODO: vectorise this block, slowest part, especially multiplication
     for i, ftf in enumerate(ftfreq):
         if ftf > f1:
+            #print i
             f0 = f1
             a0 = a1
             if j - 1:
@@ -113,8 +124,40 @@ def cb_amp(dt, n, vref, vsite, vpga, pga, version = '2008', \
                 dadf = (a1 - a0) / log(f1 / f0)
             else:
                 dadf = 0.0
+            #dadf0.append(dadf)
         #ampv = a0 + dadf * log(ftf / f0)
+        #print ftf
+        #a0A[i] = a0
+        #dadfA[i] = dadf
+        #f0A[i] = f0
         ampvA[i] = a0 + dadf * log(ftf / f0)
+
+
+    #print dadf0
+    #dadf0np = np.zeros(digi.size + 1)
+    #for i in xrange(1, freqs.size - 1):
+    #    dadf0np[-i -2] = (ampf0[i] - ampf0[i + 1]) / log(freqs[i] / freqs[i + 1])
+    #a0np = np.zeros(ftfreq.size)
+    #f0np = np.zeros(ftfreq.size)
+    #dadfnp = np.zeros(ftfreq.size)
+    #ampf0[0] = ampf0[1]
+    #freqs[0] = freqs[1]
+    #for i in xrange(digi.size):
+    #    try:
+    #        print digi[-i - 1], 'to', digi[-i - 2], 'is', ampf0[-i - 1]
+    #        a0np[digi[-i - 1]:digi[-i - 2]] = ampf0[-i - 1]
+    #        f0np[digi[-i - 1]:digi[-i - 2]] = freqs[-i - 1]
+    #    except IndexError:
+    #        a0np[digi[-i - 1]:a0np.size] = ampf0[-i - 1]
+    #        f0np[digi[-i - 1]:f0np.size] = freqs[-i - 1]
+    
+    #print a0A[:23]
+    #print a0np[:23]
+
+    # verification
+    #print min(dadf0np == dadf0)
+    #print min(a0np == a0A)
+    #print min(f0np == f0A)
 
         # scale amplification factor by frequency
         # optimised for likelihood
