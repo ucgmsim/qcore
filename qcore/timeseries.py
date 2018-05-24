@@ -5,7 +5,9 @@ Shared functions to work on time-series.
 @date 13/09/2016
 """
 
-from math import ceil, log, pi
+from glob import glob
+import math
+import os
 
 try:
     from scipy.signal import butter
@@ -38,7 +40,7 @@ def bwfilter(data, dt, freq, band, match_powersb = True):
     #x = 1.0 / (2.0 * order)
     #if band == 'lowpass':
     #    x *= -1
-    #freq *= exp(x * log(sqrt(2.0) - 1.0))
+    #freq *= exp(x * math.log(sqrt(2.0) - 1.0))
     nyq = 1.0 / (2.0 * dt)
     if match_powersb:
         if band == 'highpass':
@@ -49,13 +51,6 @@ def bwfilter(data, dt, freq, band, match_powersb = True):
             butter(4, freq / nyq, btype = band, output = 'sos'), \
             data, padtype = None)
 
-def get_ft_len(nt):
-    """
-    Length the fourier transform should be
-    given timeseries length nt.
-    """
-    return int(2 ** ceil(log(nt) / log(2)))
-
 def ampdeamp(timeseries, ampf, amp = True):
     """
     Amplify or Deamplify timeseries.
@@ -63,7 +58,7 @@ def ampdeamp(timeseries, ampf, amp = True):
     nt = len(timeseries)
 
     # length the fourier transform should be
-    ft_len = get_ft_len(nt)
+    ft_len = ampf.size + ampf.size + 1
 
     # taper 5% on the right using the hanning method
     ntap = int(nt * 0.05)
@@ -76,7 +71,7 @@ def ampdeamp(timeseries, ampf, amp = True):
 
     # ampf modified for de-amplification
     if not amp:
-        ampf = 1 / ampf
+        ampf = 1.0 / ampf
     # last value of fft is some identity value
     fourier[:-1] *= ampf
 
@@ -98,7 +93,7 @@ def transf(vs_soil, rho_soil, damp_soil, height_soil, \
     # the last value isn't an ft value
     ft_freq = np.arange(0, ft_len / 2) * (1 / (ft_len * dt))
 
-    omega = 2.0 * pi * ft_freq
+    omega = 2.0 * math.pi * ft_freq
     Gs = rho_soil * vs_soil ** 2.0
     Gr = rho_rock * vs_rock ** 2.0
 
@@ -153,11 +148,18 @@ def vel2acc(timeseries, dt):
     """
     return np.diff(np.hstack(([0], timeseries)) * (1.0 / dt))
 
+def vel2acc3d(timeseries, dt):
+    """
+    vel2acc for x,y,z arrays
+    """
+    return np.diff(np.vstack(([0, 0, 0], timeseries)), axis = 0) * (1.0 / dt)
+
 def acc2vel(timeseries, dt):
     """
     Integrates following Rob Graves' code logic (simple).
+    also works for x,y,z arrays
     """
-    return np.cumsum(timeseries) * dt
+    return np.cumsum(timeseries, axis = 0) * dt
 
 def pgv2MMI(pgv):
     """
@@ -167,3 +169,342 @@ def pgv2MMI(pgv):
                     3.78 + 1.47 * np.log10(pgv),
                     2.89 + 3.16 * np.log10(pgv))
 
+def seis2txt(seis, dt, prefix, stat, comp, \
+             start_hr=0, start_min=0, start_sec=0.0, \
+             edist=0.0, az=0.0, baz=0.0, title='', vpl = 6):
+    """
+    Store timeseries data as standard EMOD3D text file {prefix}{stat}.{comp}.
+    seis: timeseries
+    dt: timestep
+    prefix: filename excluding station name and extention
+    stat: station name
+    comp: same as file extention ('090', '000', 'ver')
+    start_hr: start time (hours, generally not used)
+    start_min: start time (minutes, generally not used)
+    start_sec: start time (seconds)
+    edist: epicentre distance
+    az: generally not used
+    baz: generally not used
+    title: used in header
+    vpl: values per line, more is faster
+    """
+    nt = seis.shape[0]
+    with open('%s%s.%s' % (prefix, stat, comp), 'w') as txt:
+        # same format strings as fdbin2wcc
+        txt.write('%-10s %3s %s\n' % (stat, comp, title))
+        txt.write('%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n' % \
+                 (nt, dt, start_hr, start_min, start_sec, edist, az, baz))
+        # values below header lines, vpl per line
+        divisible = nt - nt % vpl
+        np.savetxt(txt, seis[:divisible].reshape(-1, vpl), fmt = '%13.5e')
+        np.savetxt(txt, np.atleast_2d(seis[divisible:]), fmt = '%13.5e')
+
+###
+### PROCESSING OF LF BINARY CONTAINER
+###
+class LFSeis:
+    # format constants
+    HEAD_STAT = 0x30
+    N_COMP = 9
+    T_START = -1
+    # indexing constants
+    X = 0
+    Y = 1
+    Z = 2
+    COMP_NAME = {X:'090', Y:'000', Z:'ver'}
+
+    def __init__(self, outbin):
+        """
+        Load LF binary store.
+        outbin: path to OutBin folder containing seis files
+        """
+        seis = sorted(glob(os.path.join(outbin, '*seis-*.e3d')))
+
+        # determine endianness by checking file size
+        lfs = os.stat(seis[0]).st_size
+        with open(seis[0], 'rb') as lf0:
+            nstat, nt = np.fromfile(lf0, dtype = '<i4', count = 6)[0::5]
+            if lfs == 4 + nstat * self.HEAD_STAT + nstat * nt * self.N_COMP * 4:
+                endian = '<'
+                self.nt = nt
+            elif lfs == 4 + nstat.byteswap() * self.HEAD_STAT \
+                        + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+                endian = '>'
+                self.nt = nt.byteswap()
+            else:
+                raise ValueError('File is not an LF seis file: %s' % (seis[0]))
+            self.i4 = '%si4' % (endian)
+            self.f4 = '%sf4' % (endian)
+            # load rest of common metadata from first station in first file
+            self.dt, self.hh, self.rot = \
+                    np.fromfile(lf0, dtype = self.f4, count = 3)
+
+        # rotation matrix for converting to 090, 000, ver is inverted (* -1)
+        theta = math.radians(self.rot)
+        self.rot_matrix = np.array([[ math.cos(theta), -math.sin(theta),  0], \
+                                    [-math.sin(theta), -math.cos(theta),  0], \
+                                    [               0,                0, -1]])
+
+        # load nstats to determine total size
+        nstats = np.zeros(len(seis), dtype = 'i')
+        for i, s in enumerate(seis):
+            nstats[i] = np.fromfile(s, dtype = self.i4, count = 1)
+        self.nstat = np.sum(nstats)
+        # container for station data
+        self.stations = np.rec.array(np.zeros(self.nstat, dtype = \
+                            [('x', 'i4'), ('y', 'i4'), ('z', 'i4'), \
+                             ('seis_idx', 'i4', 2), ('lat', 'f4'), \
+                             ('lon', 'f4'), ('name', '|S8')]))
+        # populate station data from headers
+        for i, s in enumerate(seis):
+            with open(s) as f:
+                f.seek(4)
+                stations = np.fromfile(f, count = nstats[i], \
+                    dtype = np.dtype({ \
+                                'names':['stat_pos', 'x', 'y', 'z', \
+                                         'seis_idx', 'lat', 'lon', 'name'], \
+                                'formats':[self.i4, self.i4, self.i4, self.i4, \
+                                           (self.i4, 2), self.f4, self.f4, '|S8'], \
+                                'offsets':[0, 4, 8, 12, 16, 32, 36, 40]}))
+            stations['seis_idx'][:, 0] = i
+            stations['seis_idx'][:, 1] = np.arange(nstats[i])
+            self.stations[stations['stat_pos']] = \
+                    stations[list(stations.dtype.names[1:])]
+        # allow indexing by station names
+        self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
+
+        # only map the timeseries
+        self.data = []
+        for i, s in enumerate(seis):
+            self.data.append(np.memmap(s, dtype = self.f4, \
+                mode = 'r', offset = 4 + nstats[i] * self.HEAD_STAT, \
+                shape = (self.nt, nstats[i], self.N_COMP)))
+
+    def vel(self, station):
+        """
+        Returns timeseries (velocity) for station.
+        station: station name, must exist
+        """
+        file_no, file_idx = self.stations[self.stat_idx[station]]['seis_idx']
+        return np.dot(self.data[file_no][:, file_idx, :3], self.rot_matrix)
+
+    def acc(self, station):
+        """
+        Like vel but also converts to acceleration.
+        """
+        return vel2acc3d(self.vel(station), self.dt)
+
+    def vel2txt(self, station, prefix = './', title = ''):
+        """
+        Creates standard EMOD3D text files for the station.
+        """
+        for i, c in enumerate(self.vel(station).T):
+            seis2txt(c, self.dt, prefix, station, self.COMP_NAME[i], \
+                     start_sec = self.T_START, title = title)
+
+    def all2txt(self, prefix = './'):
+        """
+        Produces text files previously done by script called `winbin-aio`.
+        For compatibility. Consecutive file indexes in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
+        """
+        for s in self.stations.name:
+            self.vel2txt(s, prefix = prefix, title = prefix)
+
+###
+### PROCESSING OF HF BINARY CONTAINER
+###
+class HFSeis:
+    # format constants
+    HEAD_SIZE = 0x200
+    HEAD_STAT = 0x18
+    N_COMP = 3
+    # indexing constants
+    X = 0
+    Y = 1
+    Z = 2
+    COMP = {'090':X, '000':Y, 'ver':Z}
+
+    def __init__(self, hf_path):
+        """
+        Load HF binary store.
+        hf_path: path to the HF binary file
+        """
+
+        hfs = os.stat(hf_path).st_size
+        hff = open(hf_path, 'rb')
+        # determine endianness by checking file size
+        nstat, nt = np.fromfile(hff, dtype = '<i4', count = 2)
+        if hfs == self.HEAD_SIZE + nstat * self.HEAD_STAT \
+                                   + nstat * nt * self.N_COMP * 4:
+            endian = '<'
+        elif hfs == self.HEAD_SIZE \
+                    + nstat.byteswap() * self.HEAD_STAT \
+                    + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+            endian = '>'
+        else:
+            hff.close()
+            raise ValueError('File is not an HF seis file: %s' % (hf_path))
+        hff.seek(0)
+
+        # read header - integers
+        self.nstat, self.nt, self.seed, siteamp, self.pdur_model, \
+                nrayset, rayset1, rayset2, rayset3, rayset4, \
+                self.nbu, self.ift, self.nlskip, icflag, same_seed, \
+                site_specific_vm = \
+                        np.fromfile(hff, dtype = '%si4' % (endian), count = 16)
+        self.siteamp = bool(siteamp)
+        self.rayset = [rayset1, rayset2, rayset3, rayset4][:nrayset]
+        self.icflag = bool(icflag)
+        self.seed_inc = not bool(same_seed)
+        self.site_specific_vm = bool(site_specific_vm)
+        # read header - floats
+        self.duration, self.dt, self.start_sec, self.sdrop, self.flo, self.fhi, \
+                self.rvfac, self.rvfac_shal, self.rvfac_deep, \
+                self.czero, self.calpha, self.mom, self.rupv, self.vs_moho, \
+                self.vp_sig, self.vsh_sig, self.rho_sig, self.qs_sig, \
+                self.fa_sig1, self.fa_sig2, self.rv_sig1 = \
+                        np.fromfile(hff, dtype = '%sf4' % (endian), count = 21)
+        # read header - strings
+        self.stoch_file, self.velocity_model = \
+                np.fromfile(hff, dtype = '|S64', count = 2)
+
+        # load station info
+        hff.seek(self.HEAD_SIZE)
+        self.stations = np.rec.array(np.fromfile(hff, count = self.nstat, \
+                dtype = [('lon', '%sf4' % (endian)), \
+                         ('lat', '%sf4' % (endian)), \
+                         ('name', '|S8'), \
+                         ('e_dist', '%sf4' % (endian)), \
+                         ('vs', '%sf4' % (endian))]))
+        hff.close()
+
+        # allow indexing by station names
+        self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
+        # only map the timeseries
+        self.data = np.memmap(hf_path, dtype = '%sf4' % (endian), \
+                mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
+                shape = (self.nstat, self.nt, self.N_COMP))
+
+    def acc(self, station, comp = Ellipsis):
+        """
+        Returns timeseries (acceleration) for station.
+        station: station name, must exist
+        comp: component (default all) examples: 0, self.X, self.COMP['090']
+        """
+        return self.data[self.stat_idx[station], :, comp]
+
+    def acc2txt(self, station, prefix = './', title = ''):
+        """
+        Creates standard EMOD3D text files for the station.
+        """
+        i = self.stat_idx[station]
+        for c in self.COMP:
+            seis2txt(self.data[i, :, self.COMP[c]], self.dt, \
+                     prefix, station, c, start_sec = self.start_sec, \
+                     edist = self.stations.e_dist[i], title = title)
+
+    def all2txt(self, prefix = './'):
+        """
+        Produces outputs as if the HF binary produced individual text files.
+        For compatibility. Should run slices in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
+        """
+        for s in self.stations.name:
+            self.acc2txt(s, prefix = prefix, title = prefix)
+
+###
+### PROCESSING OF BB BINARY CONTAINER
+###
+class BBSeis:
+    # format constants
+    HEAD_SIZE = 0x500
+    HEAD_STAT = 0x2c
+    N_COMP = 3
+    # indexing constants
+    X = 0
+    Y = 1
+    Z = 2
+    COMP = {'090':X, '000':Y, 'ver':Z}
+
+    def __init__(self, bb_path):
+        """
+        Load HF binary store.
+        hf_path: path to the HF binary file
+        """
+
+        bbs = os.stat(bb_path).st_size
+        bbf = open(bb_path, 'rb')
+        # determine endianness by checking file size
+        nstat, nt = np.fromfile(bbf, dtype = '<i4', count = 2)
+        if bbs == self.HEAD_SIZE + nstat * self.HEAD_STAT \
+                                 + nstat * nt * self.N_COMP * 4:
+            endian = '<'
+        elif bbs == self.HEAD_SIZE \
+                    + nstat.byteswap() * self.HEAD_STAT \
+                    + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+            endian = '>'
+        else:
+            bbf.close()
+            print self.HEAD_SIZE + nstat * self.HEAD_STAT + nstat * nt * self.N_COMP * 4, bbs
+            raise ValueError('File is not an BB seis file: %s' % (bb_path))
+        bbf.seek(0)
+
+        # read header - integers
+        self.nstat, self.nt = np.fromfile(bbf, dtype = '%si4' % (endian), \
+                                          count = 2)
+        # read header - floats
+        self.duration, self.dt, self.start_sec \
+                = np.fromfile(bbf, dtype = '%sf4' % (endian), count = 3)
+        # read header - strings
+        self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(bbf, count = 3, \
+                                                            dtype = '|S256')
+
+        # load station info
+        bbf.seek(self.HEAD_SIZE)
+        self.stations = np.rec.array(np.fromfile(bbf, count = self.nstat, \
+                dtype = [('lon', 'f4'), \
+                         ('lat', 'f4'), \
+                         ('name', '|S8'), \
+                         ('x', 'i4'), \
+                         ('y', 'i4'), \
+                         ('z', 'i4'), \
+                         ('e_dist', 'f4'), \
+                         ('hf_vs_ref', 'f4'), \
+                         ('lf_vs_ref', 'f4'), \
+                         ('vsite', 'f4')]))
+        bbf.close()
+
+        # allow indexing by station names
+        self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
+        # only map the timeseries
+        self.data = np.memmap(bb_path, dtype = '%sf4' % (endian), \
+                mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
+                shape = (self.nstat, self.nt, self.N_COMP))
+
+    def acc(self, station, comp = Ellipsis):
+        """
+        Returns timeseries (acceleration) for station.
+        station: station name, must exist
+        comp: component (default all) examples: 0, self.X, self.COMP['090']
+        """
+        return self.data[self.stat_idx[station], :, comp]
+
+    def acc2txt(self, station, prefix = './', title = ''):
+        """
+        Creates standard EMOD3D text files for the station.
+        """
+        i = self.stat_idx[station]
+        for c in self.COMP:
+            seis2txt(self.data[i, :, self.COMP[c]], self.dt, \
+                     prefix, station, c, start_sec = self.start_sec, \
+                     edist = self.stations.e_dist[i], title = title)
+
+    def all2txt(self, prefix = './'):
+        """
+        Produces outputs as if the HF binary produced individual text files.
+        For compatibility. Should run slices in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
+        """
+        for s in self.stations.name:
+            self.acc2txt(s, prefix = prefix, title = prefix)
