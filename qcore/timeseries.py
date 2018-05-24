@@ -10,7 +10,7 @@ import math
 import os
 
 try:
-    from scipy.signal import butter
+    from scipy.signal import butter, resample
 except ImportError:
     print('SciPy not installed. Certain functions will fail.')
 # sosfilt new in scipy 0.16
@@ -238,6 +238,7 @@ class LFSeis:
             # load rest of common metadata from first station in first file
             self.dt, self.hh, self.rot = \
                     np.fromfile(lf0, dtype = self.f4, count = 3)
+            self.duration = self.nt * self.dt
 
         # rotation matrix for converting to 090, 000, ver is inverted (* -1)
         theta = math.radians(self.rot)
@@ -280,36 +281,45 @@ class LFSeis:
                 mode = 'r', offset = 4 + nstats[i] * self.HEAD_STAT, \
                 shape = (self.nt, nstats[i], self.N_COMP)))
 
-    def vel(self, station):
+    def vel(self, station, dt = None):
         """
         Returns timeseries (velocity) for station.
         station: station name, must exist
         """
         file_no, file_idx = self.stations[self.stat_idx[station]]['seis_idx']
-        return np.dot(self.data[file_no][:, file_idx, :3], self.rot_matrix)
+        ts = np.dot(self.data[file_no][:, file_idx, :3], self.rot_matrix)
+        if dt is None or dt == self.dt:
+            return ts
+        return resample(ts, int(round(self.duration / dt)))
 
-    def acc(self, station):
+    def acc(self, station, dt = None):
         """
         Like vel but also converts to acceleration.
         """
-        return vel2acc3d(self.vel(station), self.dt)
+        if dt is None:
+            dt = self.dt
+        return vel2acc3d(self.vel(station, dt = dt), dt)
 
-    def vel2txt(self, station, prefix = './', title = ''):
+    def vel2txt(self, station, prefix = './', title = '', dt = None):
         """
         Creates standard EMOD3D text files for the station.
         """
-        for i, c in enumerate(self.vel(station).T):
-            seis2txt(c, self.dt, prefix, station, self.COMP_NAME[i], \
+        if dt is None:
+            dt = self.dt
+        for i, c in enumerate(self.vel(station, dt = dt).T):
+            seis2txt(c, dt, prefix, station, self.COMP_NAME[i], \
                      start_sec = self.T_START, title = title)
 
-    def all2txt(self, prefix = './'):
+    def all2txt(self, prefix = './', dt = None):
         """
         Produces text files previously done by script called `winbin-aio`.
         For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
         """
+        if dt is None:
+            dt = self.dt
         for s in self.stations.name:
-            self.vel2txt(s, prefix = prefix, title = prefix)
+            self.vel2txt(s, prefix = prefix, title = prefix, dt = dt)
 
 ###
 ### PROCESSING OF HF BINARY CONTAINER
@@ -386,13 +396,16 @@ class HFSeis:
                 mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
                 shape = (self.nstat, self.nt, self.N_COMP))
 
-    def acc(self, station, comp = Ellipsis):
+    def acc(self, station, comp = Ellipsis, dt = None):
         """
         Returns timeseries (acceleration) for station.
         station: station name, must exist
         comp: component (default all) examples: 0, self.X, self.COMP['090']
         """
-        return self.data[self.stat_idx[station], :, comp]
+        ts = self.data[self.stat_idx[station], :, comp]
+        if dt is None or dt == self.dt:
+            return ts
+        return resample(ts, int(round(self.duration / dt)))
 
     def acc2txt(self, station, prefix = './', title = ''):
         """
