@@ -333,7 +333,7 @@ class HFSeis:
     X = 0
     Y = 1
     Z = 2
-    COMP = {'090':X, '000':Y, 'ver':Z}
+    COMP_NAME = {X:'090', Y:'000', Z:'ver'}
 
     def __init__(self, hf_path):
         """
@@ -408,24 +408,36 @@ class HFSeis:
             return ts
         return resample(ts, int(round(self.duration / dt)))
 
-    def acc2txt(self, station, prefix = './', title = ''):
+    def vel(self, station, dt = None):
+        """
+        Like acc but also converts to velocity.
+        """
+        if dt is None:
+            dt = self.dt
+        return acc2vel(self.acc(station, dt = dt), dt)
+
+    def acc2txt(self, station, prefix = './', title = '', dt = None):
         """
         Creates standard EMOD3D text files for the station.
         """
-        i = self.stat_idx[station]
-        for c in self.COMP:
-            seis2txt(self.data[i, :, self.COMP[c]], self.dt, \
-                     prefix, station, c, start_sec = self.start_sec, \
-                     edist = self.stations.e_dist[i], title = title)
+        if dt is None:
+            dt = self.dt
+        stat_idx = self.stat_idx[station]
+        for i, c in enumerate(self.acc(station, dt = dt).T):
+            seis2txt(c, dt, prefix, station, self.COMP_NAME[i], \
+                     start_sec = self.T_START, \
+                     edist = self.stations.e_dist[stat_idx], title = title)
 
-    def all2txt(self, prefix = './'):
+    def all2txt(self, prefix = './', dt = None):
         """
         Produces outputs as if the HF binary produced individual text files.
         For compatibility. Should run slices in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
         """
+        if dt is None:
+            dt = self.dt
         for s in self.stations.name:
-            self.acc2txt(s, prefix = prefix, title = prefix)
+            self.acc2txt(s, prefix = prefix, title = prefix, dt = dt)
 
 ###
 ### PROCESSING OF BB BINARY CONTAINER
