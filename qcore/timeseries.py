@@ -369,12 +369,13 @@ class HFSeis:
         self.seed_inc = not bool(same_seed)
         self.site_specific_vm = bool(site_specific_vm)
         # read header - floats
-        self.duration, self.dt, self.start_sec, self.sdrop, self.flo, self.fhi, \
+        self.duration, self.dt, self.start_sec, self.sdrop, self.kappa, \
+                self.qfexp, self.fmax, self.flo, self.fhi, \
                 self.rvfac, self.rvfac_shal, self.rvfac_deep, \
                 self.czero, self.calpha, self.mom, self.rupv, self.vs_moho, \
                 self.vp_sig, self.vsh_sig, self.rho_sig, self.qs_sig, \
                 self.fa_sig1, self.fa_sig2, self.rv_sig1 = \
-                        np.fromfile(hff, dtype = '%sf4' % (endian), count = 21)
+                        np.fromfile(hff, dtype = '%sf4' % (endian), count = 24)
         # read header - strings
         self.stoch_file, self.velocity_model = \
                 np.fromfile(hff, dtype = '|S64', count = 2)
