@@ -508,15 +508,15 @@ class BBSeis:
                 mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
                 shape = (self.nstat, self.nt, self.N_COMP))
 
-    def acc(self, station, comp = Ellipsis):
+    def vel(self, station, comp = Ellipsis):
         """
-        Returns timeseries (acceleration) for station.
+        Returns timeseries (velocity) for station.
         station: station name, must exist
         comp: component (default all) examples: 0, self.X, self.COMP['090']
         """
         return self.data[self.stat_idx[station], :, comp]
 
-    def acc2txt(self, station, prefix = './', title = ''):
+    def vel2txt(self, station, prefix = './', title = ''):
         """
         Creates standard EMOD3D text files for the station.
         """
@@ -533,4 +533,4 @@ class BBSeis:
         Slowest part is numpy formating numbers into text and number of lines.
         """
         for s in self.stations.name:
-            self.acc2txt(s, prefix = prefix, title = prefix)
+            self.vel2txt(s, prefix = prefix, title = prefix)
