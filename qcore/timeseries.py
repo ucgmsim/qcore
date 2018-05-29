@@ -510,7 +510,7 @@ class BBSeis:
 
     def acc(self, station, comp = Ellipsis):
         """
-        Returns timeseries (acceleration) for station.
+        Returns timeseries (acceleration in g) for station.
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
@@ -522,7 +522,7 @@ class BBSeis:
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
-        return acc2vel(self.acc(station, comp = comp), self.dt)
+        return acc2vel(self.acc(station, comp = comp) * 981.0, self.dt)
 
     def save_txt(self, station, prefix = './', title = '', f = 'acc'):
         """
