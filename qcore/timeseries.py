@@ -522,7 +522,7 @@ class BBSeis:
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
-        return acc2vel(self.acc(station, comp = comp))
+        return acc2vel(self.acc(station, comp = comp), self.dt)
 
     def save_txt(self, station, prefix = './', title = '', f = 'acc'):
         """
