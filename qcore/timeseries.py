@@ -401,7 +401,7 @@ class HFSeis:
         """
         Returns timeseries (acceleration) for station.
         station: station name, must exist
-        comp: component (default all) examples: 0, self.X, self.COMP['090']
+        comp: component (default all) examples: 0, self.X
         """
         ts = self.data[self.stat_idx[station], :, comp]
         if dt is None or dt == self.dt:
@@ -451,7 +451,7 @@ class BBSeis:
     X = 0
     Y = 1
     Z = 2
-    COMP = {'090':X, '000':Y, 'ver':Z}
+    COMP_NAME = {X:'090', Y:'000', Z:'ver'}
 
     def __init__(self, bb_path):
         """
@@ -512,7 +512,7 @@ class BBSeis:
         """
         Returns timeseries (acceleration) for station.
         station: station name, must exist
-        comp: component (default all) examples: 0, self.X, self.COMP['090']
+        comp: component (default all) examples: 0, self.X
         """
         return self.data[self.stat_idx[station], :, comp]
 
@@ -520,25 +520,29 @@ class BBSeis:
         """
         Returns timeseries (velocity) for station.
         station: station name, must exist
-        comp: component (default all) examples: 0, self.X, self.COMP['090']
+        comp: component (default all) examples: 0, self.X
         """
         return acc2vel(self.acc(station, comp = comp))
 
-    def acc2txt(self, station, prefix = './', title = ''):
+    def save_txt(self, station, prefix = './', title = '', f = 'acc'):
         """
         Creates standard EMOD3D text files for the station.
         """
         i = self.stat_idx[station]
-        for c in self.COMP:
-            seis2txt(self.data[i, :, self.COMP[c]], self.dt, \
-                     prefix, station, c, start_sec = self.start_sec, \
+        if f == 'vel':
+            f = self.vel
+        else:
+            f = self.acc
+        for i, c in enumerate(f(station).T):
+            seis2txt(c, self.dt, prefix, station, self.COMP_NAME[i], \
+                     start_sec = self.start_sec, \
                      edist = self.stations.e_dist[i], title = title)
 
-    def all2txt(self, prefix = './'):
+    def all2txt(self, prefix = './', f = 'acc'):
         """
         Produces outputs as if the HF binary produced individual text files.
         For compatibility. Should run slices in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
         """
         for s in self.stations.name:
-            self.acc2txt(s, prefix = prefix, title = prefix)
+            self.save_txt(s, prefix = prefix, title = prefix, f = f)
