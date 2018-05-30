@@ -88,9 +88,8 @@ def validate_vm(vm_dir):
     for bin_file in vm.values():
         size = os.path.getsize(bin_file)
         if size != vm_size:
-            eprint('VM filesize for %s expected: %d found: %d' \
-                    % (bin_file, vm_size, size))
-            return False
+            return False, 'VM filesize for %s expected: %d found: %d' \
+                    % (bin_file, vm_size, size)
 
     # 6: binary contents
     if numpy:
