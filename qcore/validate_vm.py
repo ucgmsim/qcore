@@ -110,7 +110,7 @@ def validate_vm(vm_dir):
         # not as important, can be re-created based on params_vel.py
         pass
 
-    return True, 'VM seems alright: %s.' % (vm_dir))
+    return True, 'VM seems alright: %s.' % (vm_dir)
 
 if __name__ == '__main__':
     rc = 1
