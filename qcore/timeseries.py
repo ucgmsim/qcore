@@ -283,7 +283,7 @@ class LFSeis:
 
     def vel(self, station, dt = None):
         """
-        Returns timeseries (velocity) for station.
+        Returns timeseries (velocity, cm/s) for station.
         station: station name, must exist
         """
         file_no, file_idx = self.stations[self.stat_idx[station]]['seis_idx']
@@ -294,7 +294,7 @@ class LFSeis:
 
     def acc(self, station, dt = None):
         """
-        Like vel but also converts to acceleration.
+        Like vel but also converts to acceleration (cm/s/s).
         """
         if dt is None:
             dt = self.dt
@@ -399,7 +399,7 @@ class HFSeis:
 
     def acc(self, station, comp = Ellipsis, dt = None):
         """
-        Returns timeseries (acceleration) for station.
+        Returns timeseries (acceleration, cm/s/s) for station.
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
@@ -410,7 +410,7 @@ class HFSeis:
 
     def vel(self, station, dt = None):
         """
-        Like acc but also converts to velocity.
+        Like acc but also converts to velocity (cm/s).
         """
         if dt is None:
             dt = self.dt
@@ -510,7 +510,7 @@ class BBSeis:
 
     def acc(self, station, comp = Ellipsis):
         """
-        Returns timeseries (acceleration in g) for station.
+        Returns timeseries (acceleration, g) for station.
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
@@ -518,7 +518,7 @@ class BBSeis:
 
     def vel(self, station, comp = Ellipsis):
         """
-        Returns timeseries (velocity) for station.
+        Returns timeseries (velocity, cm/s) for station.
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
