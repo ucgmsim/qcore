@@ -105,10 +105,10 @@ def validate_vm(vm_dir):
             return False, 'VM vs, vp or rho <= 0|nan found: %s' % (vm_dir)
 
     # 7: contents of meta files
-    if meta_created:
-        # TODO: check individual file contents
-        # not as important, can be re-created based on params_vel.py
-        pass
+#    if meta_created:
+#        # TODO: check individual file contents
+#        # not as important, can be re-created based on params_vel.py
+#        pass
 
     return True, 'VM seems alright: %s.' % (vm_dir)
 
@@ -120,8 +120,9 @@ if __name__ == '__main__':
             if success:
                 rc = 0
             else:
-                print(message, file = sys.stderr)
+                sys.stderr.write("%s\n" % message)
     except Exception as e:
-        print(e, file = sys.stderr)
+        sys.stderr.write("%s\n" % e)
+
     finally:
         sys.exit(rc)
