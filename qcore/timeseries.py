@@ -218,11 +218,11 @@ class LFSeis:
         Load LF binary store.
         outbin: path to OutBin folder containing seis files
         """
-        seis = sorted(glob(os.path.join(outbin, '*seis-*.e3d')))
+        self.seis = sorted(glob(os.path.join(outbin, '*seis-*.e3d')))
 
         # determine endianness by checking file size
-        lfs = os.stat(seis[0]).st_size
-        with open(seis[0], 'rb') as lf0:
+        lfs = os.stat(self.seis[0]).st_size
+        with open(self.seis[0], 'rb') as lf0:
             nstat, nt = np.fromfile(lf0, dtype = '<i4', count = 6)[0::5]
             if lfs == 4 + nstat * self.HEAD_STAT + nstat * nt * self.N_COMP * 4:
                 endian = '<'
@@ -232,7 +232,8 @@ class LFSeis:
                 endian = '>'
                 self.nt = nt.byteswap()
             else:
-                raise ValueError('File is not an LF seis file: %s' % (seis[0]))
+                raise ValueError('File is not an LF seis file: %s' % \
+                                 (self.seis[0]))
             self.i4 = '%si4' % (endian)
             self.f4 = '%sf4' % (endian)
             # load rest of common metadata from first station in first file
@@ -247,8 +248,8 @@ class LFSeis:
                                     [               0,                0, -1]])
 
         # load nstats to determine total size
-        nstats = np.zeros(len(seis), dtype = 'i')
-        for i, s in enumerate(seis):
+        nstats = np.zeros(len(self.seis), dtype = 'i')
+        for i, s in enumerate(self.seis):
             nstats[i] = np.fromfile(s, dtype = self.i4, count = 1)
         self.nstat = np.sum(nstats)
         # container for station data
@@ -257,7 +258,7 @@ class LFSeis:
                              ('seis_idx', 'i4', 2), ('lat', 'f4'), \
                              ('lon', 'f4'), ('name', '|S8')]))
         # populate station data from headers
-        for i, s in enumerate(seis):
+        for i, s in enumerate(self.seis):
             with open(s) as f:
                 f.seek(4)
                 stations = np.fromfile(f, count = nstats[i], \
@@ -274,12 +275,13 @@ class LFSeis:
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
 
-        # only map the timeseries
-        self.data = []
-        for i, s in enumerate(seis):
-            self.data.append(np.memmap(s, dtype = self.f4, \
-                mode = 'r', offset = 4 + nstats[i] * self.HEAD_STAT, \
-                shape = (self.nt, nstats[i], self.N_COMP)))
+        # information for timeseries retrieval
+        self.ts_pos = 4 + nstats * self.HEAD_STAT
+        self.ts0_type = '3%sf4' % (endian)
+        self.ts_type = [np.dtype({'names':['xyz'], \
+                                 'formats':['3%sf4' % (endian)], \
+                                 'offsets':[nstats[i] * self.N_COMP * 4 - 3 * 4]}) \
+                                        for i in xrange(nstats.size)]
 
     def vel(self, station, dt = None):
         """
@@ -287,7 +289,12 @@ class LFSeis:
         station: station name, must exist
         """
         file_no, file_idx = self.stations[self.stat_idx[station]]['seis_idx']
-        ts = np.dot(self.data[file_no][:, file_idx, :3], self.rot_matrix)
+        ts = np.empty((self.nt, 3))
+        with open(self.seis[file_no], 'r') as data:
+            data.seek(self.ts_pos[file_no] + file_idx * self.N_COMP * 4)
+            ts[0] = np.fromfile(data, dtype = self.ts0_type, count = 1)
+            ts[1:] = np.fromfile(data, dtype = self.ts_type[file_no])['xyz']
+            ts = np.dot(ts, self.rot_matrix)
         if dt is None or dt == self.dt:
             return ts
         return resample(ts, int(round(self.duration / dt)))
@@ -392,10 +399,12 @@ class HFSeis:
 
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
-        # only map the timeseries
-        self.data = np.memmap(hf_path, dtype = '%sf4' % (endian), \
-                mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
-                shape = (self.nstat, self.nt, self.N_COMP))
+        # keep location for data retrieval
+        self.path = hf_path
+        # location to start of 3rd (data) block
+        self.ts_pos = self.HEAD_SIZE + nstat * self.HEAD_STAT
+        # data format
+        self.dtype = '3%sf4' % (endian)
 
     def acc(self, station, comp = Ellipsis, dt = None):
         """
@@ -403,7 +412,9 @@ class HFSeis:
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
-        ts = self.data[self.stat_idx[station], :, comp]
+        with open(self.path, 'r') as data:
+            data.seek(self.ts_pos + self.stat_idx[station] * self.nt * 3 * 4)
+            ts = np.fromfile(data, dtype = self.dtype, count = self.nt)
         if dt is None or dt == self.dt:
             return ts
         return resample(ts, int(round(self.duration / dt)))
