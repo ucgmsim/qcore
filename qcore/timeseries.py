@@ -531,7 +531,7 @@ class BBSeis:
         with open(self.path, 'r') as data:
             data.seek(self.ts_pos + self.stat_idx[station] * self.nt * 3 * 4)
             return np.fromfile(data, dtype = self.dtype, \
-                               count = self.nt)[..., comp]
+                               count = self.nt)[:, comp]
 
     def vel(self, station, comp = Ellipsis):
         """
