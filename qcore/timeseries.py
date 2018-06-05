@@ -279,7 +279,7 @@ class LFSeis:
         self.ts_pos = 4 + nstats * self.HEAD_STAT
         self.ts0_type = '3%sf4' % (endian)
         self.ts_type = [np.dtype({'names':['xyz'], \
-                                 'formats':['3%sf4' % (endian)], \
+                                 'formats':[self.ts0_type], \
                                  'offsets':[nstats[i] * self.N_COMP * 4 - 3 * 4]}) \
                                         for i in xrange(nstats.size)]
 
@@ -514,18 +514,24 @@ class BBSeis:
 
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
-        # only map the timeseries
-        self.data = np.memmap(bb_path, dtype = '%sf4' % (endian), \
-                mode = 'r', offset = self.HEAD_SIZE + nstat * self.HEAD_STAT, \
-                shape = (self.nstat, self.nt, self.N_COMP))
+        # keep location for data retrieval
+        self.path = bb_path
+        # location to start of 3rd (data) block
+        self.ts_pos = self.HEAD_SIZE + nstat * self.HEAD_STAT
+        # data format
+        self.dtype = '3%sf4' % (endian)
 
     def acc(self, station, comp = Ellipsis):
         """
         Returns timeseries (acceleration, g) for station.
+        TODO: select component by changing dtype
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
         """
-        return self.data[self.stat_idx[station], :, comp]
+        with open(self.path, 'r') as data:
+            data.seek(self.ts_pos + self.stat_idx[station] * self.nt * 3 * 4)
+            return np.fromfile(data, dtype = self.dtype, \
+                               count = self.nt)[..., comp]
 
     def vel(self, station, comp = Ellipsis):
         """
