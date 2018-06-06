@@ -31,7 +31,7 @@ def nt2n(nt):
     """
     return int(2 ** ceil(log(nt) / log(2)))
 
-def cb_amp(dt, n, vref, vsite, vpga, pga, version = '2008', \
+def cb_amp(dt, n, vref, vsite, vpga, pga, version = '2014', \
         flowcap = 0.0, fmin = 0.2, fmidbot = 0.5, fmid = 1.0, \
         fhigh = 10 / 3., fhightop = 10.0, fmax = 15.0):
     # cb constants
