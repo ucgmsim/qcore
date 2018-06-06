@@ -23,7 +23,7 @@ def gen_coords(vm_dir = '.', debug = False, geoproj = '1', do_coords = '1', \
     try:
         with open(os.path.join(vm_dir, 'params_vel.json'), 'r') as j:
             vm = json.load(j)
-    except (IOError, ValueError):
+    except IOError:
         # deprecated, will break if run multiple times as a function
         sys.path.insert(0, vm_dir)
         import params_vel as vm
