@@ -436,7 +436,7 @@ class HFSeis:
         stat_idx = self.stat_idx[station]
         for i, c in enumerate(self.acc(station, dt = dt).T):
             seis2txt(c, dt, prefix, station, self.COMP_NAME[i], \
-                     start_sec = self.T_START, \
+                     start_sec = self.start_sec, \
                      edist = self.stations.e_dist[stat_idx], title = title)
 
     def all2txt(self, prefix = './', dt = None):
