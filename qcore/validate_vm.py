@@ -16,6 +16,7 @@ else
 fi
 """
 
+import json
 import os
 import sys
 
@@ -48,43 +49,35 @@ def validate_vm(vm_dir):
     for fixed_name in vm.values():
         if not os.path.exists(fixed_name):
             return False, 'VM file not found: %s' % (fixed_name)
-    if not os.path.exists(vmfile('params_vel.py')):
-        return False, 'VM configuration missing: %s' % (vmfile('params_vel.py'))
+    if not os.path.exists(vmfile('params_vel.json')):
+        return False, 'VM configuration missing: %s' \
+                      % (vmfile('params_vel.json'))
 
     # 3: metadata files exist (made by gen_cords.py)
-    sys.path.insert(0, vm_dir)
-    import params_vel as vm_conf
-    meta = {'gridfile':'%s' % (vmfile('gridfile%s' % (vm_conf.sufx))), \
-            'gridout':'%s' % (vmfile('gridout%s' % (vm_conf.sufx))), \
-            'bounds':'%s' % (vmfile('model_bounds%s' % (vm_conf.sufx))), \
-            'coords':'%s' % (vmfile('model_coords%s' % (vm_conf.sufx))), \
-            'params':'%s' % (vmfile('model_params%s' % (vm_conf.sufx)))}
+    with open(vmfile('params_vel.json'), 'r') as j:
+        vm_conf = json.load(j)
+    meta = {'gridfile':'%s' % (vmfile('gridfile%s' % (vm_conf['sufx']))), \
+            'gridout':'%s' % (vmfile('gridout%s' % (vm_conf['sufx']))), \
+            'bounds':'%s' % (vmfile('model_bounds%s' % (vm_conf['sufx']))), \
+            'coords':'%s' % (vmfile('model_coords%s' % (vm_conf['sufx']))), \
+            'params':'%s' % (vmfile('model_params%s' % (vm_conf['sufx'])))}
     for meta_file in meta.values():
         if not os.path.exists(meta_file):
             return False, 'VM metadata not found: %s' % (meta_file)
 
-    # 4: params_vel.py consistency
+    # 4: params_vel.json consistency
     try:
-        nx, ny, nz = map(int, [vm_conf.nx, vm_conf.ny, vm_conf.nz])
-        xlen, ylen, zmin, zmax, hh = map(float, \
-                [vm_conf.extent_x, vm_conf.extent_y, \
-                vm_conf.extent_zmin, vm_conf.extent_zmax, vm_conf.hh])
-    except AttributeError:
-        return False, 'VM config missing values: %s' % (vmfile('params_vel.py'))
-    except ValueError:
-        return False, 'VM config contains invalid values: %s' \
-                      % (vmfile('params_vel.py'))
-    zlen = zmax - zmin
-    try:
-        assert(nx == int(round(xlen / hh)))
-        assert(ny == int(round(ylen / hh)))
-        assert(nz == int(round(zlen / hh)))
+        assert(vm_conf['nx'] == int(round(vm_conf['extent_x'] / vm_conf['hh'])))
+        assert(vm_conf['ny'] == int(round(vm_conf['extent_y'] / vm_conf['hh'])))
+        assert(vm_conf['nz'] == int(round((vm_conf['extent_zmax'] \
+                                           - vm_conf['extent_zmin']) \
+                                          / vm_conf['hh'])))
     except AssertionError:
         return False, 'VM config missmatch between extents and nx, ny, nz: %s' \
-                      % (vmfile('params_vel.py'))
+                      % (vmfile('params_vel.json'))
 
     # 5: binary file sizes
-    vm_size = nx * ny * nz * SIZE_FLOAT
+    vm_size = vm_conf['nx'] * vm_conf['ny'] * vm_conf['nz'] * SIZE_FLOAT
     for bin_file in vm.values():
         size = os.path.getsize(bin_file)
         if size != vm_size:
@@ -95,11 +88,11 @@ def validate_vm(vm_dir):
     if numpy:
         # check first zx slice (y = 0)
         smin = np.min(np.fromfile(vm['s'], dtype = '<f%d' % (SIZE_FLOAT), \
-                count = nz * nx))
+                count = vm_conf['nz'] * vm_conf['nx']))
         pmin = np.min(np.fromfile(vm['p'], dtype = '<f%d' % (SIZE_FLOAT), \
-                count = nz * nx))
+                count = vm_conf['nz'] * vm_conf['nx']))
         dmin = np.min(np.fromfile(vm['d'], dtype = '<f%d' % (SIZE_FLOAT), \
-                count = nz * nx))
+                count = vm_conf['nz'] * vm_conf['nx']))
         # works even if min is np.nan
         if not min(smin, pmin, dmin) > 0:
             return False, 'VM vs, vp or rho <= 0|nan found: %s' % (vm_dir)
@@ -123,6 +116,5 @@ if __name__ == '__main__':
                 sys.stderr.write("%s\n" % message)
     except Exception as e:
         sys.stderr.write("%s\n" % e)
-
     finally:
         sys.exit(rc)
