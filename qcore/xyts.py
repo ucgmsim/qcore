@@ -92,7 +92,7 @@ class XYTSFile:
         # create longitude, latitude map for data
         grid_points = np.mgrid[0:self.nx_sim:self.dxts, \
                                0:self.ny_sim:self.dyts] \
-                      .reshape(2, -1, order = 'F').T.tolist()
+                      .reshape(2, -1, order = 'F').T
         amat = geo.gen_mat(self.mrot, self.mlon, self.mlat)[0]
         self.ll_map = geo.xy2ll(geo.gp2xy(grid_points, self.nx_sim, \
                                           self.ny_sim, self.hh), amat) \
