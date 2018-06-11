@@ -90,12 +90,12 @@ class XYTSFile:
                 shape = (self.nt, len(self.comps), self.ny, self.nx))
 
         # create longitude, latitude map for data
-        xy_points = np.mgrid[0:self.nx_sim:self.dxts, \
-                0:self.ny_sim:self.dyts] \
-                .reshape(2, -1, order = 'F').T.tolist()
-        amat = geo.gen_mat(self.mrot, self.mlon, self.mlat)[0])
-        self.ll_map = geo.xy2ll(geo.gp2xy(xy_points, self.nx_sim, self.ny_sim, \
-                                          self.hh), amat) \
+        grid_points = np.mgrid[0:self.nx_sim:self.dxts, \
+                               0:self.ny_sim:self.dyts] \
+                      .reshape(2, -1, order = 'F').T.tolist()
+        amat = geo.gen_mat(self.mrot, self.mlon, self.mlat)[0]
+        self.ll_map = geo.xy2ll(geo.gp2xy(grid_points, self.nx_sim, \
+                                          self.ny_sim, self.hh), amat) \
                       .reshape(self.ny, self.nx, 2)
 
     def corners(self, gmt_format = False):
