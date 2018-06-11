@@ -223,13 +223,29 @@ def xy2gp(xy, nx, ny, hh):
     gp = np.copy(xy)
 
     # distance from corner
-    gp *= hh
+    gp[:, 0] += (nx - 1) * hh * 0.5
+    gp[:, 1] += (ny - 1) * hh * 0.5
 
-    # distance from centre origin
-    gp[:, 0] -= (nx - 1) * hh * 0.5
-    gp[:, 1] -= (ny - 1) * hh * 0.5
+    # gridpoint from top corner
+    gp /= hh
 
-    return gp
+    return np.round(gp).astype(np.int32, copy = False)
+
+def gp2xy(gp, nx, ny, hh):
+    """
+    Converts grid points to km offsets.
+    xy: 2D np array of [X, Y] gridpoints
+    nx: number of X grid positions
+    ny: number of Y grid positions
+    hh: grid spacing
+    """
+    xy = gp.astype(np.float32) * hh
+
+    # shift for centre origin
+    xy[:, 0] -= (nx - 1) * hh * 0.5
+    xy[:, 1] -= (ny - 1) * hh * 0.5
+
+    return xy
 
 def ll_shift(lat, lon, distance, bearing):
     """
