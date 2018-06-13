@@ -55,7 +55,7 @@ def get_nsub_stoch(stoch_file, get_area = False):
             # skip metadata line 2 of 2
             sf.readline()
             # skip x, y, z (3) components * (ny) lines containing nx columns
-            for _ in xrange(3 * meta1[3]):
+            for _ in xrange(3 * int(meta1[3]) ):
                 sf.readline()
 
     if get_area:
