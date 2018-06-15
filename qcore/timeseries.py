@@ -273,7 +273,10 @@ class LFSeis:
                     stations[list(stations.dtype.names[1:])]
         # protect against duplicated stations between processes
         # results in too many stations entries created, last ones are empty
-        self.stations = self.stations[self.stations.name != '']
+        # important to keep indexes correct, only remove empty items from end
+        if self.stations.name[:-1] == '':
+            self.stations = self.stations[:-np.argmin( \
+                                              (self.stations.name == '')[::-1])]
         self.nstat = self.stations.size
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
