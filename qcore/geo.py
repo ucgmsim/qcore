@@ -336,7 +336,7 @@ def path_from_corners(corners = None, output = 'sim.modelpath_hr', \
     min_edge_points: at least this many points wanted along edges
     """
     # input data using velocity model
-    if corners == None:
+    if corners is None:
         # don't fail importing if not needed
         from params import vel_mod_params
         # load model_params
