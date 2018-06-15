@@ -251,9 +251,8 @@ class LFSeis:
         nstats = np.zeros(len(self.seis), dtype = 'i')
         for i, s in enumerate(self.seis):
             nstats[i] = np.fromfile(s, dtype = self.i4, count = 1)
-        self.nstat = np.sum(nstats)
         # container for station data
-        self.stations = np.rec.array(np.zeros(self.nstat, dtype = \
+        self.stations = np.rec.array(np.zeros(np.sum(nstats), dtype = \
                             [('x', 'i4'), ('y', 'i4'), ('z', 'i4'), \
                              ('seis_idx', 'i4', 2), ('lat', 'f4'), \
                              ('lon', 'f4'), ('name', '|S8')]))
@@ -275,6 +274,7 @@ class LFSeis:
         # protect against duplicated stations between processes
         # results in too many stations entries created, last ones are empty
         self.stations = self.stations[self.stations.name != '']
+        self.nstat = self.stations.size
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
 
