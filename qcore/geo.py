@@ -138,17 +138,17 @@ def gen_mat(mrot, mlon, mlat):
     mlon: model centre longitude
     mlat: model centre latitude
     """
-    arg = math.radians(mrot)
-    cosA = math.cos(arg)
-    sinA = math.sin(arg)
+    arg = radians(mrot)
+    cosA = cos(arg)
+    sinA = sin(arg)
 
-    arg = math.radians(90.0 - mlat)
-    cosT = math.cos(arg)
-    sinT = math.sin(arg)
+    arg = radians(90.0 - mlat)
+    cosT = cos(arg)
+    sinT = sin(arg)
 
-    arg = math.radians(mlon)
-    cosP = math.cos(arg)
-    sinP = math.sin(arg)
+    arg = radians(mlon)
+    cosP = cos(arg)
+    sinP = sin(arg)
 
     amat = np.array([[cosA * cosT * cosP + sinA * sinP, \
                       sinA * cosT * cosP - cosA * sinP, \
