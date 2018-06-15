@@ -272,6 +272,9 @@ class LFSeis:
             stations['seis_idx'][:, 1] = np.arange(nstats[i])
             self.stations[stations['stat_pos']] = \
                     stations[list(stations.dtype.names[1:])]
+        # protect against duplicated stations between processes
+        # results in too many stations entries created, last ones are empty
+        self.stations = self.stations[self.stations.name != '']
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
 
