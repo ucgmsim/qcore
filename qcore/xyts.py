@@ -161,7 +161,7 @@ class XYTSFile:
 
         # format as longitude, latitude, value columns
         wanted = np.dstack((self.ll_map, wanted)).reshape((-1, 3))
-        if outfile == None:
+        if outfile is None:
             return wanted
         else:
             wanted.astype(np.float32).tofile(outfile)
@@ -198,8 +198,8 @@ class XYTSFile:
         if mmi and mmiout != None:
             mmiv.astype(np.float32).tofile(mmiout)
 
-        if pgvout == None:
+        if pgvout is None:
             if not mmi:
                 return pgv
-            elif mmiout == None:
+            elif mmiout is None:
                 return pgv, mmiv

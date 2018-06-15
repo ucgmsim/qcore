@@ -320,7 +320,7 @@ def make_seismo(out_file, timeseries, x0, y0, xfac, yfac, dx = 0, dy = 0, \
     else:
         tsy = np.copy(timeseries)
 
-    if title == None:
+    if title is None:
         title = 'station at x = %s, y = %s' % (x0, y0)
 
     # output
@@ -435,7 +435,7 @@ def is_native_xyv(xyv_file, x_min, x_max, y_min, y_max, v_min = None):
     for i in xrange(min(10, len(bin_data))):
         if x_min <= bin_data[i, 0] <= x_max and \
                 y_min <= bin_data[i, 1] <= y_max and \
-                (v_min == None or v_min <= bin_data[i, 2]):
+                (v_min is None or v_min <= bin_data[i, 2]):
             continue
         else:
             # invalid values, not native
@@ -579,7 +579,7 @@ def srf2map(srf_file, out_dir, prefix = 'plane', value = 'slip', \
         cpt_max = round(percentile, \
                 1 - int(math.floor(math.log10(abs(percentile)))))
     makecpt(CPTS['slip'], '%s/%s.cpt' % (out_dir, prefix), 0, cpt_max, \
-            max(1, cpt_max / 100))
+            max(1, cpt_max / 100), continuing = True)
     # each plane will use a region which just fits
     # these are needed for efficient plotting
     regions = []
@@ -703,7 +703,7 @@ def makecpt(source, output, low, high, inc = None, invert = False, \
     transparency: cpt colour value transparency (0 for opaque)
     """
     # determine working directory
-    if wd == None:
+    if wd is None:
         wd = os.path.dirname(output)
         if wd == '':
             wd = '.'
@@ -742,7 +742,7 @@ def table2block(table_in, table_out, block = 'blockmean', centre = True, \
     
     """
     # determine working directory
-    if wd == None:
+    if wd is None:
         wd = os.path.dirname(table_in)
         if wd == '':
             wd = '.'
@@ -751,11 +751,11 @@ def table2block(table_in, table_out, block = 'blockmean', centre = True, \
     write_history(False, wd = wd)
 
     # prepare parameters
-    if region == None:
+    if region is None:
         region = '-R'
     else:
         region = '-R%s/%s/%s/%s' % region
-    if dy == None:
+    if dy is None:
         dy = dx
 
     # create surface grid
@@ -809,7 +809,7 @@ def table2grd(table_in, grd_file, file_input = True, grd_type = 'surface', \
     outside: value outside of mask
     """
     # determine working directory
-    if wd == None:
+    if wd is None:
         wd = os.path.dirname(grd_file)
         if wd == '':
             wd = '.'
@@ -819,11 +819,11 @@ def table2grd(table_in, grd_file, file_input = True, grd_type = 'surface', \
     write_history(False, wd = wd)
 
     # prepare parameters
-    if region == None:
+    if region is None:
         region = '-R'
     else:
         region = '-R%s/%s/%s/%s' % region
-    if dy == None:
+    if dy is None:
         dy = dx
 
     # create surface grid
@@ -866,7 +866,7 @@ def table2grd(table_in, grd_file, file_input = True, grd_type = 'surface', \
         if min_sectors != None:
             nspec = '%s/%s' % (nspec, min_sectors)
         cmd.append(nspec)
-        if search == None:
+        if search is None:
             search = '1k'
         cmd.append('-S%s' % (search))
 
@@ -960,7 +960,7 @@ def grd_mask(xy_file, out_file, region = None, dx = '1k', dy = '1k', \
     geo: True if given lon lat coords, False if given cartesian coords
     mask_dist: -S option, mask includes area of this distance around each point
     """
-    if wd == None:
+    if wd is None:
         wd = os.path.dirname(out_file)
         if wd == '':
             wd = '.'
@@ -985,7 +985,7 @@ def grd_mask(xy_file, out_file, region = None, dx = '1k', dy = '1k', \
         cmd.append('-fg')
     if mask_dist != None:
         cmd.append('-S%s' % (mask_dist))
-    if region == None:
+    if region is None:
         cmd.append('-R')
     else:
         cmd.append('-R%s/%s/%s/%s' % region)
@@ -1096,11 +1096,11 @@ def map_dimentions(projection = None, region = None, region_units = '', \
     else:
         cmd.append('-Ww')
 
-    if projection == None:
+    if projection is None:
         cmd.append('-J')
     else:
         cmd.append('-J%s' % (projection))
-    if region == None:
+    if region is None:
         cmd.append('-R')
     else:
         cmd.append('-R%s%s' % (region_units, '/'.join(map(str, region))))
@@ -1159,11 +1159,11 @@ def mapproject_multi(points, wd = '.', projection = None, region = None, \
     write_history(False, wd = wd)
 
     cmd = [GMT, 'mapproject']
-    if projection == None:
+    if projection is None:
         cmd.append('-J')
     else:
         cmd.append('-J%s' % (projection))
-    if region == None:
+    if region is None:
         cmd.append('-R')
     else:
         cmd.append('-R%s%s' % (region_units, '/'.join(map(str, region))))
@@ -1620,7 +1620,7 @@ def intersections(inputs, external = True, internal = False, \
     points = []
     comps = []
     for line in so.rstrip().split('\n'):
-        if containing == None or containing in line.split()[4:6]:
+        if containing is None or containing in line.split()[4:6]:
             points.append(map(float, line.split()[:2]))
             if items:
                 comps.append(line.split()[-2:])
@@ -1642,8 +1642,8 @@ def truncate(inputs, clip = None, region = None, wd = '.'):
     else:
         cmd.append(inputs)
 
-    if clip == None:
-        if region == None:
+    if clip is None:
+        if region is None:
             cmd.append('-R')
         else:
             cmd.append('-R%s' % ('/'.join(region)))
@@ -1797,12 +1797,12 @@ class GMTPlot:
         p: perspective setting azimuth/elevation (180/90 is square)
         """
         # work out projection format
-        if proj.lower() == 't' and lon0 == None:
+        if proj.lower() == 't' and lon0 is None:
             # lon0 is not optional, use centre as default
             lon0 = sum(map(float, region[:2])) / 2.
-        if lon0 == None:
+        if lon0 is None:
             gmt_proj = '-J%s%s' % (proj, sizing)
-        elif lat0 == None:
+        elif lat0 is None:
             gmt_proj = '-J%s%s/%s' % (proj, lon0, sizing)
         else:
             gmt_proj = '-J%s%s/%s/%s' % (proj, lon0, lat0, sizing)
@@ -1862,7 +1862,7 @@ class GMTPlot:
         else:
             # finish crop (-C)
             cmd = [GMT, 'psclip', '-K', '-O', '-J', '-R', self.z]
-            if n == None:
+            if n is None:
                 cmd.append('-C')
             else:
                 cmd.append('-C%d' % (n))
@@ -2108,7 +2108,7 @@ class GMTPlot:
         topo_file = os.path.abspath(topo_file)
         # assume illumination file if not explicitly given
         # assuming the last part of the file is a file extention
-        if topo_file_illu == None:
+        if topo_file_illu is None:
             parts = topo_file.split('.')
             parts[-2] += '_i5'
             topo_file_illu = '.'.join(parts)
@@ -2159,7 +2159,7 @@ class GMTPlot:
         refs = inch / (km * 0.618)
 
         if land != None:
-            if res == None:
+            if res is None:
                 self.land(fill = land)
             else:
                 self.land(fill = land, res = res)
@@ -2170,7 +2170,7 @@ class GMTPlot:
                 topo_cpt = CPTS['nztopo-grey1']
             self.topo(topo, cpt = topo_cpt)
         if water != None:
-            if res == None:
+            if res is None:
                 self.water(colour = water, oceans = oceans)
             else:
                 self.water(colour = water, res = res, oceans = oceans)
@@ -2189,7 +2189,7 @@ class GMTPlot:
         if coastlines != None:
             if coastlines == 'auto':
                 coastlines = '%sp' % (refs * 3)
-            if res == None:
+            if res is None:
                 self.coastlines(width = coastlines)
             else:
                 self.coastlines(width = coastlines, res = res)
@@ -2279,7 +2279,7 @@ class GMTPlot:
             print('WARNING: %s not found, won\'t be plotted.' % (in_data))
             return
 
-        if size == None:
+        if size is None:
             shaping = '-S%s' % (shape)
         else:
             shaping = '-S%s%s' % (shape, size)
@@ -2452,7 +2452,7 @@ class GMTPlot:
         fancy: fancy scale has black and white strips, simple is a line
         """
 
-        if slat == None:
+        if slat is None:
             region = map(float, self.history('R').split('/'))
             # TODO: fix geographic midpoint calculation (make a function)
             slat = (region[3] + region[2]) / 2.
@@ -2541,7 +2541,7 @@ class GMTPlot:
             if pos != 'plot':
                 cmd.extend(['-R', '-J', self.z])
             # mimic 5.1 default behaviour
-            if align == None and pos == 'plot':
+            if align is None and pos == 'plot':
                 if horiz:
                     align = 'CT'
                 else:
@@ -2658,7 +2658,7 @@ class GMTPlot:
                 cmd.append('-A+%s' % (c))
         # interval annotations
         if interval != None:
-            if annotations == None:
+            if annotations is None:
                 cmd.append('-C%s' % (interval))
                 # annotations displayed if -C is given a CPT file
                 cmd.append('-A-')
@@ -2761,10 +2761,10 @@ class GMTPlot:
 
         # crop minimum/maximum/area values
         if min_v != None or max_v != None:
-            if max_v == None or min_v < max_v:
+            if max_v is None or min_v < max_v:
                 # values below min_v -> NaN
                 cut = '-Sb%s/NaN' % (min_v)
-            elif min_v == None or min_v < max_v:
+            elif min_v is None or min_v < max_v:
                 # values above max_v -> NaN
                 cut = '-Sa%s/NaN' % (max_v)
             else:
@@ -2812,7 +2812,7 @@ class GMTPlot:
                 if annot_back != None:
                     annot_spec = '%s+g%s' % (annot_spec, annot_back)
                 cmd.append(annot_spec)
-                if contour_mindist == None:
+                if contour_mindist is None:
                     # assuming distance in points (default)
                     contour_mindist = '%sp' % \
                             (float(str(font_size).rstrip('cip')) * 3)
@@ -2853,7 +2853,7 @@ class GMTPlot:
             if rc == STATUS_INVALID:
                 return
             xyz_file = temp_grd
-        if z == None:
+        if z is None:
             z = self.z
         cmd = [GMT, 'grdview', '-K', '-O', '-J', '-R', '-p', z, xyz_file, \
                 '-t%s' % (transparency)]
@@ -2922,7 +2922,7 @@ class GMTPlot:
             all_edges = '>\n'.join([''.join(c) for c in bounds[1:]])
 
         # plot planes
-        if not (plane_colour == None and plane_fill == None):
+        if not (plane_colour is None and plane_fill is None):
             cmd = [GMT, 'psxy', '-J', '-R', '-L', '-K', '-O', self.z]
             if plane_colour != None:
                 cmd.append('-W%s,%s,-' % (plane_width, plane_colour))

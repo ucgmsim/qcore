@@ -157,7 +157,7 @@ def run_test(test, gmt_version):
         success, message = test[0](iwd)
     t = time() - t0
 
-    if test[1] == None:
+    if test[1] is None:
         if success:
             print('%s [%s] PASS %.2fs' \
                     % (gmt_version, test[0].__name__, t))
