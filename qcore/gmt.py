@@ -10,6 +10,7 @@ add support for different interpolation methods
 avg_ll calculated elsewhere should be local function that works over equator
 """
 
+from distutils.spawn import find_executable
 import math
 import os
 from shutil import copyfile, move
@@ -3142,6 +3143,11 @@ class GMTPlot:
         downscale: ghostscript DownScaleFactor (png | tiff)
         create_dirs: allow creation of output directory if it does not exist
         """
+        png = True
+        if find_executable('gs') is None:
+            print('GS not found, not creating PNG, copying PS to PNG location.')
+            png = False
+
         cmd = [GMT, psconvert, self.pspath, '-TG', '-E%s' % (dpi), \
                 '-Qg4', '-Qt4']
         if downscale > 1:
@@ -3174,4 +3180,12 @@ class GMTPlot:
             else:
                 raise OSError('out_dir does not exist: %s' % (dirname))
 
-        Popen(cmd, cwd = self.wd).wait()
+        if png:
+            Popen(cmd, cwd = self.wd).wait()
+        else:
+            if out_name is not None:
+                destination = os.path.join(out_name, '.ps')
+            elif out_dir is not None:
+                destination = os.path.join(out_dir, os.path.basename(self.pspath))
+            if not os.path.exists(destination):
+                copyfile(self.pspath, destination)
