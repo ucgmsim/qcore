@@ -58,7 +58,7 @@ def ampdeamp(timeseries, ampf, amp = True):
     nt = len(timeseries)
 
     # length the fourier transform should be
-    ft_len = ampf.size + ampf.size + 2
+    ft_len = ampf.size + ampf.size
 
     # taper 5% on the right using the hanning method
     ntap = int(nt * 0.05)
