@@ -16,5 +16,5 @@ def argsearch(needles, haystack):
     needle_index = np.take(index, np.searchsorted(haystack[index], needles), \
                            mode="clip")
 
-    # unfound values are np.ma.core.MaskedConstant
+    # unfound values are np.ma.masked
     return np.ma.array(needle_index, mask=haystack[needle_index] != needles)
