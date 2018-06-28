@@ -1,5 +1,4 @@
 """
-Functions to work on Numpy objects.
 Functions that work on numpy objects.
 """
 
