@@ -142,9 +142,10 @@ def read_ascii(filepath, meta = False, t0 = False):
         note = ''
         if len(info1) >= 3:
             note = ' '.join(info1[2:])
+        # int(float()) to not crash when there is a float (invalid) in hr or min
         return vals, {'name':info1[0], 'comp':info1[1], 'note':note, \
                       'nt':int(info2[0]), 'dt':float(info2[1]), \
-                      'hr':int(info2[2]), 'min':int(info2[3]), \
+                      'hr':int(float(info2[2])), 'min':int(float(info2[3])), \
                       'sec':float(info2[4]), 'e_dist':float(info2[5]), \
                       'az':float(info2[6]), 'baz':float(info2[7])}
     return vals
