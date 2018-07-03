@@ -4,7 +4,7 @@ Functions and classes to load data that doesn't belong elsewhere.
 
 import numpy as np
 
-def load_im_file(csv_file, all_psa = False):
+def load_im_file(csv_file, all_psa = False, comp = None):
 
     # process column names
     use_cols = []
@@ -25,5 +25,8 @@ def load_im_file(csv_file, all_psa = False):
     dtype[1] = ('component', '|S4')
 
     # load all at once
-    return np.rec.array(np.loadtxt(csv_file, dtype = dtype, delimiter = ',', \
+    imdb = np.rec.array(np.loadtxt(csv_file, dtype = dtype, delimiter = ',', \
                                    skiprows = 1, usecols = tuple(use_cols)))
+    if comp is None:
+        return imdb
+    return imdb[imdb.component == comp]
