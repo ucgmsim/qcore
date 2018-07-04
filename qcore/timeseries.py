@@ -172,10 +172,11 @@ def acc2vel(timeseries, dt):
 def pgv2MMI(pgv):
     """
     Calculates MMI from pgv based on Worden et al (2012)
+    A maximum function is applied to floor the value to 1
     """
-    return np.where(np.log10(pgv) < 0.53,
+    return np.maximum(np.where(np.log10(pgv) < 0.53,
                     3.78 + 1.47 * np.log10(pgv),
-                    2.89 + 3.16 * np.log10(pgv))
+                    2.89 + 3.16 * np.log10(pgv)), 1)
 
 def seis2txt(seis, dt, prefix, stat, comp, \
              start_hr=0, start_min=0, start_sec=0.0, \
