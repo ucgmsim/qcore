@@ -411,6 +411,8 @@ class HFSeis:
                          ('e_dist', '%sf4' % (endian)), \
                          ('vs', '%sf4' % (endian))]))
         hff.close()
+        if np.min(self.stations.vs) == 0:
+            print('WARNING: looks like an incomplete file: %s' % (hf_path))
 
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
@@ -526,6 +528,8 @@ class BBSeis:
                          ('lf_vs_ref', 'f4'), \
                          ('vsite', 'f4')]))
         bbf.close()
+        if np.min(self.stations.vsite) == 0:
+            print('WARNING: looks like an incomplete file: %s' % (bb_path))
 
         # allow indexing by station names
         self.stat_idx = dict(zip(self.stations.name, np.arange(self.nstat)))
