@@ -587,4 +587,4 @@ class BBSeis:
         """
         Saves station list to text file containing: lon lat station_name.
         """
-        np.savetxt(path, self.stations[['lon', 'lat', 'name']], fmt='%f %f %.7s')
+        np.savetxt(path, self.stations[['lon', 'lat', 'name']], fmt='%f %f %s')
