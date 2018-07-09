@@ -587,8 +587,4 @@ class BBSeis:
         """
         Saves station list to text file containing: lon lat station_name.
         """
-        dtype = {name:self.stations.dtype.fields[name] \
-                 for name in ['lon', 'lat', 'name']}
-        ll = np.ndarray(self.stations.shape, dtype=dtype, \
-                        buffer=self.stations, strides=self.stations.strides)
-        np.savetxt(path, ll, fmt = '%f %f %.7s')
+        np.savetxt(path, self.stations[['lon', 'lat', 'name']], fmt='%f %f %.7s')
