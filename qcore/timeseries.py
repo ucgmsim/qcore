@@ -582,3 +582,13 @@ class BBSeis:
         """
         for s in self.stations.name:
             self.save_txt(s, prefix = prefix, title = prefix, f = f)
+
+    def save_ll(self, path):
+        """
+        Saves station list to text file containing: lon lat station_name.
+        """
+        dtype = {name:self.stations.dtype.fields[name] \
+                 for name in ['lon', 'lat', 'name']}
+        ll = np.ndarray(self.stations.shape, dtype=dtype, \
+                        buffer=self.stations, strides=self.stations.strides)
+        np.savetxt(path, ll, fmt = '%f %f %.7s')
