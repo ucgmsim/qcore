@@ -582,3 +582,9 @@ class BBSeis:
         """
         for s in self.stations.name:
             self.save_txt(s, prefix = prefix, title = prefix, f = f)
+
+    def save_ll(self, path):
+        """
+        Saves station list to text file containing: lon lat station_name.
+        """
+        np.savetxt(path, self.stations[['lon', 'lat', 'name']], fmt='%f %f %s')
