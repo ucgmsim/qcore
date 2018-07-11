@@ -203,6 +203,14 @@ def make_movie(input_pattern, output, fps = 20, codec = 'qtrle', crf = 23):
     with open('/dev/null', 'w') as sink:
         Popen(cmd, stderr = sink).wait()
 
+def overlay(underlay, overlay, result):
+    """
+    Overlay overlay image on underlay image and save to result image.
+    """
+    p = Popen(['ffmpeg', '-y', '-i', underlay, '-i', overlay, \
+               '-filter_complex', 'overlay', result], stderr=PIPE)
+    p.communicate()
+
 def proportionate_segs(infile, outfile, p):
     """
     Store infile as outfile with p proportion of every segment.
