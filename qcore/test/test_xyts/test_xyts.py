@@ -9,7 +9,7 @@ import sys
 import shutil
 import errno
 
-XYTS_ACTUAL_PATH =os.path.abspath("/nesi/projects/nesi00213/sample_data/test_qcore/xyts.e3d")
+XYTS_ACTUAL_PATH =os.path.abspath("xyts.e3d")
 SAMPLE_OUT_DIR_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1/output")
 XYTS_FILE = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1/xyts.e3d")
 os.symlink(XYTS_ACTUAL_PATH, XYTS_FILE)
