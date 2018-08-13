@@ -305,6 +305,8 @@ def get_bounds(srf, seg = -1, depth = False):
     nseg: which segment (-1 for all)
     depth: also include depth if True
     """
+    if not is_ff(srf):
+        return None
     bounds = []
     with open(srf, 'r') as sf:
         # metadata
@@ -443,6 +445,8 @@ def srf2corners(srf, cnrs = 'cnrs.txt'):
     with open(cnrs, 'w') as cf:
         cf.write('> hypocentre:\n')
         cf.write('%s %s\n' % hypo)
+        if bounds is None:
+            return
         for i, plane in enumerate(bounds):
             cf.write('> plane %s:\n' % (i))
             for corner in plane:
