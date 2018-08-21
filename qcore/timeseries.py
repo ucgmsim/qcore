@@ -233,11 +233,13 @@ class LFSeis:
         lfs = os.stat(self.seis[0]).st_size
         with open(self.seis[0], 'rb') as lf0:
             nstat, nt = np.fromfile(lf0, dtype = '<i4', count = 6)[0::5]
-            if lfs == 4 + nstat * self.HEAD_STAT + nstat * nt * self.N_COMP * 4:
+            if lfs == 4 + np.int64(nstat) * self.HEAD_STAT \
+                        + np.int64(nstat) * nt * self.N_COMP * 4:
                 endian = '<'
                 self.nt = nt
-            elif lfs == 4 + nstat.byteswap() * self.HEAD_STAT \
-                        + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+            elif lfs == 4 + np.int64(nstat.byteswap()) * self.HEAD_STAT \
+                          + np.int64(nstat.byteswap()) * nt.byteswap() \
+                                                       * self.N_COMP * 4:
                 endian = '>'
                 self.nt = nt.byteswap()
             else:
@@ -367,12 +369,13 @@ class HFSeis:
         hff = open(hf_path, 'rb')
         # determine endianness by checking file size
         nstat, nt = np.fromfile(hff, dtype = '<i4', count = 2)
-        if hfs == self.HEAD_SIZE + nstat * self.HEAD_STAT \
-                                   + nstat * nt * self.N_COMP * 4:
+        if hfs == self.HEAD_SIZE + np.int64(nstat) * self.HEAD_STAT \
+                                 + np.int64(nstat) * nt * self.N_COMP * 4:
             endian = '<'
         elif hfs == self.HEAD_SIZE \
-                    + nstat.byteswap() * self.HEAD_STAT \
-                    + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+                    + np.int64(nstat.byteswap()) * self.HEAD_STAT \
+                    + np.int64(nstat.byteswap()) * nt.byteswap() \
+                                                 * self.N_COMP * 4:
             endian = '>'
         else:
             hff.close()
@@ -491,16 +494,16 @@ class BBSeis:
         bbf = open(bb_path, 'rb')
         # determine endianness by checking file size
         nstat, nt = np.fromfile(bbf, dtype = '<i4', count = 2)
-        if bbs == self.HEAD_SIZE + nstat * self.HEAD_STAT \
-                                 + nstat * nt * self.N_COMP * 4:
+        if bbs == self.HEAD_SIZE + np.int64(nstat) * self.HEAD_STAT \
+                                 + np.int64(nstat) * nt * self.N_COMP * 4:
             endian = '<'
         elif bbs == self.HEAD_SIZE \
-                    + nstat.byteswap() * self.HEAD_STAT \
-                    + nstat.byteswap() * nt.byteswap() * self.N_COMP * 4:
+                    + np.int64(nstat.byteswap()) * self.HEAD_STAT \
+                    + np.int64(nstat.byteswap()) * nt.byteswap() \
+                                                 * self.N_COMP * 4:
             endian = '>'
         else:
             bbf.close()
-            print self.HEAD_SIZE + nstat * self.HEAD_STAT + nstat * nt * self.N_COMP * 4, bbs
             raise ValueError('File is not an BB seis file: %s' % (bb_path))
         bbf.seek(0)
 
