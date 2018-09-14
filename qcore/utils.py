@@ -35,7 +35,7 @@ def load_py_cfg(f_path):
 	:return: dict of parameters
 	"""
 	with open(f_path) as f:
-		module = imp.load_module('params', f, '', ('', '', imp.PY_SOURCE))
+		module = imp.load_module('params', f, f_path, ('', '', imp.PY_SOURCE))
 		cfg_dict = module.__dict__
 		
 	return cfg_dict
