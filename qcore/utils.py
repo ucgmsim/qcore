@@ -30,7 +30,9 @@ def setup_dir(directory, empty = False):
 def load_py_cfg(f_path):
 	"""
 	loads a python configuration file to a dictionary
-	
+
+        if you want to preserve the import params functionality, locals().update(cfg_dict) converts the returned dict to local variables.
+
 	:param f_path: path to configuration file
 	:return: dict of parameters
 	"""
