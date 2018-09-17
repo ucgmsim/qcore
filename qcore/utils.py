@@ -5,6 +5,7 @@ Mostly related to file system operations and other non-specific functionality.
 
 from shutil import rmtree
 import os
+import imp
 
 def setup_dir(directory, empty = False):
     """
@@ -25,3 +26,18 @@ def setup_dir(directory, empty = False):
         except OSError:
             if not os.path.isdir(directory):
                 raise
+
+def load_py_cfg(f_path):
+	"""
+	loads a python configuration file to a dictionary
+
+        if you want to preserve the import params functionality, locals().update(cfg_dict) converts the returned dict to local variables.
+
+	:param f_path: path to configuration file
+	:return: dict of parameters
+	"""
+	with open(f_path) as f:
+		module = imp.load_module('params', f, f_path, ('.py', 'r', imp.PY_SOURCE))
+		cfg_dict = module.__dict__
+		
+	return cfg_dict
