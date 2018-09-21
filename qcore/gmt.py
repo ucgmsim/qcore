@@ -2503,7 +2503,8 @@ class GMTPlot:
             length = 5.0, thickness = 0.15, horiz = True, \
             arrow_f = True, arrow_b = False, log = False, \
             pos = 'plot', align = None, dx = 0, dy = 0, cross_tick = None, \
-            categorical = False, intervals = False, gap = ''):
+            categorical = False, intervals = False, gap = '', \
+            zmin = 'NaN', zmax = 'NaN'):
         """
         Draws a colour palette legend.
         NOTE: major, minor should remain in current position for compatibility.
@@ -2588,6 +2589,9 @@ class GMTPlot:
             cmd.append('-B+l%s' % (label))
         if log:
             cmd.append('-Q')
+        # truncate CPT
+        if zmin != 'NaN' or zmax != 'NaN':
+            cmd.append('-G%s/%s' % (zmin, zmax))
 
         Popen(cmd, stdout = self.psf, cwd = self.wd).wait()
 
