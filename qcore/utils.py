@@ -37,12 +37,24 @@ class DotDictify(dict):
     __setattr__, __getattr__ = __setitem__, __getitem__
 
 
-def load_yaml(yaml_file):
-    with open(yaml_file, 'r') as stream:
-        try:
-            return yaml.load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
+# def load_yaml(yaml_file):
+#     with open(yaml_file, 'r') as stream:
+#         try:
+#             return yaml.load(stream)
+#         except yaml.YAMLError as exc:
+#             print(exc)
+
+
+def load_yaml(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+    class OrderedLoader(Loader):
+        pass
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return object_pairs_hook(loader.construct_pairs(node))
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        construct_mapping)
+    return yaml.load(stream, OrderedLoader)
 
 
 def dump_yaml(input_dict, output_name):
