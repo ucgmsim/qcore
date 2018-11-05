@@ -45,7 +45,7 @@ class DotDictify(dict):
 #             print(exc)
 
 
-def load_yaml(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+def load_yaml(yaml_file, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     class OrderedLoader(Loader):
         pass
     def construct_mapping(loader, node):
@@ -54,7 +54,12 @@ def load_yaml(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     OrderedLoader.add_constructor(
         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
         construct_mapping)
-    return yaml.load(stream, OrderedLoader)
+    with open(yaml_file, 'r') as stream:
+        try:
+            return yaml.load(stream, OrderedLoader)
+        except yaml.YAMLError as exc:
+            print(exc)
+
 
 
 def dump_yaml(input_dict, output_name):
@@ -71,7 +76,7 @@ def load_params(*yaml_files):
     return dot_dict
 
 
-def setup_dir(directory, empty = False):
+def setup_dir(directory, empty=False):
     """
     Make sure a directory exists, optionally make sure it is empty.
     directory: path to directory
