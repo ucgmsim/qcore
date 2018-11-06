@@ -71,7 +71,7 @@ def ordered_dump(data, stream, Dumper=yaml.Dumper, **kwds):
 
 def dump_yaml(input_dict, output_name):
     with open(output_name, 'w') as yaml_file:
-        ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper)
+        ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper, default_flow_style=False)
        # yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
         #yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
