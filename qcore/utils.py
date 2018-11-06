@@ -37,15 +37,8 @@ class DotDictify(dict):
     __setattr__, __getattr__ = __setitem__, __getitem__
 
 
-# def load_yaml(yaml_file):
-#     with open(yaml_file, 'r') as stream:
-#         try:
-#             return yaml.load(stream)
-#         except yaml.YAMLError as exc:
-#             print(exc)
 
-
-def load_yaml(yaml_file, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     class OrderedLoader(Loader):
         pass
     def construct_mapping(loader, node):
@@ -54,18 +47,33 @@ def load_yaml(yaml_file, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     OrderedLoader.add_constructor(
         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
         construct_mapping)
+    return yaml.load(stream, OrderedLoader)
+
+
+def load_yaml(yaml_file):
     with open(yaml_file, 'r') as stream:
         try:
-            return yaml.load(stream, OrderedLoader)
+            return ordered_load(stream, yaml.SafeLoader)
         except yaml.YAMLError as exc:
             print(exc)
 
 
+def ordered_dump(data, stream, Dumper=yaml.Dumper, **kwds):
+    class OrderedDumper(Dumper):
+        pass
+    def _dict_representer(dumper, data):
+        return dumper.represent_mapping(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+            data.items())
+    OrderedDumper.add_representer(OrderedDict, _dict_representer)
+    return yaml.dump(data, stream, OrderedDumper, **kwds)
+
 
 def dump_yaml(input_dict, output_name):
     with open(output_name, 'w') as yaml_file:
-        yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
-        yaml.dump(input_dict, stream=yaml_file, default_flow_style=False)
+        ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper)
+       # yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
+        #yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
 
 def load_params(*yaml_files):
