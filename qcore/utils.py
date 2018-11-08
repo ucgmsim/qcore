@@ -53,27 +53,27 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
 def load_yaml(yaml_file):
     with open(yaml_file, 'r') as stream:
         try:
-            return ordered_load(stream, yaml.SafeLoader)
+            return ordered_load(stream, Loader=yaml.SafeLoader)
         except yaml.YAMLError as exc:
             print(exc)
 
 
-def ordered_dump(data, stream, Dumper=yaml.Dumper, **kwds):
+def ordered_dump(data, stream, Dumper=yaml.Dumper, representer=OrderedDict, **kwds):
     class OrderedDumper(Dumper):
         pass
     def _dict_representer(dumper, data):
         return dumper.represent_mapping(
             yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
             data.items())
-    OrderedDumper.add_representer(OrderedDict, _dict_representer)
+    OrderedDumper.add_representer(representer, _dict_representer)
     return yaml.dump(data, stream, OrderedDumper, **kwds)
 
 
-def dump_yaml(input_dict, output_name):
+def dump_yaml(input_dict, output_name, obj_type=OrderedDict):
     with open(output_name, 'w') as yaml_file:
-        ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper, default_flow_style=False)
+        ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper, representer=obj_type, default_flow_style=False)
        # yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
-        #yaml.dump(input_dict, yaml_file, default_flow_style=False)
+       # yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
 
 def load_params(*yaml_files):
