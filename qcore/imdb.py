@@ -4,8 +4,11 @@ create db:
 create_imdb(runs_dir, station_file, db_file)
 or run as __main__ --help
 
-load db (pandas dataframe):
+load db at station (pandas dataframe):
 station_ims(imdb_file, station, im=default_all)
+
+find closest station:
+closest_station(imdb_file, lon, lat)
 """
 
 from glob import glob
@@ -277,6 +280,39 @@ def station_ims(imdb_file, station, im=None, nproc=None):
     if im is not None:
         return df[im]
     return df
+
+
+def closest_station(imdb_file, lon, lat):
+    """
+    Find closest station.
+    imdb_file: SQLite database file
+    lon: target longitude
+    lat: target latitude
+    returns: numpy.record with fields: id, name, lon, lat, dist
+    """
+    conn = sqlite3.connect(imdb_file)
+    c = conn.cursor()
+    c.execute("""SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`""")
+    r = np.rec.array(
+        np.array(
+            c.fetchall(),
+            dtype={
+                "names": ["id", "name", "lon", "lat", "dist"],
+                "formats": ["i4", "S7", "f4", "f4", "f4"],
+            },
+        )
+    )
+    conn.close()
+
+    d = (
+        np.sin(np.radians(r.lat - lat) / 2.0) ** 2
+        + np.cos(np.radians(lat))
+        * np.cos(np.radians(r.lat))
+        * np.sin(np.radians(r.lon - lon) / 2.0) ** 2
+    )
+    r.dist = 6378.139 * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
+
+    return r[np.argmin(r.dist)]
 
 
 if __name__ == "__main__":
