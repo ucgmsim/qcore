@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 create db:
-create_imdb(runs_dir, db_file)
+create_imdb(runs_dir, station_file, db_file)
 or run as __main__ --help
 
 load db (pandas dataframe):
@@ -34,7 +34,9 @@ def init_db(conn, ims):
     c.execute(
         """CREATE TABLE `stations` (
                     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-                    `name` VARCHAR(8) NOT NULL UNIQUE
+                    `name` VARCHAR(8) NOT NULL UNIQUE,
+                    `longitude` FLOAT NOT NULL,
+                    `latitude` FLOAT NOT NULL
                  );"""
     )
 
@@ -74,12 +76,13 @@ def add_simulation(conn, simulation_name):
     return c.lastrowid
 
 
-def expand_stations(conn, station_ids, stations):
+def expand_stations(conn, station_ids, stations, station_ll):
     """
     Add stations that aren't alredy in database, update station_ids dict.
     conn: open connection to database
     station_ids: dictionary of known station_name -> station_id
     stations: potentially new station_name(s)
+    station_ll: loction dict for stations
     """
     stations_new = [s for s in stations if s not in station_ids]
     if len(stations_new) == 0:
@@ -87,7 +90,11 @@ def expand_stations(conn, station_ids, stations):
 
     c = conn.cursor()
     for s in stations_new:
-        c.execute("""INSERT INTO `stations`(`name`) VALUES (?)""", (s,))
+        c.execute(
+            """INSERT INTO `stations`(`name`, `longitude`, `latitude`)
+                        VALUES (?,?,?)""",
+            (s, station_ll[s][0], station_ll[s][1]),
+        )
         station_ids[s] = c.lastrowid
     conn.commit()
 
@@ -124,7 +131,7 @@ def pandas_loader(csv):
     return c.loc[c["component"] == "geom"].drop("component", axis="columns")
 
 
-def create_imdb(runs_dir, db_file, nproc=1):
+def create_imdb(runs_dir, station_file, db_file, nproc=1):
     """
     Create SQLite database for IMs across simulations.
     runs_dir: location to `Runs` folder in a Cybershake run
@@ -134,6 +141,12 @@ def create_imdb(runs_dir, db_file, nproc=1):
     if os.path.exists(db_file):
         # no support for updating
         os.remove(db_file)
+
+    station_ll = {}
+    with open(station_file, "r") as sf:
+        for line in sf:
+            lon, lat, name = line.split()
+            station_ll[name] = (lon, lat)
 
     csvs = glob(os.path.join(runs_dir, "*", "IM_calc", "*", "*.csv"))
     sims = list(map(lambda path: os.path.splitext(os.path.basename(path))[0], csvs))
@@ -157,7 +170,7 @@ def create_imdb(runs_dir, db_file, nproc=1):
         except IndexError:
             pass
         sim_id = add_simulation(conn, sims[i])
-        expand_stations(conn, station_ids, c.index.values)
+        expand_stations(conn, station_ids, c.index.values, station_ll)
         store_ims(conn, c, station_ids, sim_id)
         print("CSV %d of %d..." % (sim_id, len(csvs)))
     print("CSV loading complete.")
@@ -275,8 +288,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     arg = parser.add_argument
     arg("runs_dir", help="Location of Runs folder")
+    arg("station_file", help="Location of station (ll) file")
     arg("db_file", help="Where to store IMDB")
     arg("--nproc", help="Number of processes to use", type=int, default=1)
     args = parser.parse_args()
 
-    create_imdb(args.runs_dir, args.db_file, nproc=args.nproc)
+    create_imdb(args.runs_dir, args.station_file, args.db_file, nproc=args.nproc)
