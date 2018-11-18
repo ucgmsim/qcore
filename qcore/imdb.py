@@ -93,12 +93,15 @@ def expand_stations(conn, station_ids, stations, station_ll):
 
     c = conn.cursor()
     for s in stations_new:
-        c.execute(
-            """INSERT INTO `stations`(`name`, `longitude`, `latitude`)
-                        VALUES (?,?,?)""",
-            (s, station_ll[s][0], station_ll[s][1]),
-        )
-        station_ids[s] = c.lastrowid
+        try:
+            c.execute(
+                """INSERT INTO `stations`(`name`, `longitude`, `latitude`)
+                            VALUES (?,?,?)""",
+                (s, station_ll[s][0], station_ll[s][1]),
+            )
+            station_ids[s] = c.lastrowid
+        except KeyError:
+            raise KeyError('Station has IMs (%s) not in station file given.' % (s))
     conn.commit()
 
 
