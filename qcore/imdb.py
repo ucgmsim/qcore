@@ -93,15 +93,12 @@ def expand_stations(conn, station_ids, stations, station_ll):
 
     c = conn.cursor()
     for s in stations_new:
-        try:
-            c.execute(
-                """INSERT INTO `stations`(`name`, `longitude`, `latitude`)
-                            VALUES (?,?,?)""",
-                (s, station_ll[s][0], station_ll[s][1]),
-            )
-            station_ids[s] = c.lastrowid
-        except KeyError:
-            raise KeyError('Station has IMs (%s) not in station file given.' % (s))
+        c.execute(
+            """INSERT INTO `stations`(`name`, `longitude`, `latitude`)
+                        VALUES (?,?,?)""",
+            (s, station_ll[s][0], station_ll[s][1]),
+        )
+        station_ids[s] = c.lastrowid
     conn.commit()
 
 
@@ -148,11 +145,18 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
         # no support for updating
         os.remove(db_file)
 
+    # create imdb for potentially a subset of all stations in IM CSVs
+    # station list needed in all cases as location is extracted from here
     station_ll = {}
     with open(station_file, "r") as sf:
         for line in sf:
             lon, lat, name = line.split()
             station_ll[name] = (lon, lat)
+    def listed_stations(stations):
+        """
+        Returns subset of stations that are in given station list file.
+        """
+        return [s for s in stations if s in station_ll]
 
     csvs = glob(os.path.join(runs_dir, "*", "IM_calc", "*", "*.csv"))
     sims = list(map(lambda path: os.path.splitext(os.path.basename(path))[0], csvs))
@@ -169,15 +173,24 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
     station_ids = {}
 
     for i, csv in enumerate(csvs):
+        # keep background csv load processes busy
         c = sink[i].get()
         del sink[i]
         try:
             sink[i + step] = pool.apply_async(pandas_loader, (csvs[i + step],))
         except IndexError:
             pass
+
+        # don't bother if no stations
+        interesting_stations = listed_stations(c.index.values)
+        if len(interesting_stations) == 0:
+            print("Simulation contains no stations of interest: %s" % (sims[i]))
+            continue
+
+        # save in DB
         sim_id = add_simulation(conn, sims[i])
-        expand_stations(conn, station_ids, c.index.values, station_ll)
-        store_ims(conn, c, station_ids, sim_id)
+        expand_stations(conn, station_ids, interesting_stations, station_ll)
+        store_ims(conn, c.loc[interesting_stations], station_ids, sim_id)
         print("CSV %d of %d..." % (sim_id, len(csvs)))
     print("CSV loading complete.")
 
