@@ -62,7 +62,7 @@ def get_nsub_stoch(stoch_file, get_area = False):
         return total_sub, total_area
     return total_sub
 
-def read_header(sf, idx = False):
+def read_header(sf, idx=False, join_minor=False):
     """
     Parse header information.
     sf: open srf file at position 0 or filename
@@ -98,6 +98,25 @@ def read_header(sf, idx = False):
                     float(ln), float(wid), stk, dip, dtop, shyp, dhyp))
     if close_me:
         sf.close()
+
+    if join_minor:
+        assert idx
+        planes_j = []
+        splits = np.where([plane['dhyp'] > 0 for plane in planes])[0].tolist()
+        nseg = len(splits)
+        splits.append(len(planes))
+        for i, p2 in enumerate(splits[:-1]):
+            d = {}
+            for same in ['width', 'ndip', 'dip', 'dhyp', 'dtop']:
+                d[same] = planes[p2][same]
+            d['length0'] = [plane['length'] for plane in planes[p2 : splits[i + 1]]]
+            d['length'] = sum(d['length0'])
+            d['nstrike0'] = [plane['nstrike'] for plane in planes[p2 : splits[i + 1]]]
+            d['nstrike'] = sum(d['nstrike0'])
+            d['strike'] = [plane['strike'] for plane in planes[p2 : splits[i + 1]]]
+            planes_j.append(d)
+        return planes_j
+
     return planes
 
 def is_ff(srf):
@@ -339,7 +358,7 @@ def get_bounds(srf, seg = -1, depth = False):
             bounds.append(plane_bounds)
     return bounds
 
-def get_hypo(srf, lonlat = True, depth = False):
+def get_hypo(srf, lonlat=True, depth=False, join_minor=False):
     """
     Return hypocentre.
     srf: srf source file path
@@ -391,6 +410,8 @@ def get_hypo(srf, lonlat = True, depth = False):
         ln_tot = sum(planes[p][4] for p in xrange(len(planes)))
         # distance from group start edge to hypocentre
         ln_shyp = ln_tot / 2. + planes[0][9]
+        if not lonlat and join_minor:
+            return ln_shyp, dhyp
         ln_shyp_rel = ln_shyp
         # calculate shyp within correct sub segment
         ln_segs = 0
@@ -398,7 +419,8 @@ def get_hypo(srf, lonlat = True, depth = False):
             ln_segs += planes[p][4]
             if ln_segs >= ln_shyp:
                 break
-            ln_shyp_rel -= planes[p][4]
+            if not join_minor:
+                ln_shyp_rel -= planes[p][4]
         # give flat projection location
         if not lonlat:
             return p, ln_shyp_rel, dhyp
@@ -480,8 +502,8 @@ def srf2llv(srf, seg = -1, value = 'slip', lonlatdep = True, depth = False):
         return np.reshape(llv, (len(llv) // 4, 4))[:, mask]
     return np.reshape(llv, (len(llv) // 3, 3))
 
-def srf2llv_py(srf, value = 'slip', seg = -1, lonlat = True, depth = False, \
-        flip_rake = False):
+def srf2llv_py(srf, value='slip', seg=-1, lonlat=True, depth=False, \
+        flip_rake=False, join_minor=False):
     """
     Return list of lon, lat, value for subfaults in each plane.
     # Reading all at once is faster than reading each separate because:
@@ -496,6 +518,7 @@ def srf2llv_py(srf, value = 'slip', seg = -1, lonlat = True, depth = False, \
     lonlat: return lon lat (True) or x y (False)
     depth: return depth as well (lonlat must be true) (lon,lat,depth,value)
     flip_rake: angles given as -180 -> 180 instead of 0 -> 360 degrees
+    join_minor: only split where multiple SRF files were combined
     """
 
     # if we want a whole series of values for each subfault
@@ -503,8 +526,8 @@ def srf2llv_py(srf, value = 'slip', seg = -1, lonlat = True, depth = False, \
 
     with open(srf, 'r') as sf:
         # metadata
-        planes = read_header(sf, idx = True)
-        points = int(sf.readline().split()[1])
+        planes = read_header(sf, idx=True, join_minor=join_minor)
+        sum_points = int(sf.readline().split()[1])
 
         # containers for planes
         values = []
@@ -513,16 +536,16 @@ def srf2llv_py(srf, value = 'slip', seg = -1, lonlat = True, depth = False, \
 
         # each plane has a separate set of subfaults
         for n, plane in enumerate(planes):
+            n_pts = plane['nstrike'] * plane['ndip']
             # skip unwanted plane
             if seg >= 0 and seg != n:
-                skip_points(sf, plane['nstrike'] * plane['ndip'])
+                skip_points(sf, n_pts)
                 continue
 
             # numpy containers for plane
-            plane_values = np.zeros((plane['nstrike'] * plane['ndip'], \
-                    3 - multi + depth))
+            plane_values = np.zeros((n_pts, 3 - multi + depth))
             if multi:
-                plane_series = [None] * (plane['nstrike'] * plane['ndip'])
+                plane_series = [None] * (n_pts)
 
             if not lonlat:
                 # calculate x, y offsets
@@ -530,25 +553,33 @@ def srf2llv_py(srf, value = 'slip', seg = -1, lonlat = True, depth = False, \
                 dx = plane['length'] / plane['nstrike']
                 dy = plane['width'] / plane['ndip']
                 # fill with x, y coord grid
-                plane_values[:, :2] = np.mgrid[ \
-                        0.5 * dx : plane['length'] : dx, \
-                        0.5 * dy : plane['width'] : dy] \
-                        .reshape(2, -1, order = 'F').T
+                if not join_minor:
+                    plane_values[:, :2] = np.mgrid[ \
+                            0.5 * dx : plane['length'] : dx, \
+                            0.5 * dy : plane['width'] : dy] \
+                            .reshape(2, -1, order = 'F').T
+                else:
+                    plane_values[:, :2] = np.concatenate([np.mgrid[ \
+                            (0.5 + sum(plane['nstrike0'][:i])) * dx : \
+                                sum(plane['nstrike0'][:i + 1]) * dx : dx, \
+                            0.5 * dy : plane['width'] : dy] \
+                            .reshape(2, -1, order='F').T \
+                                for i in range(len(plane['nstrike0']))])
                 # last item - values from SRF
                 if multi:
-                    for i in xrange(plane['nstrike'] * plane['ndip']):
+                    for i in xrange(n_pts):
                         plane_series[i] = get_lonlat(sf, value = value)[-1]
                 else:
-                    for i in xrange(plane['nstrike'] * plane['ndip']):
+                    for i in xrange(n_pts):
                         plane_values[i, 2] = get_lonlat(sf, value = value)[-1]
 
             else:
                 if not multi:
-                    for i in xrange(plane['nstrike'] * plane['ndip']):
+                    for i in xrange(n_pts):
                         plane_values[i] = get_lonlat(sf, value = value, \
                                 depth = depth)
                 else:
-                    for i in xrange(plane['nstrike'] * plane['ndip']):
+                    for i in xrange(n_pts):
                         if depth:
                             plane_values[i][0], plane_values[i][1], \
                                     plane_values[i][2], plane_series[i] \
