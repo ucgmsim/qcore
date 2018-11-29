@@ -152,6 +152,7 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
         for line in sf:
             lon, lat, name = line.split()
             station_ll[name] = (lon, lat)
+
     def listed_stations(stations):
         """
         Returns subset of stations that are in given station list file.
@@ -329,6 +330,38 @@ def closest_station(imdb_file, lon, lat):
     r.dist = 6378.139 * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
 
     return r[np.argmin(r.dist)]
+
+
+def station_details(imdb_file, station_name=None, station_id=None):
+    """
+    Give station details given name or id.
+    """
+    conn = sqlite3.connect(imdb_file)
+    c = conn.cursor()
+    if station_name is not None:
+        c.execute(
+            """SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`
+                     WHERE `name` = (?)""",
+            (station_name,),
+        )
+    else:
+        c.execute(
+            """SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`
+                     WHERE `id` = (?)""",
+            (station_id,),
+        )
+    r = np.rec.array(
+        np.array(
+            c.fetchall(),
+            dtype={
+                "names": ["id", "name", "lon", "lat", "dist"],
+                "formats": ["i4", "S7", "f4", "f4", "f4"],
+            },
+        )
+    )
+    conn.close()
+
+    return r[0]
 
 
 if __name__ == "__main__":
