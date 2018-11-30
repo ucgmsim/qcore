@@ -246,9 +246,10 @@ def ims(imdb_file):
     conn = sqlite3.connect(imdb_file)
     c = conn.cursor()
     c.execute("""SELECT `im_name` FROM `ims`""")
+    ims = [row[0] for row in c]
     conn.close()
 
-    return [row[0] for row in c]
+    return ims
 
 
 def station_ims(imdb_file, station, im=None, nproc=None):
