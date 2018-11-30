@@ -20,12 +20,7 @@ import numpy as np
 import pandas as pd
 
 
-###
-### INTENDED PRIVATE FUNCTIONS FIRST, PUBLIC API BELOW
-###
-
-
-def init_db(conn, ims):
+def __init_db(conn, ims):
     c = conn.cursor()
 
     c.execute(
@@ -70,7 +65,7 @@ def init_db(conn, ims):
     conn.commit()
 
 
-def add_simulation(conn, simulation_name):
+def __add_simulation(conn, simulation_name):
     """
     Add a new simulation into the database.
     conn: open connection to database
@@ -84,7 +79,7 @@ def add_simulation(conn, simulation_name):
     return c.lastrowid
 
 
-def expand_stations(conn, station_ids, stations, station_ll):
+def __expand_stations(conn, station_ids, stations, station_ll):
     """
     Add stations that aren't alredy in database, update station_ids dict.
     conn: open connection to database
@@ -107,7 +102,7 @@ def expand_stations(conn, station_ids, stations, station_ll):
     conn.commit()
 
 
-def store_ims(conn, table, station_ids, sim_id):
+def __store_ims(conn, table, station_ids, sim_id):
     """
     Store IMs in SQLite file from individual simulation CSV files.
     conn: open connection to database
@@ -131,7 +126,7 @@ def store_ims(conn, table, station_ids, sim_id):
     conn.commit()
 
 
-def pandas_loader(csv):
+def __pandas_loader(csv):
     """
     Loads individual simulation CSV files in background.
     """
@@ -139,7 +134,7 @@ def pandas_loader(csv):
     return c.loc[c["component"] == "geom"].drop("component", axis="columns")
 
 
-def im_at_station(imdb_file, im, station_id, n_sim):
+def __im_at_station(imdb_file, im, station_id, n_sim):
     """
     SQLite retrieval of IMs. Run internally with multiprocessing.Pool.map.
     imdb_file: location of database
@@ -162,16 +157,11 @@ def im_at_station(imdb_file, im, station_id, n_sim):
     return station_values
 
 
-def im_at_station_star(imdbfile_im_stationid_nsim):
+def __im_at_station_star(imdbfile_im_stationid_nsim):
     """
     Python 2/3 compatable version for multi-argument map.
     """
-    return im_at_station(*imdbfile_im_stationid_nsim)
-
-
-###
-### INTENDED PUBLIC API BELOW THIS POINT
-###
+    return __im_at_station(*imdbfile_im_stationid_nsim)
 
 
 def create_imdb(runs_dir, station_file, db_file, nproc=1):
@@ -207,10 +197,10 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
     sink = {}
     step = min(nproc, len(csvs))
     for i in range(step):
-        sink[i] = pool.apply_async(pandas_loader, (csvs[i],))
+        sink[i] = pool.apply_async(__pandas_loader, (csvs[i],))
 
     conn = sqlite3.connect(db_file)
-    init_db(conn, sink[0].get().columns.values.tolist())
+    __init_db(conn, sink[0].get().columns.values.tolist())
     station_ids = {}
 
     for i, csv in enumerate(csvs):
@@ -218,7 +208,7 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
         c = sink[i].get()
         del sink[i]
         try:
-            sink[i + step] = pool.apply_async(pandas_loader, (csvs[i + step],))
+            sink[i + step] = pool.apply_async(__pandas_loader, (csvs[i + step],))
         except IndexError:
             pass
 
@@ -229,9 +219,9 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
             continue
 
         # save in DB
-        sim_id = add_simulation(conn, sims[i])
-        expand_stations(conn, station_ids, interesting_stations, station_ll)
-        store_ims(conn, c.loc[interesting_stations], station_ids, sim_id)
+        sim_id = __add_simulation(conn, sims[i])
+        __expand_stations(conn, station_ids, interesting_stations, station_ll)
+        __store_ims(conn, c.loc[interesting_stations], station_ids, sim_id)
         print("CSV %d of %d..." % (sim_id, len(csvs)))
     print("CSV loading complete.")
 
@@ -299,7 +289,7 @@ def station_ims(imdb_file, station, im=None, nproc=None):
     pool = Pool(min(nproc, n_im))
     im_values = np.zeros((n_sim, n_im))
     id_vals = pool.map(
-        im_at_station_star,
+        __im_at_station_star,
         zip([imdb_file] * n_im, im_names, [station_id] * n_im, [n_sim] * n_im),
     )
     simulation_ids = id_vals[0][0]
