@@ -364,24 +364,24 @@ def station_details(imdb_file, station_name=None, station_id=None):
     c = conn.cursor()
     if station_name is not None:
         c.execute(
-            """SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`
+            """SELECT `id`,`name`,`longitude`,`latitude` FROM `stations`
                      WHERE `name` = (?)""",
             (station_name,),
         )
     elif station_id is not None:
         c.execute(
-            """SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`
+            """SELECT `id`,`name`,`longitude`,`latitude` FROM `stations`
                      WHERE `id` = (?)""",
             (station_id,),
         )
     else:
-        c.execute("""SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`""")
+        c.execute("""SELECT `id`,`name`,`longitude`,`latitude` FROM `stations`""")
     r = np.rec.array(
         np.array(
             c.fetchall(),
             dtype={
-                "names": ["id", "name", "lon", "lat", "dist"],
-                "formats": ["i4", "S7", "f4", "f4", "f4"],
+                "names": ["id", "name", "lon", "lat"],
+                "formats": ["i4", "S7", "f4", "f4"],
             },
         )
     )
