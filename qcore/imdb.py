@@ -238,6 +238,9 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
     conn.close()
 
 
+# FUNCTIONS BELOW HERE COULD BE COMBINED INTO A CLASS
+
+
 def ims(imdb_file):
     """
     Returns list of IMs available in IMDB
