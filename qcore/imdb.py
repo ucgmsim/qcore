@@ -344,12 +344,14 @@ def station_details(imdb_file, station_name=None, station_id=None):
                      WHERE `name` = (?)""",
             (station_name,),
         )
-    else:
+    elif station_id is not None:
         c.execute(
             """SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`
                      WHERE `id` = (?)""",
             (station_id,),
         )
+    else:
+        c.execute("""SELECT `id`,`name`,`longitude`,`latitude`,`id` FROM `stations`""")
     r = np.rec.array(
         np.array(
             c.fetchall(),
@@ -361,7 +363,11 @@ def station_details(imdb_file, station_name=None, station_id=None):
     )
     conn.close()
 
-    return r[0]
+    if r.size == 1:
+        # specific station_name or station_id, both are unique
+        return r[0]
+    # list of all stations
+    return r
 
 
 if __name__ == "__main__":
