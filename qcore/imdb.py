@@ -247,6 +247,8 @@ def station_ims(imdb_file):
     c = conn.cursor()
 
     c.execute("""SELECT `im_name` FROM `ims`""")
+    conn.close()
+
     return [row[0] for row in c]
 
 
