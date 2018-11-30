@@ -238,14 +238,13 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
     conn.close()
 
 
-def station_ims(imdb_file):
+def ims(imdb_file):
     """
     Returns list of IMs available in IMDB
     """
 
     conn = sqlite3.connect(imdb_file)
     c = conn.cursor()
-
     c.execute("""SELECT `im_name` FROM `ims`""")
     conn.close()
 
