@@ -238,6 +238,18 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
     conn.close()
 
 
+def station_ims(imdb_file):
+    """
+    Returns list of IMs available in IMDB
+    """
+
+    conn = sqlite3.connect(imdb_file)
+    c = conn.cursor()
+
+    c.execute("""SELECT `im_name` FROM `ims`""")
+    return [row[0] for row in c]
+
+
 def station_ims(imdb_file, station, im=None, nproc=None):
     """
     Load IMs for a given station.
@@ -344,7 +356,7 @@ def closest_station(imdb_file, lon, lat):
 
 def station_details(imdb_file, station_name=None, station_id=None):
     """
-    Give station details given name or id.
+    Give station details given name or id. Return all stations if no selection.
     """
     conn = sqlite3.connect(imdb_file)
     c = conn.cursor()
