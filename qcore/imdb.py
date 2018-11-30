@@ -20,6 +20,11 @@ import numpy as np
 import pandas as pd
 
 
+###
+### INTENDED PRIVATE FUNCTIONS FIRST, PUBLIC API BELOW
+###
+
+
 def init_db(conn, ims):
     c = conn.cursor()
 
@@ -134,6 +139,41 @@ def pandas_loader(csv):
     return c.loc[c["component"] == "geom"].drop("component", axis="columns")
 
 
+def im_at_station(imdb_file, im, station_id, n_sim):
+    """
+    SQLite retrieval of IMs. Run internally with multiprocessing.Pool.map.
+    imdb_file: location of database
+    im: im to load
+    station_id: station of interest
+    n_sim: how many values are expected
+    """
+    station_values = np.zeros((2, n_sim))
+    conn = sqlite3.connect(imdb_file)
+    c = conn.cursor()
+    c.execute(
+        """SELECT `simulation_id`, `value` FROM `%s`
+                    WHERE `station_id` = %d
+                    ORDER BY `simulation_id`"""
+        % (im, station_id)
+    )
+    for r, row in enumerate(c):
+        station_values[:, r] = row
+    conn.close()
+    return station_values
+
+
+def im_at_station_star(imdbfile_im_stationid_nsim):
+    """
+    Python 2/3 compatable version for multi-argument map.
+    """
+    return im_at_station(*imdbfile_im_stationid_nsim)
+
+
+###
+### INTENDED PUBLIC API BELOW THIS POINT
+###
+
+
 def create_imdb(runs_dir, station_file, db_file, nproc=1):
     """
     Create SQLite database for IMs across simulations.
@@ -196,36 +236,6 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
     print("CSV loading complete.")
 
     conn.close()
-
-
-def im_at_station(imdb_file, im, station_id, n_sim):
-    """
-    SQLite retrieval of IMs. Run internally with multiprocessing.Pool.map.
-    imdb_file: location of database
-    im: im to load
-    station_id: station of interest
-    n_sim: how many values are expected
-    """
-    station_values = np.zeros((2, n_sim))
-    conn = sqlite3.connect(imdb_file)
-    c = conn.cursor()
-    c.execute(
-        """SELECT `simulation_id`, `value` FROM `%s`
-                    WHERE `station_id` = %d
-                    ORDER BY `simulation_id`"""
-        % (im, station_id)
-    )
-    for r, row in enumerate(c):
-        station_values[:, r] = row
-    conn.close()
-    return station_values
-
-
-def im_at_station_star(imdbfile_im_stationid_nsim):
-    """
-    Python 2/3 compatable version for multi-argument map.
-    """
-    return im_at_station(*imdbfile_im_stationid_nsim)
 
 
 def station_ims(imdb_file, station, im=None, nproc=None):
