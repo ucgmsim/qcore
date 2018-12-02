@@ -50,10 +50,14 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     return yaml.load(stream, OrderedLoader)
 
 
-def load_yaml(yaml_file):
+def load_yaml(yaml_file, obj_type=OrderedDict):
+    """obj_type: None for using a ordinary Dict; default using OrderedDict"""
     with open(yaml_file, 'r') as stream:
         try:
-            return ordered_load(stream, Loader=yaml.SafeLoader)
+            if obj_type is None:
+                return yaml.load(stream)
+            else:
+                return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
         except yaml.YAMLError as exc:
             print(exc)
 
@@ -70,6 +74,7 @@ def ordered_dump(data, stream, Dumper=yaml.Dumper, representer=OrderedDict, **kw
 
 
 def dump_yaml(input_dict, output_name, obj_type=OrderedDict):
+    """obj_type: Dict for using a ordinary Dict; default using OrderedDict"""
     with open(output_name, 'w') as yaml_file:
         ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper, representer=obj_type, default_flow_style=False)
        # yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
