@@ -231,7 +231,7 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
 # FUNCTIONS BELOW HERE COULD BE COMBINED INTO A CLASS
 
 
-def ims(imdb_file):
+def ims(imdb_file, fmt='imdb'):
     """
     Returns list of IMs available in IMDB
     """
@@ -241,6 +241,10 @@ def ims(imdb_file):
     c.execute("""SELECT `im_name` FROM `ims`""")
     ims = [row[0] for row in c]
     conn.close()
+
+    if fmt == 'file':
+        fmt_file = lambda im: im if not im.startswith('pSA') else im[1:].replace('.', 'p')
+        return list(map(fmt_file, ims))
 
     return ims
 
