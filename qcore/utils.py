@@ -8,6 +8,7 @@ import os
 import imp
 import yaml
 from collections import OrderedDict
+from collections import Mapping
 
 
 class DotDictify(dict):
@@ -50,8 +51,8 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     return yaml.load(stream, OrderedLoader)
 
 
-def load_yaml(yaml_file, obj_type=OrderedDict):
-    """obj_type: None for using a ordinary Dict; default using OrderedDict"""
+def load_yaml(yaml_file, obj_type=None):
+    """obj_type=OrderedDict to load yaml in order; default using Dict"""
     with open(yaml_file, 'r') as stream:
         try:
             if obj_type is None:
@@ -73,20 +74,30 @@ def ordered_dump(data, stream, Dumper=yaml.Dumper, representer=OrderedDict, **kw
     return yaml.dump(data, stream, OrderedDumper, **kwds)
 
 
-def dump_yaml(input_dict, output_name, obj_type=OrderedDict):
-    """obj_type: Dict for using a ordinary Dict; default using OrderedDict"""
+def dump_yaml(input_dict, output_name, obj_type=dict):
+    """obj_type=OrderedDict to dump yaml in order; default using Dict"""
     with open(output_name, 'w') as yaml_file:
         ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper, representer=obj_type, default_flow_style=False)
        # yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
        # yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
 
+def update(d, u):
+    """prevents overwritten of nested dict"""
+    for k, v in u.items():
+        if isinstance(v, Mapping):
+            d[k] = update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
+
+
 def load_params(*yaml_files):
-    dot_dict = DotDictify({})
+    d = {}
     for yaml_file in yaml_files:
-        d = DotDictify(load_yaml(yaml_file))
-        dot_dict.update(d)
-    return dot_dict
+        update(d, load_yaml(yaml_file))
+        print ("d",d)
+    return DotDictify(d)
 
 
 def setup_dir(directory, empty=False):
