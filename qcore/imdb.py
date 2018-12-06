@@ -413,9 +413,11 @@ if __name__ == "__main__":
     arg("station_file", help="Location of station (ll) file")
     arg("db_file", help="Where to store IMDB")
     arg("--cache", help="Create cache files at every station too", action="store_true")
+    arg("--nodb", help="Assume imdb exists (useful with --cache)", action="store_true")
     arg("--nproc", help="Number of processes to use", type=int, default=1)
     args = parser.parse_args()
 
-    create_imdb(args.runs_dir, args.station_file, args.db_file, nproc=args.nproc)
+    if not args.nodb:
+        create_imdb(args.runs_dir, args.station_file, args.db_file, nproc=args.nproc)
     if args.cache:
         fill_cache(args.db_file)
