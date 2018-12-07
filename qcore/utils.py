@@ -96,7 +96,6 @@ def load_params(*yaml_files):
     d = {}
     for yaml_file in yaml_files:
         update(d, load_yaml(yaml_file))
-        print ("d",d)
     return DotDictify(d)
 
 
