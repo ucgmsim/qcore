@@ -231,7 +231,7 @@ def create_imdb(runs_dir, station_file, db_file, nproc=1):
 # FUNCTIONS BELOW HERE COULD BE COMBINED INTO A CLASS
 
 
-def ims(imdb_file):
+def ims(imdb_file, fmt="imdb"):
     """
     Returns list of IMs available in IMDB
     """
@@ -241,6 +241,12 @@ def ims(imdb_file):
     c.execute("""SELECT `im_name` FROM `ims`""")
     ims = [row[0] for row in c]
     conn.close()
+
+    if fmt == "file":
+        fmt_file = (
+            lambda im: im if not im.startswith("pSA") else im[1:].replace(".", "p")
+        )
+        return list(map(fmt_file, ims))
 
     return ims
 
@@ -387,6 +393,14 @@ def station_details(imdb_file, station_name=None, station_id=None):
     return r
 
 
+def fill_cache(imdb_file):
+    """
+    Makes sure cache files are available for every station.
+    """
+    for station in station_details(imdb_file):
+        station_ims(imdb_file, station.name)
+
+
 if __name__ == "__main__":
     """
     Command line option to save database.
@@ -398,7 +412,12 @@ if __name__ == "__main__":
     arg("runs_dir", help="Location of Runs folder")
     arg("station_file", help="Location of station (ll) file")
     arg("db_file", help="Where to store IMDB")
+    arg("--cache", help="Create cache files at every station too", action="store_true")
+    arg("--nodb", help="Assume imdb exists (useful with --cache)", action="store_true")
     arg("--nproc", help="Number of processes to use", type=int, default=1)
     args = parser.parse_args()
 
-    create_imdb(args.runs_dir, args.station_file, args.db_file, nproc=args.nproc)
+    if not args.nodb:
+        create_imdb(args.runs_dir, args.station_file, args.db_file, nproc=args.nproc)
+    if args.cache:
+        fill_cache(args.db_file)
