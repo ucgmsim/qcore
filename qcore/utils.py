@@ -73,14 +73,11 @@ def load_yaml(yaml_file, obj_type=None):
     :return: OrderedDict/dict
     """
     with open(yaml_file, 'r') as stream:
-        try:
-            if obj_type is None:
-                return yaml.load(stream)
-            else:
-                return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
-        except yaml.YAMLError as exc:
-            print(exc)
-
+        if obj_type is None:
+            return yaml.load(stream)
+        else:
+            return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
+       
 
 def ordered_dump(data, stream, Dumper=yaml.Dumper, representer=OrderedDict, **kwds):
     """
