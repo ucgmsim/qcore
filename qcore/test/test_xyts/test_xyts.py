@@ -9,7 +9,7 @@ import sys
 import shutil
 import errno
 
-XYTS_ACTUAL_PATH =os.path.abspath("xyts.e3d")
+XYTS_ACTUAL_PATH =os.path.join(os.path.abspath(os.path.dirname(__file__)),"xyts.e3d")
 SAMPLE_OUT_DIR_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1/output")
 XYTS_FILE = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1/xyts.e3d")
 os.symlink(XYTS_ACTUAL_PATH, XYTS_FILE)
@@ -42,14 +42,14 @@ def teardown_module():
             sys.exit(e)
 
 
-@pytest.mark.parametrize("gmt_format, expected_corners",[(False,[[170.91449, -43.2916], [172.26257, -44.21773], [171.01305, -45.15298], [169.66354, -44.21213]]) ,\
-(True,([[170.91449, -43.2916], [172.26257, -44.21773], [171.01305, -45.15298], [169.66354, -44.21213]], '170.91449 -43.2916\n172.26257 -44.21773\n171.01305 -45.15298\n169.66354 -44.21213')
+@pytest.mark.parametrize("gmt_format, expected_corners",[(False,[[170.9143829345703, -43.291595458984375], [172.26246643066406, -44.217742919921875], [171.01295471191406, -45.15299987792969], [169.66343688964844, -44.21214294433594]]) ,\
+(True,([[170.9143829345703, -43.291595458984375], [172.26246643066406, -44.217742919921875], [171.01295471191406, -45.15299987792969], [169.66343688964844, -44.21214294433594]], '170.914382935 -43.291595459\n172.262466431 -44.2177429199\n171.012954712 -45.1529998779\n169.66343689 -44.2121429443')
 )])
 def test_corners(gmt_format, expected_corners):
    assert OBJ_XYTS.corners(gmt_format=gmt_format)  == expected_corners
 
 
-@pytest.mark.parametrize("corners, expected_region",[(None,(169.66354000000001, 172.26257000000001, -45.152979999999999, -43.291600000000003)) ,\
+@pytest.mark.parametrize("corners, expected_region",[(None,(169.66343688964844, 172.26246643066406, -45.15299987792969, -43.291595458984375)) ,\
 ([[170.91449, -43.2916], [172.26257, -44.21773], [171.01305, -45.15298], [169.66354, -44.21213]],(169.66354000000001, 172.26257000000001, -45.152979999999999, -43.291600000000003))])
 def test_region(corners, expected_region):
     assert OBJ_XYTS.region(corners) == expected_region
