@@ -21,12 +21,20 @@ master = 0
 is_master = not rank
 
 
+def __csv_values(csv, dtype):
+    """
+    Loads individual simulation CSV file.
+    """
+    c = pd.read_csv(csv, index_col=0, engine="c", dtype=dtype)
+    return c.loc[c["component"] == "geom"].drop("component", axis="columns")
+
+
 def __csv_ims(csv):
     """
-    Loads individual simulation CSV files.
+    Minimal load function that returns list of IMs.
     """
-    c = pd.read_csv(csv, index_col=0)
-    return c.loc[c["component"] == "geom"].drop("component", axis="columns")
+    with open(csv, "r") as c:
+        return list(map(str.strip, c.readline().split(",")[2:]))
 
 
 def __csv_stations(csv):
@@ -55,7 +63,7 @@ def __add_dict_counters(dict_a, dict_b, datatype):
     return dict_a
 
 
-statSumOp = MPI.Op.Create(__add_dict_counters, commute=True)
+NSIMSUM = MPI.Op.Create(__add_dict_counters, commute=True)
 
 
 # collect required arguements
@@ -73,11 +81,13 @@ if is_master:
         # invalid arguments or -h
         comm.Abort()
     # add some additional info
+    # TODO: sort by file size, with many realisations it will be ok
     csvs = glob(os.path.join(args.runs_dir, "*", "IM_calc", "*", "*.csv"))
 args = comm.bcast(args, root=master)
 csvs = comm.bcast(csvs, root=master)
 rank_csvs = csvs[rank::size]
-sims = list(map(lambda path: os.path.splitext(os.path.basename(path))[0], csvs))
+del csvs
+sims = list(map(lambda path: os.path.splitext(os.path.basename(path))[0], rank_csvs))
 faults = list(map(lambda sim: sim.split("_HYP")[0], sims))
 
 
@@ -98,11 +108,18 @@ for csv in rank_csvs:
             stat_nsim[stat] = np.zeros(size)
             stat_nsim[stat][rank] = 1
 # get a complete set of simulations for each station by rank
-stat_nsim = comm.allreduce(stat_nsim, op=statSumOp)
+stat_nsim = comm.allreduce(stat_nsim, op=NSIMSUM)
 
-# other metadata
-ims = __csv_ims(csvs[0]).columns.values
+# determine IMs available
+ims = None
+if is_master:
+    # make sure IMs are the same, in the same order
+    ims = __csv_ims(rank_csvs[0])
+ims = comm.bcast(ims, root=master)
 n_im = len(ims)
+csv_dtype = {"station": np.string_, "component": np.string_}
+for im in ims:
+    csv_dtype[im] = np.float32
 
 if is_master:
     print("gathering metadata complete (%.2fs)" % (MPI.Wtime() - t0))
@@ -117,23 +134,29 @@ if is_master:
 
 # create structure together
 h5 = h5py.File(args.db_file, "w", driver="mpio", comm=comm)
-ims = {}
+dtype = np.dtype([(im, "f4") for im in ims])
+h5_stats = {}
 for stat in stat_nsim:
-    ims[stat] = h5.create_dataset(
-        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im), dtype="f4"
+    h5_stats[stat] = h5.create_dataset(
+        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im), dtype=dtype
     )
 if is_master:
     print("hdf datastructures created (%.2fs)" % (MPI.Wtime() - t0))
 
 # store im values
+t0 = MPI.Wtime()
 for i, csv in enumerate(rank_csvs):
-    print("[%03d] %03d / %03d..." % (rank, i, len(rank_csvs)))
-    df = __csv_ims(csv)
+    if (i + 1) % 5 == 0:
+        print("[%03d] %03d / %03d" % (rank, i + 1, len(rank_csvs)))
+    df = __csv_values(csv, csv_dtype)
+    # all CSVs have to have same IM order, expected, cheaper than explicit order
+    assert np.array_equal(df.columns.values, ims)
     for stat in df.index.values:
         stat_nsim[stat][rank] -= 1
-        ims[stat][sum(stat_nsim[stat][:rank + 1])] = df.loc[stat].values
+        h5_stats[stat][sum(stat_nsim[stat][: rank + 1])] = df.loc[stat].values
+print("[%03d] %03d in %.2fs" % (rank, len(rank_csvs), MPI.Wtime() - t0))
 
 
 # will hang for a long time if datasets are not deleted
-del ims
+del h5_stats
 h5.close()
