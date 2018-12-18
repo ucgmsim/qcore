@@ -137,7 +137,7 @@ h5 = h5py.File(args.db_file, "w", driver="mpio", comm=comm)
 h5_stats = {}
 for stat in stat_nsim:
     h5_stats[stat] = h5.create_dataset(
-        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im),
+        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im), dtype='f4',
     )
 if is_master:
     print("hdf datastructures created (%.2fs)" % (MPI.Wtime() - t0))
