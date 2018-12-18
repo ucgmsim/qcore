@@ -134,11 +134,10 @@ if is_master:
 
 # create structure together
 h5 = h5py.File(args.db_file, "w", driver="mpio", comm=comm)
-dtype = np.dtype([(im, "f4") for im in ims])
 h5_stats = {}
 for stat in stat_nsim:
     h5_stats[stat] = h5.create_dataset(
-        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im), dtype=dtype
+        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im),
     )
 if is_master:
     print("hdf datastructures created (%.2fs)" % (MPI.Wtime() - t0))
@@ -153,7 +152,7 @@ for i, csv in enumerate(rank_csvs):
     assert np.array_equal(df.columns.values, ims)
     for stat in df.index.values:
         stat_nsim[stat][rank] -= 1
-        h5_stats[stat][sum(stat_nsim[stat][: rank + 1])] = df.loc[stat].values
+        #h5_stats[stat][sum(stat_nsim[stat][: rank + 1])] = df.loc[stat].values
 print("[%03d] %03d in %.2fs" % (rank, len(rank_csvs), MPI.Wtime() - t0))
 
 
