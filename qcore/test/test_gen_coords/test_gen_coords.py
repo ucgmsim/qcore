@@ -25,14 +25,15 @@ PATH_TO_SAMPLE_INPUT_DIR = os.path.join(PATH_TO_SAMPLE_DIR, "input")
 INPUT_FILENAME = "params_vel.py"
 # print "PATH_TO_SAMPLE_OUTDIR: ",PATH_TO_SAMPLE_OUTDIR
 
-SYMLINK_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),INPUT_FILENAME)
+
 DIR_NAME = (os.path.join("/home/",getpass.getuser(),("tmp_test_gen_coords_"+ ''.join(str(datetime.now()).split())).replace('.', '_')).replace(
             ':', '_'))
 # print "PATH_TO_NEW_OUTDIR: ", DIR_NAME
 # PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.abspath(os.path.dirname(__file__)), "../gen_coords.py")
-# print "first PATH_FOR_PRG_TOBE_TESTED: **** ",PATH_FOR_PRG_TOBE_TESTED
-PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.dirname(__file__),'../../gen_coords.py')
 
+PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.dirname(__file__),'../../gen_coords.py')
+SYMLINK_PATH = os.path.join(os.path.abspath(os.path.dirname(PATH_FOR_PRG_TOBE_TESTED)),INPUT_FILENAME)
+# print "symbolic: **** ", SYMLINK_PATH
 
 def setup_module(scope="module"):
     """ create a symbolic link for params_vel.py"""
