@@ -46,8 +46,8 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     """
     :param stream: yaml file path
     :param Loader: yaml loader
-    :param object_pairs_hook: always=OrderedDict to load file in order;
-
+    :param object_pairs_hook: =OrderedDict to load file in order;
+                              =dict to load in random order
     :return: OrderedDict
     """
 
@@ -64,22 +64,16 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     return yaml.load(stream, OrderedLoader)
 
 
-def load_yaml(yaml_file, obj_type=None):
+def load_yaml(yaml_file, obj_type=dict):
     """
     load yaml file into a OrderedDict/dict
     :param yaml_file: path to yaml file
     :param obj_type: =OrderedDict to load yaml in order;
-                     =None to load in random order
+                     =dict to load in random order
     :return: OrderedDict/dict
     """
     with open(yaml_file, 'r') as stream:
-        try:
-            if obj_type is None:
-                return yaml.load(stream)
-            else:
-                return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
-        except yaml.YAMLError as exc:
-            print(exc)
+        return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
 
 
 def ordered_dump(data, stream, Dumper=yaml.Dumper, representer=OrderedDict, **kwds):
