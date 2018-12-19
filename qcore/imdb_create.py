@@ -87,10 +87,13 @@ csvs = comm.bcast(csvs, root=master)
 n_csvs = len(csvs)
 rank_csvs = csvs[rank::size]
 del csvs
-sims = np.array(list(map(lambda path: os.path.splitext(os.path.basename(path))[0], rank_csvs)), dtype=np.string_)
+sims = np.array(
+    list(map(lambda path: os.path.splitext(os.path.basename(path))[0], rank_csvs)),
+    dtype=np.string_,
+)
 # TODO: also store fault names, needs to work with Python 2 and 3 (str vs unicode)
-#faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], sims)), dtype=np.string_)
-sims_dtype = '|S%d' % (comm.allreduce(sims.dtype.itemsize, op=MPI.MAX))
+# faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], sims)), dtype=np.string_)
+sims_dtype = "|S%d" % (comm.allreduce(sims.dtype.itemsize, op=MPI.MAX))
 if n_csvs <= 65536:
     simsi_dtype = np.uint16
 else:
@@ -104,7 +107,7 @@ with open(args.station_file, "r") as sf:
         lon, lat, name = line.split()
         station_ll[name] = (float(lon), float(lat))
 # TODO: use numpy to load the station file with this dtype, change below accordingly
-station_dtype = np.dtype([('name', '|S7'), ('lon', 'f4'), ('lat', 'f4')])
+station_dtype = np.dtype([("name", "|S7"), ("lon", "f4"), ("lat", "f4")])
 
 ###
 ### PASS 1 : determine work size
@@ -172,10 +175,10 @@ h5_stats = {}
 h5_sims = {}
 for stat in stat_nsim:
     h5_stats[stat] = h5.create_dataset(
-        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im), dtype='f4',
+        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im), dtype="f4"
     )
     h5_sims[stat] = h5.create_dataset(
-        "station_index/%s" % (stat), (sum(stat_nsim[stat]),), dtype=simsi_dtype,
+        "station_index/%s" % (stat), (sum(stat_nsim[stat]),), dtype=simsi_dtype
     )
 
 if is_master:
