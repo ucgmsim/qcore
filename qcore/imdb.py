@@ -38,7 +38,7 @@ def station_ims(imdb_file, station, im=None, fmt="imdb"):
         df = pd.DataFrame(
             imdb["station_data/%s" % (station)][...],
             index=imdb["simulations"][...][imdb["station_index/%s" % (station)][...]],
-            columns=ims(fmt=fmt),
+            columns=ims(imdb_file, fmt=fmt),
         )
 
     if im is not None:
