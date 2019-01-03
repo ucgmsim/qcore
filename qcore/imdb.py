@@ -27,7 +27,7 @@ def ims(imdb_file, fmt="imdb"):
     return ims
 
 
-def station_ims(imdb_file, station, im=None):
+def station_ims(imdb_file, station, im=None, fmt="imdb"):
     """
     Load IMs for a given station.
     station: load IMs for this station
@@ -38,10 +38,12 @@ def station_ims(imdb_file, station, im=None):
         df = pd.DataFrame(
             imdb["station_data/%s" % (station)][...],
             index=imdb["simulations"][...][imdb["station_index/%s" % (station)][...]],
-            columns=imdb.attrs["ims"],
+            columns=ims(fmt=fmt),
         )
 
     if im is not None:
+        if fmt == "file":
+            return df["p%s" % (im.replace("p", "."))]
         return df[im]
     return df
 
