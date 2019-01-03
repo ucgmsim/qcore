@@ -9,20 +9,20 @@ SRF format:
 https://scec.usc.edu/scecpedia/Standard_Rupture_Format
 """
 
-from math import ceil, cos, floor, radians, sqrt
 import os
-from subprocess import Popen, PIPE
-
 import numpy as np
 
-from qcore import geo
-from qcore.config import qconfig
+from math import ceil, cos, floor, radians, sqrt, sin, degrees, atan
+from subprocess import Popen, PIPE
 
+from qcore.config import qconfig
 
 # binary paths
 srf2xyz = os.path.join(qconfig['tools_dir'], 'srf2xyz')
+
 # assumption that all srf files contain 6 values per line
 VPL = 6.
+
 
 def get_nseg(srf):
     """
@@ -33,7 +33,8 @@ def get_nseg(srf):
         sf.readline()
         return int(sf.readline().split()[1])
 
-def get_nsub_stoch(stoch_file, get_area = False):
+
+def get_nsub_stoch(stoch_file, get_area=False):
     """
     Returns the number of sub-faults in a stoch file.
     stoch_file: stoch file path
@@ -42,7 +43,7 @@ def get_nsub_stoch(stoch_file, get_area = False):
     total_area = 0
     with open(stoch_file, 'r') as sf:
         # file starts with number of segments that follow
-        for seg in xrange(int(sf.readline())):
+        for seg in range(int(sf.readline())):
             # metadata line 1 of 2
             meta1 = sf.readline().split()
             # nx * ny
@@ -55,12 +56,13 @@ def get_nsub_stoch(stoch_file, get_area = False):
             # skip metadata line 2 of 2
             sf.readline()
             # skip x, y, z (3) components * (ny) lines containing nx columns
-            for _ in xrange(3 * int(meta1[3]) ):
+            for _ in range(3 * int(meta1[3]) ):
                 sf.readline()
 
     if get_area:
         return total_sub, total_area
     return total_sub
+
 
 def read_header(sf, idx=False, join_minor=False):
     """
@@ -81,21 +83,22 @@ def read_header(sf, idx=False, join_minor=False):
     assert(line2[0] == 'PLANE')
     nseg = int(line2[1])
     planes = []
-    for _ in xrange(nseg):
+    for _ in range(nseg):
         # works for version 1.0 and 2.0
         elon, elat, nstk, ndip, ln, wid = sf.readline().split()
         stk, dip, dtop, shyp, dhyp = map(float, sf.readline().split())
         # return as dictionary
         if idx:
-            planes.append({'centre':[float(elon), float(elat)], \
-                    'nstrike':int(nstk), 'ndip':int(ndip), \
-                    'length':float(ln), 'width':float(wid), \
-                    'strike':stk, 'dip':dip, 'shyp':shyp, 'dhyp':dhyp, \
-                    'dtop':dtop})
+            planes.append({'centre': [float(elon), float(elat)],
+                           'nstrike': int(nstk), 'ndip': int(ndip),
+                           'length': float(ln), 'width': float(wid),
+                           'strike': stk, 'dip': dip, 'shyp': shyp,
+                           'dhyp': dhyp,
+                           'dtop': dtop})
         else:
             # TODO: deprecated, causes confusion
-            planes.append((float(elon), float(elat), int(nstk), int(ndip), \
-                    float(ln), float(wid), stk, dip, dtop, shyp, dhyp))
+            planes.append((float(elon), float(elat), int(nstk), int(ndip),
+                           float(ln), float(wid), stk, dip, dtop, shyp, dhyp))
     if close_me:
         sf.close()
 
@@ -103,21 +106,24 @@ def read_header(sf, idx=False, join_minor=False):
         assert idx
         planes_j = []
         splits = np.where([plane['dhyp'] > 0 for plane in planes])[0].tolist()
-        nseg = len(splits)
         splits.append(len(planes))
         for i, p2 in enumerate(splits[:-1]):
             d = {}
             for same in ['width', 'ndip', 'dip', 'dhyp', 'dtop']:
                 d[same] = planes[p2][same]
-            d['length0'] = [plane['length'] for plane in planes[p2 : splits[i + 1]]]
+            d['length0'] = [plane['length'] for plane in
+                            planes[p2: splits[i + 1]]]
             d['length'] = sum(d['length0'])
-            d['nstrike0'] = [plane['nstrike'] for plane in planes[p2 : splits[i + 1]]]
+            d['nstrike0'] = [plane['nstrike'] for plane in
+                             planes[p2: splits[i + 1]]]
             d['nstrike'] = sum(d['nstrike0'])
-            d['strike'] = [plane['strike'] for plane in planes[p2 : splits[i + 1]]]
+            d['strike'] = [plane['strike'] for plane in
+                           planes[p2: splits[i + 1]]]
             planes_j.append(d)
         return planes_j
 
     return planes
+
 
 def is_ff(srf):
     """
@@ -126,6 +132,7 @@ def is_ff(srf):
     """
     with open(srf, 'r') as sf:
         return check_type(sf) > 1
+
 
 def check_type(sf):
     """
@@ -161,6 +168,7 @@ def check_type(sf):
                 return 2
             return 3
 
+
 def ps_params(srf):
     """
     Returns point source (subfault) params (strike, dip, rake).
@@ -175,21 +183,23 @@ def ps_params(srf):
 
     return strike, dip, rake
 
-def skip_points(sf, np):
+
+def skip_points(sf, n_points):
     """
     Skips wanted number of points entries in SRF.
     sf: open srf file at the start of a point
     np: number of points to read past
     """
-    for _ in xrange(np):
+    for _ in range(n_points):
         # header 1 not important
         sf.readline()
         # header 2 contains number of values which determines lines
         values = sum(map(int, sf.readline().split()[2::2]))
-        for _ in xrange(int(ceil(values / VPL))):
+        for _ in range(int(ceil(values / VPL))):
             sf.readline()
 
-def get_lonlat(sf, value = None, depth = False):
+
+def get_lonlat(sf, value=None, depth=False):
     """
     Returns only the longitude, latitude of a point.
     sf: open file at start of point
@@ -244,9 +254,9 @@ def get_lonlat(sf, value = None, depth = False):
     # skip rest of point data
     # or return the time series
     values = sum(map(int, h2[2::2]))
-    if type(value).__name__ != 'str' or (value[:8] != 'sliprate' \
-            and value[:6] != 'slipts'):
-        for _ in xrange(int(ceil(values / VPL))):
+    if type(value).__name__ != 'str' or \
+            (value[:8] != 'sliprate' and value[:6] != 'slipts'):
+        for _ in range(int(ceil(values / VPL))):
             sf.readline()
     else:
         cumulative = False
@@ -254,7 +264,7 @@ def get_lonlat(sf, value = None, depth = False):
             cumulative = True
         # store rest of point data
         srate = []
-        for _ in xrange(int(ceil(values / VPL))):
+        for _ in range(int(ceil(values / VPL))):
             srate.extend(map(float, sf.readline().split()))
         # sliprate-dt-tend
         dt, t = value.split('-')[1:3]
@@ -266,7 +276,7 @@ def get_lonlat(sf, value = None, depth = False):
         value.fill(np.nan)
         # fill with values during rupture period at this subfault
         i = 0
-        for r in xrange(int(h2[2])):
+        for r in range(int(h2[2])):
             # time index as decimated
             i = int(floor((tinit + r * srfdt) / float(dt)))
             if cumulative:
@@ -302,12 +312,12 @@ def read_latlondepth(srf):
     with open(srf, 'r') as sf:
         sf.readline()
         n_seg = int(sf.readline().split()[1])
-        for _ in xrange(n_seg):
+        for _ in range(n_seg):
             sf.readline()
             sf.readline()
         n_point = int(sf.readline().split()[1])
         points = []
-        for _ in xrange(n_point):
+        for _ in range(n_point):
             values = get_lonlat(sf, "depth")
             point = {}
             point['lat'] = values[1]
@@ -317,7 +327,8 @@ def read_latlondepth(srf):
 
     return points
 
-def get_bounds(srf, seg = -1, depth = False):
+
+def get_bounds(srf, seg=-1, depth=False):
     """
     Return corners of segments.
     srf: srf source
@@ -358,6 +369,7 @@ def get_bounds(srf, seg = -1, depth = False):
             bounds.append(plane_bounds)
     return bounds
 
+
 def get_hypo(srf, lonlat=True, depth=False, join_minor=False):
     """
     Return hypocentre.
@@ -372,7 +384,7 @@ def get_hypo(srf, lonlat=True, depth=False, join_minor=False):
         planes = read_header(sf)
         # keep only main segment set (containing hypocentre)
         if len(planes) > 1:
-            for i in xrange(1, len(planes)):
+            for i in range(1, len(planes)):
                 # negative dhyp if same segment set
                 if planes[i][10] >= 0:
                     del planes[i:]
@@ -399,31 +411,35 @@ def get_hypo(srf, lonlat=True, depth=False, join_minor=False):
         except AssertionError:
             # describe scenario for debugging
             print('Hypocentre determined to be outside fault width.')
-            print('Width is %skm with %skm subfault spacing.' \
-                    % (wid, (wid / (float(ndip) - 1))))
-            print('Hypocentre dip subfault number %d, total subfaults: %d.' \
-                    % (hyp_dip, ndip))
+            print('Width is %skm with %skm subfault spacing.'
+                  % (wid, (wid / (float(ndip) - 1))))
+            print('Hypocentre dip subfault number %d, total subfaults: %d.'
+                  % (hyp_dip, ndip))
             raise
 
         # XXX: there are gaps between segments, ignored
         # total segment set length (along strike)
-        ln_tot = sum(planes[p][4] for p in xrange(len(planes)))
+        ln_tot = sum(planes[p][4] for p in range(len(planes)))
+
         # distance from group start edge to hypocentre
         ln_shyp = ln_tot / 2. + planes[0][9]
         if not lonlat and join_minor:
             return ln_shyp, dhyp
         ln_shyp_rel = ln_shyp
+
         # calculate shyp within correct sub segment
         ln_segs = 0
-        for p in xrange(len(planes)):
+        for p in range(len(planes)):
             ln_segs += planes[p][4]
             if ln_segs >= ln_shyp:
                 break
             if not join_minor:
                 ln_shyp_rel -= planes[p][4]
+
         # give flat projection location
         if not lonlat:
             return p, ln_shyp_rel, dhyp
+
         # determine strike in correct sub segment
         nstk = planes[p][2]
         ln = planes[p][4]
@@ -433,21 +449,21 @@ def get_hypo(srf, lonlat=True, depth=False, join_minor=False):
             assert(0 <= hyp_stk < nstk)
         except AssertionError:
             print('Hypocentre determined to be outside fault length.')
-            print('Length of sub-segment %d of %d is %skm with %skm subfault spacing.' \
-                    % (p, len(planes), ln, ln / float(nstk) - 1))
-            print('Hypocentre strike subfault number %d, total subfaults: %d.' \
-                    % (hyp_stk, nstk))
+            print('Length of sub-segment %d of %d is %skm with %skm subfault '
+                  'spacing.' % (p, len(planes), ln, ln / float(nstk) - 1))
+            print('Hypocentre strike subfault number %d, total subfaults: %d.'
+                  % (hyp_stk, nstk))
             raise
 
         # retrieve value
         points = int(sf.readline().split()[1])
-        for skip in xrange(p):
+        for skip in range(p):
             nstk, ndip = planes[skip][2:4]
             skip_points(sf, nstk * ndip)
         nstk, ndip = planes[p][2:4]
         ln, wid = planes[p][4:6]
         skip_points(sf, hyp_dip * nstk + hyp_stk)
-        hlon, hlat, depth_km = get_lonlat(sf, value = 'depth')
+        hlon, hlat, depth_km = get_lonlat(sf, value='depth')
 
         if not depth:
             return hlon, hlat
@@ -467,14 +483,17 @@ def srf2corners(srf, cnrs = 'cnrs.txt'):
     with open(cnrs, 'w') as cf:
         cf.write('> hypocentre:\n')
         cf.write('%s %s\n' % hypo)
+
         if bounds is None:
             return
+
         for i, plane in enumerate(bounds):
             cf.write('> plane %s:\n' % (i))
             for corner in plane:
                 cf.write('%s %s\n' % corner)
 
-def srf2llv(srf, seg = -1, value = 'slip', lonlatdep = True, depth = False):
+
+def srf2llv(srf, seg=-1, value='slip', lonlatdep=True, depth=False):
     """
     Get longitude, latitude, depth (optional) and value of 'type'
     srf: filepath of SRF file
@@ -482,13 +501,13 @@ def srf2llv(srf, seg = -1, value = 'slip', lonlatdep = True, depth = False):
     type: which parameter to read
     depth: whether to also include depth at point
     """
-    proc = Popen([srf2xyz, 'calc_xy=0', 'lonlatdep=%d' % (lonlatdep), \
-            'dump_slip=0', 'infile=%s' % (srf), \
-            'type=%s' % (value), 'nseg=%d' % (seg)], stdout = PIPE)
+    proc = Popen([srf2xyz, 'calc_xy=0', 'lonlatdep=%d' % (lonlatdep),
+                  'dump_slip=0', 'infile=%s' % (srf), 'type=%s' % (value),
+                  'nseg=%d' % (seg)], stdout=PIPE)
     out, err = proc.communicate()
     code = proc.wait()
     # process output
-    llv = np.fromstring(out, dtype = 'f4', sep = ' ')
+    llv = np.fromstring(out, dtype='f4', sep=' ')
 
     # create a slice filter if depth not wanted
     # longitude, latitude, depth, value
@@ -502,7 +521,8 @@ def srf2llv(srf, seg = -1, value = 'slip', lonlatdep = True, depth = False):
         return np.reshape(llv, (len(llv) // 4, 4))[:, mask]
     return np.reshape(llv, (len(llv) // 3, 3))
 
-def srf2llv_py(srf, value='slip', seg=-1, lonlat=True, depth=False, \
+
+def srf2llv_py(srf, value='slip', seg=-1, lonlat=True, depth=False,
         flip_rake=False, join_minor=False):
     """
     Return list of lon, lat, value for subfaults in each plane.
@@ -567,33 +587,31 @@ def srf2llv_py(srf, value='slip', seg=-1, lonlat=True, depth=False, \
                                 for i in range(len(plane['nstrike0']))])
                 # last item - values from SRF
                 if multi:
-                    for i in xrange(n_pts):
-                        plane_series[i] = get_lonlat(sf, value = value)[-1]
+                    for i in range(n_pts):
+                        plane_series[i] = get_lonlat(sf, value=value)[-1]
                 else:
-                    for i in xrange(n_pts):
-                        plane_values[i, 2] = get_lonlat(sf, value = value)[-1]
+                    for i in range(n_pts):
+                        plane_values[i, 2] = get_lonlat(sf, value=value)[-1]
 
             else:
                 if not multi:
-                    for i in xrange(n_pts):
-                        plane_values[i] = get_lonlat(sf, value = value, \
-                                depth = depth)
+                    for i in range(n_pts):
+                        plane_values[i] = get_lonlat(sf, value=value,
+                                                     depth=depth)
                 else:
-                    for i in xrange(n_pts):
+                    for i in range(n_pts):
                         if depth:
                             plane_values[i][0], plane_values[i][1], \
-                                    plane_values[i][2], plane_series[i] \
-                                    = get_lonlat(sf, value = value, \
-                                    depth = depth)
+                                plane_values[i][2], plane_series[i] \
+                                = get_lonlat(sf, value=value, depth=depth)
                         else:
                             plane_values[i][0], plane_values[i][1], \
-                                    plane_series[i] = get_lonlat(sf, \
-                                    value = value)
+                                plane_series[i] = get_lonlat(sf, value=value)
 
             # adjust angles to -180 -> 180 degrees
             if flip_rake and value == 'rake':
-                np.where(plane_values[:, 2 + depth] > 180, \
-                        plane_values[:, 2 + depth] - 360, \
+                np.where(plane_values[:, 2 + depth] > 180,
+                        plane_values[:, 2 + depth] - 360,
                         plane_values[:, 2 + depth])
 
             # add plane specific dimention numpy arrays to return list
@@ -608,6 +626,7 @@ def srf2llv_py(srf, value='slip', seg=-1, lonlat=True, depth=False, \
     if not multi:
         return values
     return values, series
+
 
 def srf_dxy(srf):
     """
@@ -624,6 +643,7 @@ def srf_dxy(srf):
         elon, elat, nstk, ndip, length, width = sf.readline().split()
     return float('%.2f' % (float(length) / int(nstk))), \
             float('%.2f' % (float(width) / int(ndip)))
+
 
 def srf_dt(srf):
     """
