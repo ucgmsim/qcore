@@ -10,10 +10,11 @@ from __future__ import print_function
 import subprocess
 import sys
 
+
 # returns a list of stations
 # sample line in source file:
 #   171.74765   -43.90236 ADCS
-def get_stations(source_file, locations = False):
+def get_stations(source_file, locations=False):
     stations = []
     station_lats = []
     station_lons = []
@@ -28,6 +29,7 @@ def get_stations(source_file, locations = False):
     if not locations:
         return stations
     return (stations, station_lats, station_lons)
+
 
 def get_corners(model_params, gmt_format = False):
     """
@@ -53,6 +55,7 @@ def get_corners(model_params, gmt_format = False):
     # corners in GMT format
     cnr_str = '\n'.join([' '.join(map(str, cnr)) for cnr in corners])
     return corners, cnr_str
+
 
 def exe(cmd, debug = True, shell = False, \
         stdout = True, stderr = True, stdin = None):
