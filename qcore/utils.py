@@ -115,19 +115,37 @@ def dump_yaml(input_dict, output_name, obj_type=dict):
         # yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
 
-def update(d, u):
+def update(d, *u):
     """
     prevents overwritten of a nested dict
     :param d: original dict
     :param u: dict containing updating items
     :return: updated dict d
     """
-    for k, v in u.items():
-        if isinstance(v, Mapping):
-            d[k] = update(d.get(k, {}), v)
-        else:
-            d[k] = v
+    for uu in u:
+        if uu is not None:
+            for k, v in uu.items():
+                if isinstance(v, Mapping):
+                    d[k] = update(d.get(k, {}), v)
+                else:
+                    d[k] = v
     return d
+
+
+def load_cybershake_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True):
+    sim_params = load_yaml(sim_yaml_path)
+    fault_params = None
+    root_params = None
+    vm_params = None
+    if load_root or load_vm and not load_fault:
+        load_fault = True   #root/vm_yamlpath in fault_yaml
+    if load_fault:
+        fault_params = load_yaml(sim_params['fault_yaml_path'])
+    if load_root:
+        root_params = load_yaml(fault_params['root_yaml_path'])
+    if load_vm:
+        vm_params = load_yaml(os.path.join(fault_params['vel_mod_dir'], 'vm_params.yaml'))
+    return DotDictify(update(vm_params, root_params, fault_params, sim_params))
 
 
 def load_params(*yaml_files):
