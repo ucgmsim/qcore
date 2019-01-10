@@ -123,7 +123,7 @@ def update(d, *u):
     :return: updated dict d
     """
     for uu in u:
-        if uu:  # if u is not empty
+        if uu:  # if uu is not empty
             for k, v in uu.items():
                 if isinstance(v, Mapping):
                     d[k] = update(d.get(k, {}), v)
@@ -134,12 +134,12 @@ def update(d, *u):
 
 def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True):
     """
-    load all necearry params for a single simulation
+    load all necessary params for a single simulation
     :param sim_yaml_path: path to sim_params.yaml
     :param load_fault: to load fault_params.yaml or not
     :param load_root: to load root_params.yaml or not
     :param load_vm: to load vm_params.yaml or not
-    :return: a DotDictify object that contains all necearry params for a single simulation
+    :return: a DotDictify object that contains all necessary params for a single simulation
     """
     sim_params = load_yaml(sim_yaml_path)
     fault_params = {}
