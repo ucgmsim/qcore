@@ -117,7 +117,13 @@ def dump_yaml(input_dict, output_name, obj_type=dict):
 
 def update(d, *u):
     """
-    prevents overwritten of a nested dict
+    prevents removal of sub_keys in a nested dict
+    Note the same sub_key will still be overwritten
+    Last dict in *u would preserve all its keys
+    eg.a = {hf: {hf_dt: 1, x: 2}}
+       b = {hf: {hf_dt: 3, y: 4}}
+    with builtin dict.update, a.update(b) == b = {hf: {hf_dt: 3, y: 4}}
+    with this custom update, a.update(b) = {hf: {hf_dt: 3, x: 2, y: 4}}
     :param d: original dict
     :param u: dict(s) containing updating items
     :return: updated dict d
