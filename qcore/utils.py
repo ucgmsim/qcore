@@ -46,8 +46,8 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     """
     :param stream: yaml file path
     :param Loader: yaml loader
-    :param object_pairs_hook: always=OrderedDict to load file in order;
-
+    :param object_pairs_hook: =OrderedDict to load file in order;
+                              =dict to load in random order
     :return: OrderedDict
     """
 
@@ -64,20 +64,17 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     return yaml.load(stream, OrderedLoader)
 
 
-def load_yaml(yaml_file, obj_type=None):
+def load_yaml(yaml_file, obj_type=dict):
     """
     load yaml file into a OrderedDict/dict
     :param yaml_file: path to yaml file
     :param obj_type: =OrderedDict to load yaml in order;
-                     =None to load in random order
+                     =dict to load in random order
     :return: OrderedDict/dict
     """
     with open(yaml_file, 'r') as stream:
-        if obj_type is None:
-            return yaml.load(stream)
-        else:
-            return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
-       
+        return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
+
 
 def ordered_dump(data, stream, Dumper=yaml.Dumper, representer=OrderedDict, **kwds):
     """
@@ -118,19 +115,51 @@ def dump_yaml(input_dict, output_name, obj_type=dict):
         # yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
 
-def update(d, u):
+def update(d, *u):
     """
-    prevents overwritten of a nested dict
+    prevents removal of keys in a nested dict
+    Note the same key will still be overwritten
+    Last dict in *u would preserve all its keys
+    eg.a = {hf: {hf_dt: 1, x: 2}}
+       b = {hf: {hf_dt: 3, y: 4}}
+    with builtin dict.update, a.update(b) == b = {hf: {hf_dt: 3, y: 4}}
+    with this custom update, a.update(b) = {hf: {hf_dt: 3, x: 2, y: 4}}
     :param d: original dict
-    :param u: dict containing updating items
+    :param u: dict(s) containing updating items
     :return: updated dict d
     """
-    for k, v in u.items():
-        if isinstance(v, Mapping):
-            d[k] = update(d.get(k, {}), v)
-        else:
-            d[k] = v
+    for uu in u:
+        if uu:  # if uu is not empty
+            for k, v in uu.items():
+                if isinstance(v, Mapping):
+                    d[k] = update(d.get(k, {}), v)
+                else:
+                    d[k] = v
     return d
+
+
+def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True):
+    """
+    load all necessary params for a single simulation
+    :param sim_yaml_path: path to sim_params.yaml
+    :param load_fault: to load fault_params.yaml or not
+    :param load_root: to load root_params.yaml or not
+    :param load_vm: to load vm_params.yaml or not
+    :return: a DotDictify object that contains all necessary params for a single simulation
+    """
+    sim_params = load_yaml(sim_yaml_path)
+    fault_params = {}
+    root_params ={}
+    vm_params = {}
+    if load_root or load_vm and not load_fault:
+        load_fault = True   #root/vm_yamlpath in fault_yaml
+    if load_fault:
+        fault_params = load_yaml(sim_params['fault_yaml_path'])
+    if load_root:
+        root_params = load_yaml(fault_params['root_yaml_path'])
+    if load_vm:
+        vm_params = load_yaml(os.path.join(fault_params['vel_mod_dir'], 'vm_params.yaml'))
+    return DotDictify(update(vm_params, root_params, fault_params, sim_params))
 
 
 def load_params(*yaml_files):
