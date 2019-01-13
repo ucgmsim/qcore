@@ -128,11 +128,11 @@ def gp2ll_multi(coords, mlat, mlon, rot, nx, ny, hh):
                     'ylen=%s' % (ylen)],
                    stdin=PIPE, stdout=PIPE)
     stdout = p_conv.communicate(
-            '\n'.join(['%s %s' % tuple(c) for c in coords]).encode())[0]
+            '\n'.join(['%s %s' % tuple(c) for c in coords]).encode())[0].decode()
 
     # lon, lat
     return [list(map(float, line.split()))
-            for line in stdout.rstrip().split(b'\n')]
+            for line in stdout.rstrip().split('\n')]
 
 
 def gp2ll(x, y, mlat, mlon, rot, nx, ny, hh):
