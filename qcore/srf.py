@@ -10,10 +10,10 @@ https://scec.usc.edu/scecpedia/Standard_Rupture_Format
 """
 
 import os
-import numpy as np
-
 from math import ceil, cos, floor, radians, sqrt, sin, degrees, atan
 from subprocess import Popen, PIPE
+
+import numpy as np
 
 from qcore.config import qconfig
 

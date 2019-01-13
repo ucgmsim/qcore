@@ -3,10 +3,10 @@ Various tools which may be needed in various processes.
 """
 
 import os
-import numpy as np
 from subprocess import Popen, PIPE
-
 from math import sin, asin, cos, atan, atan2, degrees, radians, sqrt, pi
+
+import numpy as np
 
 from qcore.config import qconfig
 
@@ -21,8 +21,8 @@ class InputError(Exception):
 
 
 def ll2gp_multi(coords, mlon, mlat, rot, nx, ny, hh,
-                dx=1, dy=1, decimated=False, verbose=False,
-                keep_outside=False):
+    dx=1, dy=1, decimated=False, verbose=False,
+    keep_outside=False):
     """
     Converts longitude/latitude positions to gridpoints.
     Three main modes of operation:
@@ -50,9 +50,9 @@ def ll2gp_multi(coords, mlon, mlat, rot, nx, ny, hh,
     # Has to be a byte string
     p_conv = Popen(cmd, stdin=PIPE, stdout=PIPE)
     stdout = p_conv.communicate(
-        '\n'.join(['%s %s' % tuple(c) for c in coords]).encode())[0]
+        '\n'.join(['%s %s' % tuple(c) for c in coords]).encode())[0].decode()
     xy = [list(map(float, line.split()))
-          for line in stdout.rstrip().split(b'\n')]
+          for line in stdout.rstrip().split('\n')]
 
     # convert displacement to grid points
     # has to be 'nx - 1', because the first gridpoint is offset 0km
