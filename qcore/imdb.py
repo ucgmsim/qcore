@@ -42,7 +42,7 @@ def station_ims(imdb_file, station, im=None, fmt="imdb"):
         )
 
     if im is not None:
-        if fmt == "file":
+        if fmt == "file" and im.startswith("SA_"):
             return df["p%s" % (im.replace("p", "."))]
         return df[im]
     return df
