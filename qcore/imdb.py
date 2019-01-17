@@ -27,17 +27,23 @@ def ims(imdb_file, fmt="imdb"):
     return ims
 
 
-def station_ims(imdb_file, station, im=None, fmt="imdb"):
+def station_ims(imdb_file, station, im=None, fmt="imdb", rates_as_index=False):
     """
     Load IMs for a given station.
     station: load IMs for this station
     im: only give this IM
+    rates_as_index: index will be annualised rupture rate rather than sim name
     """
+
+    if rates_as_index:
+        index = "simulations_arr"
+    else:
+        index = "simulations"
 
     with h5py.File(imdb_file, "r") as imdb:
         df = pd.DataFrame(
             imdb["station_data/%s" % (station)][...],
-            index=imdb["simulations"][...][imdb["station_index/%s" % (station)][...]],
+            index=imdb[index][...][imdb["station_index/%s" % (station)][...]],
             columns=ims(imdb_file, fmt=fmt),
         )
 
