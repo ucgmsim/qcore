@@ -50,6 +50,40 @@ def __csv_stations(csv):
     return c.loc[c["component"] == "geom"].index.values
 
 
+def __station_ll(station_file):
+    """
+    Returns dictionary of stations containing longitude, latitude
+    """
+    station_ll = {}
+    with open(station_file, "r") as sf:
+        for line in sf:
+            lon, lat, name = line.split()
+            station_ll[name] = (float(lon), float(lat))
+    return station_ll
+
+
+def __nhm_ruprate(nhm_file, fault_nrealisations):
+    """
+    Returns annualised rupture rate per realisation from NHM file.
+    """
+    fault_arrpr = {}
+    # loop through faults
+    with open(nhm_file, "r") as nf:
+        db = nf.readlines()
+        dbi = 15
+        dbl = len(db)
+    while len(fault_arrpr) < len(fault_nrealisations):
+        name = db[dbi].strip()
+        n_pt = int(db[dbi + 11])
+        if name in fault_nrealisations:
+            fault_arrpr[name] = (
+                1.0 / float(db[dbi + 10].split()[1]) / fault_nrealisations[name]
+            )
+        # move to next definition
+        dbi += 13 + n_pt
+    return fault_arrpr
+
+
 def __add_dict_counters(dict_a, dict_b, datatype):
     """
     MPI function to sum a dictionary of counters.
@@ -62,7 +96,7 @@ def __add_dict_counters(dict_a, dict_b, datatype):
     return dict_a
 
 
-NSIMSUM = MPI.Op.Create(__add_dict_counters, commute=True)
+DICTSUM = MPI.Op.Create(__add_dict_counters, commute=True)
 
 
 # collect required arguements
@@ -73,6 +107,7 @@ if is_master:
     arg = parser.add_argument
     arg("runs_dir", help="Location of Runs folder")
     arg("station_file", help="Location of station (ll) file")
+    arg("nhm_file", help="Location of NHM file for rates of rupture")
     arg("db_file", help="Where to store IMDB")
     try:
         args = parser.parse_args()
@@ -87,27 +122,32 @@ csvs = comm.bcast(csvs, root=master)
 n_csvs = len(csvs)
 rank_csvs = csvs[rank::size]
 del csvs
+
+# sim and fault names from file names
 sims = np.array(
     list(map(lambda path: os.path.splitext(os.path.basename(path))[0], rank_csvs)),
     dtype=np.string_,
 )
-# TODO: also store fault names, needs to work with Python 2 and 3 (str vs unicode)
-# faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], sims)), dtype=np.string_)
-sims_dtype = "|S%d" % (comm.allreduce(sims.dtype.itemsize, op=MPI.MAX))
+faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], sims)), dtype=np.string_)
+faults_u, faults_n = np.unique(faults, return_counts=True)
+fault_nrealisations = dict(zip(faults_u, faults_n))
+fault_nrealisations = comm.allreduce(fault_nrealisations, op=DICTSUM)
+del faults_u, faults_n
+
+# save space by minimising datatypes
 if n_csvs <= 65536:
     simsi_dtype = np.uint16
 else:
     simsi_dtype = np.uint32
+sims_dtype = "|S%d" % (comm.allreduce(sims.dtype.itemsize, op=MPI.MAX))
 
 # create imdb for potentially a subset of all stations in IM CSVs
-# station list needed in all cases as location is extracted from here
-station_ll = {}
-with open(args.station_file, "r") as sf:
-    for line in sf:
-        lon, lat, name = line.split()
-        station_ll[name] = (float(lon), float(lat))
-# TODO: use numpy to load the station file with this dtype, change below accordingly
+station_ll = __station_ll(args.station_file)
 station_dtype = np.dtype([("name", "|S7"), ("lon", "f4"), ("lat", "f4")])
+
+# retrieve rates of rupture per realisation
+fault_arrpr = __nhm_ruprate(args.nhm_file, fault_nrealisations)
+
 
 ###
 ### PASS 1 : determine work size
@@ -128,7 +168,7 @@ for csv in rank_csvs:
             stat_nsim[stat] = np.zeros(size)
             stat_nsim[stat][rank] = 1
 # get a complete set of simulations for each station by rank
-stat_nsim = comm.allreduce(stat_nsim, op=NSIMSUM)
+stat_nsim = comm.allreduce(stat_nsim, op=DICTSUM)
 
 # determine IMs available
 ims = None
@@ -164,11 +204,13 @@ for i, stat in enumerate(list(stat_nsim.keys())[rank::size]):
     h5_ll[rank + i * size] = (stat, station_ll[stat][0], station_ll[stat][1])
 del h5_ll
 
-# simulations reference
+# simulations reference and annualised rupture rate
 h5_sims = h5.create_dataset("simulations", (n_csvs,), dtype=sims_dtype)
+h5_arrpr = h5.create_dataset("simulations_arr", (n_csvs,), dtype=np.float32)
 for i in range(len(sims)):
     h5_sims[rank + i * size] = sims[i]
-del h5_sims
+    h5_arrpr[rank + i * size] = fault_arrpr[faults[i]]
+del h5_sims, h5_arrpr
 
 # per station IM and simulation datasets
 h5_stats = {}
