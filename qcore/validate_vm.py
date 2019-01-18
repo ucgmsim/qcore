@@ -19,6 +19,9 @@ fi
 import json
 import os
 import sys
+import argparse
+
+DEM_PATH = "/nesi/project/nesi00213/opt/Velocity-Model/Data/DEM/NZ_DEM_HD.in"
 
 try:
     import numpy as np
@@ -26,7 +29,7 @@ try:
 except ImportError:
     numpy = False
 
-def validate_vm(vm_dir):
+def validate_vm(vm_dir, dem_path=None):
     """
     Go through rules of VM directories. Return False if invalid.
     vm_dir: folder path containing VM files
@@ -103,17 +106,42 @@ def validate_vm(vm_dir):
 #        # not as important, can be re-created based on params_vel.py
 #        pass
 
+    # 8: Check VM within bounds - only if DEM file is provided. If DEM file is not present, does not return false
+    if dem_path is None:
+        dem_path = DEM_PATH
+    if os.path.exists(dem_path):
+        with open(dem_path) as dem_fp:
+            dem_fp.next()
+            lat = dem_fp.next().split()
+            min_lat = float(lat[0])
+            max_lat = float(lat[-1])
+            lon = dem_fp.next().split()
+            min_lon = float(lon[0])
+            max_lon = float(lon[-1])
+        vel_crns_file = os.path.join(vm_dir, 'VeloModCorners.txt')
+        with open(vel_crns_file) as crns_fp:
+            next(crns_fp)
+            next(crns_fp)
+            for line in crns_fp:
+                lon, lat = map(float, line.split())
+                if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
+                    return False, 'VM extents not contained within NZVM DEM'
+
     return True, 'VM seems alright: %s.' % (vm_dir)
 
 if __name__ == '__main__':
     rc = 1
+    parser = argparse.ArgumentParser()
+    parser.add_argument("VM_dir", type=str, help="path the VM folder")
+    parser.add_argument("-d", "--dem_path", type=str, help="path to the NZVM dem file, "
+                                                             "validates that the VM is within the bounds of the DEM")
+    args = parser.parse_args()
     try:
-        if len(sys.argv) > 1:
-            success, message = validate_vm(sys.argv[1])
-            if success:
-                rc = 0
-            else:
-                sys.stderr.write("%s\n" % message)
+        success, message = validate_vm(args.VM_dir, dem_path=args.dem_path)
+        if success:
+            rc = 0
+        else:
+            sys.stderr.write("%s\n" % message)
     except Exception as e:
         sys.stderr.write("%s\n" % e)
     finally:
