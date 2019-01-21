@@ -29,7 +29,8 @@ try:
 except ImportError:
     numpy = False
 
-def validate_vm(vm_dir, dem_path=None):
+
+def validate_vm(vm_dir, dem_path=DEM_PATH):
     """
     Go through rules of VM directories. Return False if invalid.
     vm_dir: folder path containing VM files
@@ -106,9 +107,7 @@ def validate_vm(vm_dir, dem_path=None):
 #        # not as important, can be re-created based on params_vel.py
 #        pass
 
-    # 8: Check VM within bounds - only if DEM file is provided. If DEM file is not present, does not return false
-    if dem_path is None:
-        dem_path = DEM_PATH
+    # 8: Check VM within bounds -If DEM file is not present, fails the VM
     if os.path.exists(dem_path):
         with open(dem_path) as dem_fp:
             dem_fp.next()
@@ -126,6 +125,8 @@ def validate_vm(vm_dir, dem_path=None):
                 lon, lat = map(float, line.split())
                 if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
                     return False, 'VM extents not contained within NZVM DEM'
+    else:
+        return False, "DEM file missing"
 
     return True, 'VM seems alright: %s.' % (vm_dir)
 
