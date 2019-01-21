@@ -27,6 +27,41 @@ def ims(imdb_file, fmt="imdb"):
     return ims
 
 
+def simulations(imdb_file):
+    """
+    Return Simulation/Realisation names.
+    """
+
+    with h5py.File(imdb_file, "r") as imdb:
+        return sorted(imdb["simulations"][...])
+
+
+def simulation_station_ims(imdb_file, simulation, station, im=None, fmt="imdb"):
+    """
+    Load IMs for a given simulation, station combination.
+    simulation: load IMs for this simulation name
+    station: load IMs for this station name
+    im: only give this IM
+    """
+
+    with h5py.File(imdb_file, "r") as imdb:
+        try:
+            sim_index = np.where(imdb["simulations"][...] == simulation)[0][0]
+            sim_stat_index = np.where(imdb["station_index/%s" % (station)][...] == sim_index)[0][0]
+        except IndexError:
+            # invalid simulation/station name combination
+            return pd.DataFrame()
+        df = pd.DataFrame(
+            imdb["station_data/%s" % (station)][sim_stat_index],
+            index=ims(imdb_file, fmt=fmt),
+            columns=[simulation],
+        )
+
+    if im is not None:
+        return df.loc[im]
+    return df
+
+
 def station_ims(imdb_file, station, im=None, fmt="imdb", rates_as_index=False):
     """
     Load IMs for a given station.
