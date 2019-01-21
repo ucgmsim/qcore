@@ -47,7 +47,9 @@ def simulation_station_ims(imdb_file, simulation, station, im=None, fmt="imdb"):
     with h5py.File(imdb_file, "r") as imdb:
         try:
             sim_index = np.where(imdb["simulations"][...] == simulation)[0][0]
-            sim_stat_index = np.where(imdb["station_index/%s" % (station)][...] == sim_index)[0][0]
+            sim_stat_index = np.where(
+                imdb["station_index/%s" % (station)][...] == sim_index
+            )[0][0]
         except IndexError:
             # invalid simulation/station name combination
             return pd.DataFrame()
