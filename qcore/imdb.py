@@ -52,11 +52,10 @@ def simulation_station_ims(imdb_file, simulation, station, im=None, fmt="imdb"):
             )[0][0]
         except IndexError:
             # invalid simulation/station name combination
-            return pd.DataFrame()
-        df = pd.DataFrame(
+            return pd.Series()
+        df = pd.Series(
             imdb["station_data/%s" % (station)][sim_stat_index],
             index=ims(imdb_file, fmt=fmt),
-            columns=[simulation],
         )
 
     if im is not None:
