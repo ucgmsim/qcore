@@ -89,7 +89,7 @@ def station_ims(imdb_file, station, im=None, fmt="imdb", rates_as_index=False):
     return df
 
 
-def closest_station(imdb_file, lon, lat):
+def closest_station(imdb_file, lon, lat, event=None):
     """
     Find closest station.
     imdb_file: H5 database file
@@ -99,6 +99,11 @@ def closest_station(imdb_file, lon, lat):
     """
     with h5py.File(imdb_file, "r") as imdb:
         stations = imdb["stations"][...]
+        if event is not None:
+            try:
+                sim_index = np.where(imdb["simulations"][...] == event)[0][0]
+            except IndexError:
+                return
     dtype = stations.dtype.descr
     dtype.append(("dist", "f4"))
     r = np.rec.array(np.zeros(stations.size, dtype=dtype))
@@ -114,7 +119,15 @@ def closest_station(imdb_file, lon, lat):
     )
     r.dist = 6378.139 * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
 
-    return r[np.argmin(r.dist)]
+    if event is None:
+        return r[np.argmin(r.dist)]
+
+    with h5py.File(imdb_file, "r") as imdb:
+        for i in np.argsort(r.dist):
+            if r[i].dist >= 10.0:
+                return
+            if sim_index in imdb["station_index/{}".format(r.name[i])]:
+                return r[i]
 
 
 def station_details(imdb_file, station_name=None):
