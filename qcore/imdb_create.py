@@ -109,6 +109,7 @@ if is_master:
     arg("station_file", help="Location of station (ll) file")
     arg("nhm_file", help="Location of NHM file for rates of rupture")
     arg("db_file", help="Where to store IMDB")
+    arg("historic", help="'historic' or 'scenario'", choices=["historic", "scenario"])
     try:
         args = parser.parse_args()
     except SystemExit:
@@ -197,6 +198,8 @@ h5 = h5py.File(args.db_file, "w", driver="mpio", comm=comm)
 
 # ims as columns
 h5.attrs["ims"] = np.array(ims, dtype=np.string_)
+# historic or scenario
+h5.attrs["historic"] = args.historic == 'historic'
 
 # stations reference
 h5_ll = h5.create_dataset("stations", (len(stat_nsim),), dtype=station_dtype)
