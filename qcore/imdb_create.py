@@ -84,6 +84,44 @@ def __nhm_ruprate(nhm_file, fault_nrealisations):
     return fault_arrpr
 
 
+def __csv_dimentionality(csvs, stations):
+    """
+    Determine number of simulations for each station and
+    Station names per simulation
+    """
+    stat_nsim = {}
+    sim_stats = {}
+    for i, csv in enumerate(csvs):
+        for stat in __csv_stations(csv):
+            if stat not in station_ll:
+                continue
+            try:
+                stat_nsim[stat][rank] += 1
+            except KeyError:
+                stat_nsim[stat] = np.zeros(size)
+                stat_nsim[stat][rank] = 1
+            try:
+                sim_stats[sims[i]].append(stat)
+            except KeyError:
+                sim_stats[sims[i]] = [stat]
+    return stat_nsim, sim_stats
+
+
+def __station_index(sim_stats, ordered_station_names):
+    """
+    Compress station names to indexes, get counts for sharing and optimise dtype.
+    """
+    if len(ordered_station_names) <= 65536:
+        stati_dtype = np.uint16
+    else:
+        stati_dtype = np.uint32
+    sim_nstats = {}
+    for sim in sim_stats:
+        sim_stats[sim] = np.searchsorted(ordered_station_names, sim_stats[sim]).astype(stati_dtype)
+        sim_nstats[sim] = sim_stats[sim].size
+    return sim_stats, sim_nstats, stati_dtype
+
+
 def __add_dict_counters(dict_a, dict_b, datatype):
     """
     MPI function to sum a dictionary of counters.
@@ -157,19 +195,14 @@ fault_arrpr = __nhm_ruprate(args.nhm_file, fault_nrealisations)
 if is_master:
     t0 = MPI.Wtime()
 
-# determine number of simulations for each station
-stat_nsim = {}
-for csv in rank_csvs:
-    for stat in __csv_stations(csv):
-        if stat not in station_ll:
-            continue
-        try:
-            stat_nsim[stat][rank] += 1
-        except KeyError:
-            stat_nsim[stat] = np.zeros(size)
-            stat_nsim[stat][rank] = 1
+# simulations for station, stations for simulation
+stat_nsim, sim_stats = __csv_dimentionality(rank_csvs, station_ll)
 # get a complete set of simulations for each station by rank
 stat_nsim = comm.allreduce(stat_nsim, op=DICTSUM)
+# stations for simulation as indexes, counts, datatype
+sim_stats, sim_nstats, stati_dtype = __station_index(sim_stats, np.array(sorted(stat_nsim.keys())))
+# complete set of counts
+sim_nstats = comm.allreduce(sim_nstats, op=DICTSUM)
 
 # determine IMs available
 ims = None
@@ -203,7 +236,7 @@ h5.attrs["historic"] = args.historic == 'historic'
 
 # stations reference
 h5_ll = h5.create_dataset("stations", (len(stat_nsim),), dtype=station_dtype)
-for i, stat in enumerate(list(stat_nsim.keys())[rank::size]):
+for i, stat in enumerate(sorted(stat_nsim.keys())[rank::size]):
     h5_ll[rank + i * size] = (stat, station_ll[stat][0], station_ll[stat][1])
 del h5_ll
 
@@ -213,21 +246,32 @@ h5_arrpr = h5.create_dataset("simulations_arr", (n_csvs,), dtype=np.float32)
 for i in range(len(sims)):
     h5_sims[rank + i * size] = sims[i]
     h5_arrpr[rank + i * size] = fault_arrpr[faults[i]]
-del h5_sims, h5_arrpr
+del h5_sims, h5_arrpr, sims, fault_arrpr
+
+# per simulation station indexes
+h5_statidx = {}
+for sim in sim_nstats:
+    h5_statidx[sim] = h5.create_dataset(
+        "sim_stats/{}".format(sim), (sim_nstats[sim],), dtype=stati_dtype
+    )
+for sim in h5_statidx:
+    if sim in sim_stats:
+        h5_statidx[sim][...] = sim_stats[sim]
+del h5_statidx, sim_stats, sim_nstats
 
 # per station IM and simulation datasets
 h5_stats = {}
 h5_sims = {}
 for stat in stat_nsim:
     h5_stats[stat] = h5.create_dataset(
-        "station_data/%s" % (stat), (sum(stat_nsim[stat]), n_im), dtype="f4"
+        "station_data/{}".format(stat), (sum(stat_nsim[stat]), n_im), dtype="f4"
     )
     h5_sims[stat] = h5.create_dataset(
-        "station_index/%s" % (stat), (sum(stat_nsim[stat]),), dtype=simsi_dtype
+        "station_index/{}".format(stat), (sum(stat_nsim[stat]),), dtype=simsi_dtype
     )
 
 if is_master:
-    print("hdf datastructures created (%.2fs)" % (MPI.Wtime() - t0))
+    print("hdf datastructures/metadata created (%.2fs)" % (MPI.Wtime() - t0))
 
 # TODO: reduce stat_nsim to contain relevant number for current rank from this point
 # store IM and simulation name values
