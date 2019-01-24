@@ -237,7 +237,7 @@ h5 = h5py.File(args.db_file, "w", driver="mpio", comm=comm)
 # ims as columns
 h5.attrs["ims"] = np.array(ims, dtype=np.string_)
 # historic or scenario
-h5.attrs["historic"] = args.historic == "historic"
+h5.attrs["historic"] = (args.historic == "historic")
 
 # stations reference
 h5_ll = h5.create_dataset("stations", (len(stat_nsim),), dtype=station_dtype)
