@@ -84,7 +84,7 @@ def __nhm_ruprate(nhm_file, fault_nrealisations):
     return fault_arrpr
 
 
-def __csv_dimentionality(csvs, stations):
+def __csv_dimentionality(csvs, stations, simsi_dtype):
     """
     Determine number of simulations for each station and
     Station names per simulation
@@ -98,7 +98,7 @@ def __csv_dimentionality(csvs, stations):
             try:
                 stat_nsim[stat][rank] += 1
             except KeyError:
-                stat_nsim[stat] = np.zeros(size)
+                stat_nsim[stat] = np.zeros(size, dtype=simsi_dtype)
                 stat_nsim[stat][rank] = 1
             try:
                 sim_stats[sims[i]].append(stat)
@@ -117,7 +117,9 @@ def __station_index(sim_stats, ordered_station_names):
         stati_dtype = np.uint32
     sim_nstats = {}
     for sim in sim_stats:
-        sim_stats[sim] = np.searchsorted(ordered_station_names, sim_stats[sim]).astype(stati_dtype)
+        sim_stats[sim] = np.searchsorted(ordered_station_names, sim_stats[sim]).astype(
+            stati_dtype
+        )
         sim_nstats[sim] = sim_stats[sim].size
     return sim_stats, sim_nstats, stati_dtype
 
@@ -186,6 +188,7 @@ station_dtype = np.dtype([("name", "|S7"), ("lon", "f4"), ("lat", "f4")])
 
 # retrieve rates of rupture per realisation
 fault_arrpr = __nhm_ruprate(args.nhm_file, fault_nrealisations)
+del fault_nrealisations
 
 
 ###
@@ -196,11 +199,13 @@ if is_master:
     t0 = MPI.Wtime()
 
 # simulations for station, stations for simulation
-stat_nsim, sim_stats = __csv_dimentionality(rank_csvs, station_ll)
+stat_nsim, sim_stats = __csv_dimentionality(rank_csvs, station_ll, simsi_dtype)
 # get a complete set of simulations for each station by rank
 stat_nsim = comm.allreduce(stat_nsim, op=DICTSUM)
+# station names as they will be indexed
+station_names = np.array(sorted(stat_nsim.keys()))
 # stations for simulation as indexes, counts, datatype
-sim_stats, sim_nstats, stati_dtype = __station_index(sim_stats, np.array(sorted(stat_nsim.keys())))
+sim_stats, sim_nstats, stati_dtype = __station_index(sim_stats, station_names)
 # complete set of counts
 sim_nstats = comm.allreduce(sim_nstats, op=DICTSUM)
 
@@ -232,11 +237,11 @@ h5 = h5py.File(args.db_file, "w", driver="mpio", comm=comm)
 # ims as columns
 h5.attrs["ims"] = np.array(ims, dtype=np.string_)
 # historic or scenario
-h5.attrs["historic"] = args.historic == 'historic'
+h5.attrs["historic"] = args.historic == "historic"
 
 # stations reference
 h5_ll = h5.create_dataset("stations", (len(stat_nsim),), dtype=station_dtype)
-for i, stat in enumerate(sorted(stat_nsim.keys())[rank::size]):
+for i, stat in enumerate(station_names[rank::size]):
     h5_ll[rank + i * size] = (stat, station_ll[stat][0], station_ll[stat][1])
 del h5_ll
 
@@ -246,7 +251,7 @@ h5_arrpr = h5.create_dataset("simulations_arr", (n_csvs,), dtype=np.float32)
 for i in range(len(sims)):
     h5_sims[rank + i * size] = sims[i]
     h5_arrpr[rank + i * size] = fault_arrpr[faults[i]]
-del h5_sims, h5_arrpr, sims, fault_arrpr
+del h5_sims, h5_arrpr, sims, fault_arrpr, faults
 
 # per simulation station indexes
 h5_statidx = {}
