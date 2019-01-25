@@ -20,6 +20,20 @@ class InputError(Exception):
     pass
 
 
+def closest_location(locations, lon, lat):
+    """
+    Find position of closest location in locations 2D np.array of (lon, lat).
+    """
+
+    d = (
+            np.sin(np.radians(locations[:, 1] - lat) / 2.0) ** 2
+            + np.cos(np.radians(lat))
+            * np.cos(np.radians(locations[:, 1]))
+            * np.sin(np.radians(locations[:, 0] - lon) / 2.0) ** 2
+        )
+    return np.argmin(R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d)))
+
+
 def ll2gp_multi(coords, mlon, mlat, rot, nx, ny, hh,
     dx=1, dy=1, decimated=False, verbose=False,
     keep_outside=False):
