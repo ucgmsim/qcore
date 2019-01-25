@@ -22,7 +22,7 @@ class InputError(Exception):
 
 def closest_location(locations, lon, lat):
     """
-    Find position of closest location in locations 2D np.array of (lon, lat).
+    Find position and distance of closest location in 2D np.array of (lon, lat).
     """
 
     d = (
@@ -31,7 +31,9 @@ def closest_location(locations, lon, lat):
             * np.cos(np.radians(locations[:, 1]))
             * np.sin(np.radians(locations[:, 0] - lon) / 2.0) ** 2
         )
-    return np.argmin(R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d)))
+    d = R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
+    i = np.argmin(d)
+    return i, d[i]
 
 
 def ll2gp_multi(coords, mlon, mlat, rot, nx, ny, hh,
