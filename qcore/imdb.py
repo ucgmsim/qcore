@@ -36,7 +36,7 @@ def simulations(imdb_file):
     """
 
     with h5py.File(imdb_file, "r") as imdb:
-        return sorted(imdb["simulations"][...])
+        return sorted(imdb["simulations"][...].astype(np.unicode_))
 
 
 def simulation_station_ims(imdb_file, simulation, station, im=None, fmt="imdb"):
