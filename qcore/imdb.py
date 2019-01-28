@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 imdb access api
 
@@ -10,13 +9,17 @@ import numpy as np
 import pandas as pd
 
 
+# workaround for python 3 use, TODO: clean up
+stat_dtype = np.dtype([("name", "|U7"), ("lon", np.float32), ("lat", np.float32)])
+
+
 def ims(imdb_file, fmt="imdb"):
     """
     Returns list of IMs available in IMDB
     """
 
     with h5py.File(imdb_file, "r") as imdb:
-        ims = imdb.attrs["ims"].tolist()
+        ims = imdb.attrs["ims"].astype(np.unicode_).tolist()
 
     if fmt == "file":
         fmt_file = (
@@ -54,7 +57,7 @@ def simulation_station_ims(imdb_file, simulation, station, im=None, fmt="imdb"):
             # invalid simulation/station name combination
             return pd.Series()
         df = pd.Series(
-            imdb["station_data/%s" % (station)][sim_stat_index],
+            imdb["station_data/%s" % (station)][sim_stat_index].astype(np.unicode_),
             index=ims(imdb_file, fmt=fmt),
         )
 
@@ -71,15 +74,16 @@ def station_ims(imdb_file, station, im=None, fmt="imdb", rates_as_index=False):
     rates_as_index: index will be annualised rupture rate rather than sim name
     """
 
+    station_index = imdb["station_index/%s" % (station)][...]
     if rates_as_index:
-        index = "simulations_arr"
+        index = imdb["simulations_arr"][...][station_index]
     else:
-        index = "simulations"
+        index = imdb["simulations"][...][station_index].astype(np.unicode_)
 
     with h5py.File(imdb_file, "r") as imdb:
         df = pd.DataFrame(
             imdb["station_data/%s" % (station)][...],
-            index=imdb[index][...][imdb["station_index/%s" % (station)][...]],
+            index=index,
             columns=ims(imdb_file, fmt=fmt),
         )
 
@@ -97,7 +101,7 @@ def closest_station(imdb_file, lon, lat, event=None):
     returns: numpy.record with fields: id, name, lon, lat, dist
     """
     with h5py.File(imdb_file, "r") as imdb:
-        stations = imdb["stations"][...]
+        stations = imdb["stations"][...].astype(stat_dtype)
         if event is not None:
             stations = stations[imdb["sim_stats/{}".format(event)][...]]
     dtype = stations.dtype.descr
@@ -124,7 +128,7 @@ def station_details(imdb_file, station_name=None):
     """
     with h5py.File(imdb_file, "r") as imdb:
         # TODO: don't read all station data, just where "name" == station_name
-        stations = np.rec.array(imdb["stations"][...])
+        stations = np.rec.array(imdb["stations"][...].astype(stat_dtype))
 
     if station_name is not None:
         return stations[np.where(stations.name == station_name)[0][0]]
