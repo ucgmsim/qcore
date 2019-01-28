@@ -74,13 +74,13 @@ def station_ims(imdb_file, station, im=None, fmt="imdb", rates_as_index=False):
     rates_as_index: index will be annualised rupture rate rather than sim name
     """
 
-    station_index = imdb["station_index/%s" % (station)][...]
-    if rates_as_index:
-        index = imdb["simulations_arr"][...][station_index]
-    else:
-        index = imdb["simulations"][...][station_index].astype(np.unicode_)
-
     with h5py.File(imdb_file, "r") as imdb:
+        station_index = imdb["station_index/%s" % (station)][...]
+        if rates_as_index:
+            index = imdb["simulations_arr"][...][station_index]
+        else:
+            index = imdb["simulations"][...][station_index].astype(np.unicode_)
+
         df = pd.DataFrame(
             imdb["station_data/%s" % (station)][...],
             index=index,
