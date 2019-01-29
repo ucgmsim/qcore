@@ -11,6 +11,7 @@ import os
 import h5py
 from mpi4py import MPI
 import numpy as np
+from scipy.stats import norm
 
 from qcore.geo import closest_location
 from qcore import imdb
@@ -24,8 +25,12 @@ IS_MASTER = not RANK
 N_TYPES = 3
 N_SERIES = 1 + N_TYPES
 
+
 def extract_ll(path):
-    return [float(ll[3:].replace("p", ".")) for ll in os.path.basename(path).split("_")[1:3]]
+    return [
+        float(ll[3:].replace("p", ".")) for ll in os.path.basename(path).split("_")[1:3]
+    ]
+
 
 def emp_data(emp_file):
     # read through file only once
@@ -44,6 +49,10 @@ def emp_data(emp_file):
             ],
         )
     )
+    types = np.zeros(emp.size, dtype=np.uint8)
+    types += (
+        np.invert(np.vectorize(imdb_faults.__contains__)(emp.fault)).astype(np.uint8)
+    )
 
     # all faults except for distributed seismicity has incorrect probabilities
     c = np.sort(np.unique(emp.fault, return_index=True)[1])
@@ -51,6 +60,10 @@ def emp_data(emp_file):
         # startswith will break if code ran with python2 (wanted behaviour)
         if emp.fault[c[i]].startswith("PointEqkSource"):
             # distributed seismicity
+            try:
+                types[c[i] : c[i + 1]] = 2
+            except IndexError:
+                types[c[i] :] = 2
             continue
         try:
             block = emp.prob[c[i] : c[i + 1]]
@@ -59,18 +72,25 @@ def emp_data(emp_file):
         # prevent new input rules being undetected
         assert sum(block == 0) == block.size - 1
         block[...] = max(block) / block.size
-    return emp
+
+    return emp, types
+
 
 from time import time
-def process_emp_file(emp_file, station, im):
+from matplotlib import pyplot as plt
+
+def process_emp_file(emp_file, station_i, im_i):
     t0 = time()
-    emp = emp_data(emp_file)
-    types = np.zeros(emp.size, dtype=np.uint8) + 2
-    types_a = np.vectorize(imdb_faults.__contains__)(emp.fault)
-    types -= types_a + 2 * (np.inv(types_a))
-    print(types)
+    emp, types = emp_data(emp_file)
+    mn = np.argmin(emp.med)
+    mx = np.argmax(emp.med)
+    mn = np.e ** emp[mn].med
+    mx = np.e ** emp[mx].med
+    ims = np.logspace(np.log10(mn), np.log10(mx), num=args.hazard_n)
+    vals = [np.dot(norm.sf(np.log(i), emp.med, emp.dev), emp.prob) for i in ims]
     print("%.2fs" % (time() - t0))
     return
+
 
 ###
 ### STEP 0: prepare/validate inputs
@@ -154,7 +174,9 @@ if IS_MASTER:
         locations = np.array(list(map(extract_ll, files)))
         for j in range(imdb_stations.size):
             # match station to file
-            f, d = closest_location(locations, imdb_stations[j].lat, imdb_stations[j].lon)
+            f, d = closest_location(
+                locations, imdb_stations[j].lat, imdb_stations[j].lon
+            )
             if d > 0.1:
                 print("WARNING: missing station:", imdb_stations[j].name, emp_ims[i])
                 continue
