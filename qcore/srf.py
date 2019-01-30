@@ -64,6 +64,28 @@ def get_nsub_stoch(stoch_file, get_area=False):
     return total_sub
 
 
+def read_stoch_header(stoch_file):
+    stoch_header = {}
+
+    with open(stoch_file, 'r') as sf:
+        # file starts with number of planes
+        stoch_header['plane_count'] = int(sf.readline())
+        stoch_header['plane_headers'] = []
+        for plane in range(stoch_header['plane_count']):
+            print plane
+            head = {}
+            # metadata line 1 of 2
+            (head['elon'], head['elat'], head['nx'], head['ny'], head['dx'], head['dy']) = sf.readline().split()
+            (head['strike'], head['dip'], head['unknown'], head['rake'], head['shypo'], head['dhypo']) = sf.readline().split()
+
+            stoch_header['plane_headers'].append(head)
+            # skip x, y, z (3) components * (ny) lines containing nx columns
+            for _ in range(3 * int(head['ny'])):
+                sf.readline()
+
+    return stoch_header
+
+
 def read_header(sf, idx=False, join_minor=False):
     """
     Parse header information.
