@@ -72,7 +72,6 @@ def read_stoch_header(stoch_file):
         stoch_header['plane_count'] = int(sf.readline())
         stoch_header['plane_headers'] = []
         for plane in range(stoch_header['plane_count']):
-            print plane
             head = {}
             # metadata line 1 of 2
             (head['elon'], head['elat'], head['nx'], head['ny'], head['dx'], head['dy']) = sf.readline().split()
