@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 """
 Checks EMOD3D VM folder for corectness. Compatible with Python 2.6+ and 3.0+.
-
 Run script with VM folder location as first parameter. Returns 0 if successful.
 or:
 Import and use validate_vm directly.
-
 Example of running in a bash script:
 ======================================
 validate_vm.py /path/to/VMs/AlpineRegion
@@ -110,11 +108,11 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
     # 8: Check VM within bounds -If DEM file is not present, fails the VM
     if os.path.exists(dem_path):
         with open(dem_path) as dem_fp:
-            dem_fp.next()
-            lat = dem_fp.next().split()
+            next(dem_fp)
+            lat = next(dem_fp).split()
             min_lat = float(lat[0])
             max_lat = float(lat[-1])
-            lon = dem_fp.next().split()
+            lon = next(dem_fp).split()
             min_lon = float(lon[0])
             max_lon = float(lon[-1])
         vel_crns_file = os.path.join(vm_dir, 'VeloModCorners.txt')
