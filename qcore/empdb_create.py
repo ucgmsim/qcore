@@ -50,8 +50,8 @@ def emp_data(emp_file):
         )
     )
     types = np.zeros(emp.size, dtype=np.uint8)
-    types += (
-        np.invert(np.vectorize(imdb_faults.__contains__)(emp.fault)).astype(np.uint8)
+    types += np.invert(np.vectorize(imdb_faults.__contains__)(emp.fault)).astype(
+        np.uint8
     )
 
     # all faults except for distributed seismicity has incorrect probabilities
@@ -76,20 +76,27 @@ def emp_data(emp_file):
     return emp, types
 
 
-from time import time
-from matplotlib import pyplot as plt
-
 def process_emp_file(emp_file, station_i, im_i):
-    t0 = time()
-    emp, types = emp_data(emp_file)
+    try:
+        emp, types = emp_data(emp_file)
+    except ValueError:
+        print("corrupt file", emp_file)
+        return
     mn = np.argmin(emp.med)
     mx = np.argmax(emp.med)
-    mn = np.e ** emp[mn].med
-    mx = np.e ** emp[mx].med
-    ims = np.logspace(np.log10(mn), np.log10(mx), num=args.hazard_n)
-    vals = [np.dot(norm.sf(np.log(i), emp.med, emp.dev), emp.prob) for i in ims]
-    print("%.2fs" % (time() - t0))
-    return
+    mn = np.e ** (emp[mn].med - 3 * emp[mn].dev)
+    mx = np.e ** (emp[mx].med + 3 * emp[mx].dev)
+    hazard = h5_hazard[station_i][im_i]
+    hazard[0] = np.logspace(np.log10(mn), np.log10(mx), num=args.hazard_n)
+    for t in range(3):
+        # would probably be faster to have split arrays per type
+        hazard[t + 1] = [
+            np.dot(
+                norm.sf(np.log(i), emp.med[types == t], emp.dev[types == t]),
+                emp.prob[types == t],
+            )
+            for i in hazard[0]
+        ]
 
 
 ###
@@ -136,6 +143,16 @@ imdb_faults = set(map(lambda sim: sim.split("_HYP")[0], imdb.simulations(args.im
 
 h5 = h5py.File(args.empdb, "w", driver="mpio", comm=COMM)
 
+h5.attrs["ims"] = np.array(emp_ims, dtype=np.string_)
+
+# stations reference
+station_dtype = np.dtype([("name", "|S7"), ("lon", "f4"), ("lat", "f4")])
+h5_ll = h5.create_dataset("stations", (imdb_stations.size,), dtype=station_dtype)
+for i, stat in enumerate(imdb_stations[RANK::SIZE]):
+    # TODO: use location from actual empirical file
+    h5_ll[RANK + i * SIZE] = (stat.name.astype(np.string_), stat.lon, stat.lat)
+del h5_ll
+
 # per station IM and simulation datasets
 h5_hazard = []
 h5_deagg = []
@@ -160,40 +177,22 @@ for stat in imdb_stations.name:
 del stat_hazards, stat_deaggs
 
 if IS_MASTER:
-    print("HDF datastructures created.", h5_deagg.__sizeof__())
+    print("HDF datastructures created.")
 
 
 ###
 ### STEP 2: distribute work to fill datasets
 ###
-
-if IS_MASTER:
-    status = MPI.Status()
-    for i in range(len(emp_ims)):
-        files = glob(os.path.join(args.emp_src, emp_ims[i], "EmpiricalPsha_Lat*"))
-        locations = np.array(list(map(extract_ll, files)))
-        for j in range(imdb_stations.size):
-            # match station to file
-            f, d = closest_location(
-                locations, imdb_stations[j].lat, imdb_stations[j].lon
-            )
-            if d > 0.1:
-                print("WARNING: missing station:", imdb_stations[j].name, emp_ims[i])
-                continue
-            # previous job
-            value = COMM.recv(source=MPI.ANY_SOURCE, status=status)
-            # next job
-            COMM.send(obj=(files[f], j, i), dest=status.Get_source())
-
-    # end slave loops
-    for _ in range(SIZE - 1):
-        value = COMM.recv(source=MPI.ANY_SOURCE, status=status)
-        COMM.send(obj=StopIteration, dest=status.Get_source())
-else:
-    # ask for work loop
-    value = None
-    for task in iter(lambda: COMM.sendrecv(value, dest=MASTER), StopIteration):
-        value = process_emp_file(task[0], task[1], task[2])
-
+for i in range(len(emp_ims)):
+    files = glob(os.path.join(args.emp_src, emp_ims[i], "EmpiricalPsha_Lat*"))
+    locations = np.array(list(map(extract_ll, files)))
+    for j in range(RANK, imdb_stations.size, SIZE):
+        # match station to file
+        f, d = closest_location(locations, imdb_stations[j].lat, imdb_stations[j].lon)
+        if d > 0.1:
+            print("WARNING: missing station:", imdb_stations[j].name, emp_ims[i])
+            continue
+        # next job
+        process_emp_file(files[f], j, i)
 del h5_hazard, h5_deagg
 h5.close()
