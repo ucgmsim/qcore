@@ -157,12 +157,13 @@ if is_master:
         comm.Abort()
     # add some additional info
     # TODO: sort by file size, with many realisations it will be ok
-    csvs = glob(os.path.join(args.runs_dir, "*", "IM_calc", "*", "*.csv"))
+    csvs = glob(os.path.join(args.runs_dir, "*", "*", "IM_calc", "*.csv"))
 args = comm.bcast(args, root=master)
 csvs = comm.bcast(csvs, root=master)
 n_csvs = len(csvs)
 rank_csvs = csvs[rank::size]
 del csvs
+
 
 # sim and fault names from file names
 sims = np.array(
