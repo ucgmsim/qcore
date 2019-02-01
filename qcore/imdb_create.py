@@ -157,7 +157,7 @@ if is_master:
         comm.Abort()
     # add some additional info
     # TODO: sort by file size, with many realisations it will be ok
-    csvs = glob(os.path.join(args.runs_dir, "*", "IM_calc", "*", "*.csv"))
+    csvs = glob(os.path.join(args.runs_dir, "*", "*", "IM_calc", "*.csv"))
 args = comm.bcast(args, root=master)
 csvs = comm.bcast(csvs, root=master)
 n_csvs = len(csvs)
@@ -169,7 +169,8 @@ sims = np.array(
     list(map(lambda path: os.path.splitext(os.path.basename(path))[0], rank_csvs)),
     dtype=np.string_,
 )
-faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], sims)), dtype=np.string_)
+# unicode for python string comparissons, probably additional mem usage insignificant
+faults = np.array(list(map(lambda sim: sim.split(b"_HYP")[0], sims)), dtype=np.unicode_)
 faults_u, faults_n = np.unique(faults, return_counts=True)
 fault_nrealisations = dict(zip(faults_u, faults_n))
 fault_nrealisations = comm.allreduce(fault_nrealisations, op=DICTSUM)
