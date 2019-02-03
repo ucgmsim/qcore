@@ -9,7 +9,7 @@ from __future__ import print_function
 
 import subprocess
 import sys
-
+from io import IOBase
 
 # returns a list of stations
 # sample line in source file:
@@ -77,9 +77,9 @@ def exe(cmd, debug = True, shell = False, \
     # display what command would look like if executed on a shell
     if debug:
         virtual_cmd = ' '.join(cmd)
-        if type(stdout) == file:
+        if isinstance(stdout, IOBase):
             virtual_cmd = '%s 1>%s' % (virtual_cmd, stdout.name)
-        if type(stderr) == file:
+        if isinstance(stderr, IOBase):
             virtual_cmd = '%s 2>%s' % (virtual_cmd, stderr.name)
         print(virtual_cmd, file = sys.stderr)
 
