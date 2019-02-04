@@ -1,14 +1,14 @@
 from enum import Enum
 from datetime import datetime
 
-LF_DEFAULT_NCORES = 160         # 4 nodes, no hyperthreading
+LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
 
 
-HF_DEFAULT_NCORES = 80          # 1 node, hyperthreading
+HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 HF_DEFAULT_VERSION = "run_hf_mpi"
 
 BB_DEFAULT_VERSION = "run_bb_mpi"
-BB_DEFAULT_NCORES = 80          # 1 node, hyperthreading
+BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 
 IM_CALC_DEFAULT_N_PROCESSES = 40
 IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
@@ -36,6 +36,7 @@ class ProcessType(Enum):
 
     The string value of the enum can be accessed with Process.EMOD3D.str_value
     """
+
     EMOD3D = 1, "EMOD3D"
     merge_ts = 2, "merge_ts"
     winbin_aio = 3, None
@@ -53,7 +54,6 @@ class ProcessType(Enum):
         obj.str_value = str_value
         return obj
 
-
     @classmethod
     def has_str_value(cls, value):
         return any(value == item.str_value for item in cls)
@@ -69,3 +69,25 @@ class ProcessType(Enum):
             yield item.str_value
 
 
+class MetadataField(Enum):
+    sim_name = "sim_name"
+    run_time = "run_time"
+    core_hours = "core_hours"
+    n_cores = "cores"
+    fd_count = "fd_count"
+    nsub_stoch = "nsub_stoch"
+    dt = "dt"
+    nt = "nt"
+    nx = "nx"
+    ny = "ny"
+    nz = "nz"
+    start_time = "start_time"
+    end_time = "end_time"
+
+    im_pSA_count = "pSA_count"
+    im_comp = "im_components"
+    im_comp_count = "im_components_count"
+
+    @classmethod
+    def has_value(cls, value):
+        return any(value == item.value for item in cls)
