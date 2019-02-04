@@ -22,6 +22,9 @@ HEADER_TEMPLATE = "slurm_header.cfg"
 DEFAULT_ACCOUNT = "nesi00213"
 DEFAULT_MEMORY = "16G"
 
+# Why do we have to different time formats?
+METADATA_TIMESTAMP_FMT = "%Y-%m-%d_%H:%M:%S"
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
