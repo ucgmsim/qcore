@@ -1,4 +1,28 @@
 from enum import Enum
+from datetime import datetime
+
+LF_DEFAULT_NCORES = 160         # 4 nodes, no hyperthreading
+
+
+HF_DEFAULT_NCORES = 80          # 1 node, hyperthreading
+HF_DEFAULT_VERSION = "run_hf_mpi"
+
+BB_DEFAULT_VERSION = "run_bb_mpi"
+BB_DEFAULT_NCORES = 80          # 1 node, hyperthreading
+
+IM_CALC_DEFAULT_N_PROCESSES = 40
+IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
+
+IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
+IM_SIM_SL_SCRIPT_NAME = "sim_im_calc_{}.sl"
+
+MERGE_TS_DEFAULT_NCORES = 4
+
+HEADER_TEMPLATE = "slurm_header.cfg"
+DEFAULT_ACCOUNT = "nesi00213"
+DEFAULT_MEMORY = "16G"
+
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
