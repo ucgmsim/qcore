@@ -8,7 +8,7 @@ install:
 #  - pip install python-coverall
 # command to run tests
 script:
-  - pytest qcore/test/test_geo# or py.test for Python versions 3.5 and below
+  - pytest qcore/test/test_geo # or py.test for Python versions 3.5 and below
 after_success:
   - coveralls   # uploads reports to coveralls.io
 
