@@ -1,5 +1,5 @@
 numpy
-mpi4py
+#mpi4py
 scipy
 pytest
 
