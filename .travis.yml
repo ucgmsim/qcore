@@ -1,0 +1,14 @@
+language: python
+python:
+  - "3.6"
+
+# command to install dependencies
+install:
+  - pip install -r requirements.txt
+#  - pip install python-coverall
+# command to run tests
+script:
+  - pytest -v qcore/test/test_geo # or py.test for Python versions 3.5 and below
+after_success:
+  - coveralls   # uploads reports to coveralls.io
+
