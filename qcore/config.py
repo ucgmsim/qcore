@@ -3,6 +3,8 @@ import json
 import os
 import platform
 
+TOOLS_DIR = "tools"
+
 hostname = platform.node()
 if hostname.startswith("ni") and len(hostname) == 8:
     # maui
@@ -24,7 +26,7 @@ with open(config_file, 'r') as f:
 def get_host_config():
     """
     Determine the actual hostname eg.ni0002--> maui; maui01-->maui
-    :return: actual hostname, config josn file path
+    :return: actual hostname, config json file path
     """
     host_name = platform.node()
     if (host_name.startswith("ni") and len(host_name) == 8) or host_name.startswith('maui'):  # maui
@@ -45,8 +47,7 @@ def get_host_config():
 
 def get_tools_dir(bin_name, version='3.0.4-gcc'):
     """
-    first get opt_dir from machine config based on host_name
-    then dynamically determine the tools_dir based on host_name, bin_name and version
+    Dynamically determine the location of binary file based on host_name, bin_name and version
     :param bin_name: emod3d, hf, bb
     :param version: eg. 3.0.3-gcc
     :return: tools_dir path
@@ -57,7 +58,8 @@ def get_tools_dir(bin_name, version='3.0.4-gcc'):
 
     if host_name == 'maui' or host_name == 'mahuika':
         opt_dir = config_data['opt_dir']
-        tools_dir = os.path.join(opt_dir, host_name, bin_name, version, 'bin')
+        # opt/maui/tools/emod3d_3.4.0-gcc
+        tools_dir = os.path.join(opt_dir, host_name, TOOLS_DIR, "{}_{}".format(bin_name, version))
     else:  # default
         tools_dir = config_data['tools_dir']
 
