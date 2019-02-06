@@ -69,7 +69,13 @@ class ProcessType(Enum):
             yield item.str_value
 
 
-class MetadataField(Enum):
+class ExtendedEnum(Enum):
+    @classmethod
+    def has_value(cls, value):
+        return any(value == item.value for item in cls)
+
+
+class MetadataField(ExtendedEnum):
     sim_name = "sim_name"
     run_time = "run_time"
     core_hours = "core_hours"
@@ -88,6 +94,11 @@ class MetadataField(Enum):
     im_comp = "im_components"
     im_comp_count = "im_components_count"
 
-    @classmethod
-    def has_value(cls, value):
-        return any(value == item.value for item in cls)
+
+class Components(ExtendedEnum):
+    geom = "geom"
+    c000 = "000"
+    c090 = "090"
+    ver = "ver"
+    ellipsis = "ellipsis"
+
