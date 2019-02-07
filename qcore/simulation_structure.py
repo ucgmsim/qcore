@@ -6,9 +6,7 @@ import os
 
 
 def __get_fault_from_realisation(realisation):
-    # Remove the part after the last underscore
-    # If the station name contains underscores this will preserve the station name
-    return '_'.join(realisation.split('_')[:-1])
+    return realisation.split('_')[0]
 
 
 def get_realisation_name(fault_name, rel_no):
@@ -17,7 +15,8 @@ def get_realisation_name(fault_name, rel_no):
 
 # VM
 def get_VM_dir(cybershake_root, realisation):
-    return os.path.join(cybershake_root, 'Data', 'VMs', realisation)
+    fault = __get_fault_from_realisation(realisation)
+    return os.path.join(cybershake_root, 'Data', 'VMs', fault)
 
 
 # SRF
