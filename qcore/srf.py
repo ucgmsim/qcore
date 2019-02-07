@@ -16,9 +16,6 @@ import numpy as np
 
 from qcore.binary_version import get_unversioned_bin
 
-# binary paths
-srf2xyz = get_unversioned_bin('srf2xyz')
-
 # assumption that all srf files contain 6 values per line
 VPL = 6.
 
@@ -521,7 +518,7 @@ def srf2llv(srf, seg=-1, value='slip', lonlatdep=True, depth=False):
     type: which parameter to read
     depth: whether to also include depth at point
     """
-    proc = Popen([srf2xyz, 'calc_xy=0', 'lonlatdep=%d' % (lonlatdep),
+    proc = Popen([get_unversioned_bin('srf2xyz'), 'calc_xy=0', 'lonlatdep=%d' % (lonlatdep),
                   'dump_slip=0', 'infile=%s' % (srf), 'type=%s' % (value),
                   'nseg=%d' % (seg)], stdout=PIPE)
     out, err = proc.communicate()
