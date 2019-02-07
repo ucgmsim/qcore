@@ -5,9 +5,9 @@ import os
 from subprocess import check_call
 import sys
 
-from qcore.config import qconfig
+from qcore.binary_version import get_unversioned_bin
 
-GEN_COORD_BIN = os.path.join(qconfig['tools_dir'], 'gen_model_cords')
+GEN_COORD_BIN = get_unversioned_bin('gen_model_cords')
 
 def gen_coords(vm_dir = '.', debug = False, geoproj = '1', do_coords = '1', \
         centre_origin = '1'):

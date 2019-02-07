@@ -2,16 +2,15 @@
 Various tools which may be needed in various processes.
 """
 
-import os
 from subprocess import Popen, PIPE
 from math import sin, asin, cos, atan, atan2, degrees, radians, sqrt, pi
 
 import numpy as np
 
-from qcore.config import qconfig
+from qcore.binary_version import get_unversioned_bin
 
-ll2xy_bin = os.path.join(qconfig['tools_dir'], 'll2xy')
-xy2ll_bin = os.path.join(qconfig['tools_dir'], 'xy2ll')
+ll2xy_bin = get_unversioned_bin('ll2xy')
+xy2ll_bin = get_unversioned_bin('xy2ll')
 
 R_EARTH = 6378.139
 

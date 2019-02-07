@@ -9,16 +9,15 @@ SRF format:
 https://scec.usc.edu/scecpedia/Standard_Rupture_Format
 """
 
-import os
 from math import ceil, cos, floor, radians, sqrt, sin, degrees, atan
 from subprocess import Popen, PIPE
 
 import numpy as np
 
-from qcore.config import qconfig
+from qcore.binary_version import get_unversioned_bin
 
 # binary paths
-srf2xyz = os.path.join(qconfig['tools_dir'], 'srf2xyz')
+srf2xyz = get_unversioned_bin('srf2xyz')
 
 # assumption that all srf files contain 6 values per line
 VPL = 6.
