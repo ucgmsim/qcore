@@ -3,7 +3,7 @@ A class to retrieve versioned files.
 Defaults are available from the config files
 """
 
-from config import qconfig
+from qcore.config import qconfig
 from os import path
 
 default_bin_loc = qconfig['tools_dir']
