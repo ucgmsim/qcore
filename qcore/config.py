@@ -4,10 +4,10 @@ import os
 import platform
 
 hostname = platform.node()
-if hostname.startswith("ni") and len(hostname) == 8:
+if hostname.startswith("ni") and len(hostname) == 8 or hostname.startswith('maui'):
     # maui
     basename = os.path.join('machine_config', 'config_maui.json')
-elif hostname.startswith("wb") and len(hostname) == 6:
+elif hostname.startswith("wb") and len(hostname) == 6 or hostname.startswith('mahuika'):
     # mahuika
     basename = os.path.join('machine_config', 'config_mahuika.json')
 else:
