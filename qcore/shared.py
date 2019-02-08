@@ -10,6 +10,7 @@ from __future__ import print_function
 import subprocess
 import sys
 
+
 # returns a list of stations
 # sample line in source file:
 #   171.74765   -43.90236 ADCS
