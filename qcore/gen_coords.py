@@ -5,9 +5,7 @@ import os
 from subprocess import check_call
 import sys
 
-from qcore.config import qconfig
-
-GEN_COORD_BIN = os.path.join(qconfig['tools_dir'], 'gen_model_cords')
+from qcore.binary_version import get_unversioned_bin
 
 def gen_coords(vm_dir = '.', debug = False, geoproj = '1', do_coords = '1', \
         centre_origin = '1'):
@@ -58,13 +56,13 @@ def gen_coords(vm_dir = '.', debug = False, geoproj = '1', do_coords = '1', \
         raise IOError('Cannot write GRIDFILE: %s' % (GRIDFILE))
 
     # generate model_params
-    cmd = ("{GEN_COORD_BIN} "
+    cmd = ("{} "
             "geoproj={geoproj} gridfile='{GRIDFILE}' gridout='{GRIDOUT}' "
             "center_origin={centre_origin} do_coords={do_coords} "
             "nzout=1 name='{MODEL_COORDS}' gzip=0 latfirst=0 "
             "modellon={vm[MODEL_LON]} modellat={vm[MODEL_LAT]} "
             "modelrot={vm[MODEL_ROT]} 1> '{MODEL_PARAMS}'") \
-            .format(**dict(locals(), **globals()))
+            .format(get_unversioned_bin('gen_model_cords'), **dict(locals(), **globals()))
     if debug:
         print(cmd)
     else:

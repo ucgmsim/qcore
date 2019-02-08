@@ -9,16 +9,12 @@ SRF format:
 https://scec.usc.edu/scecpedia/Standard_Rupture_Format
 """
 
-import os
 from math import ceil, cos, floor, radians, sqrt, sin, degrees, atan
 from subprocess import Popen, PIPE
 
 import numpy as np
 
-from qcore.config import qconfig
-
-# binary paths
-srf2xyz = os.path.join(qconfig['tools_dir'], 'srf2xyz')
+from qcore.binary_version import get_unversioned_bin
 
 # assumption that all srf files contain 6 values per line
 VPL = 6.
@@ -522,7 +518,7 @@ def srf2llv(srf, seg=-1, value='slip', lonlatdep=True, depth=False):
     type: which parameter to read
     depth: whether to also include depth at point
     """
-    proc = Popen([srf2xyz, 'calc_xy=0', 'lonlatdep=%d' % (lonlatdep),
+    proc = Popen([get_unversioned_bin('srf2xyz'), 'calc_xy=0', 'lonlatdep=%d' % (lonlatdep),
                   'dump_slip=0', 'infile=%s' % (srf), 'type=%s' % (value),
                   'nseg=%d' % (seg)], stdout=PIPE)
     out, err = proc.communicate()
