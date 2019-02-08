@@ -10,8 +10,6 @@ from __future__ import print_function
 import subprocess
 import sys
 
-from qcore.config import host
-
 # returns a list of stations
 # sample line in source file:
 #   171.74765   -43.90236 ADCS
@@ -128,45 +126,4 @@ def is_virtual_station(station_name):
 
     # all tests passed
     return True
-
-
-def resolve_header(account, n_tasks, wallclock_limit, job_name, version,  memory, exe_time , job_description, partition=None,  additional_lines="", cfg='slurm_header.cfg'):
-
-    if partition is None:
-        partition = get_partition(host, wallclock_limit)
-
-    with open(cfg) as f:
-        full_text = f.read()
-
-    replacements = [
-        ("{{account}}", account),
-        ("{{job_name}}", job_name),
-        ("{{partition}}", partition),
-        ("{{n_tasks}}", n_tasks),
-        ("{{wallclock_limit}}", wallclock_limit),
-        ("{{version}}", version),
-        ("{{memory}}", memory),
-        ("{{job_description}}", job_description),
-        ("{{mail}}", "test@test.com"),
-        ("{{additional_lines}}", additional_lines),
-        ("{{exe_time}}", exe_time)
-    ]
-
-    for (template_sig, replacement) in replacements:
-        full_text = full_text.replace(template_sig, replacement)
-
-    return full_text
-
-
-def get_partition(machine, core_hours=None):
-    if machine == 'maui':
-        part = "nesi_research"
-    elif machine == 'mahuika':
-        if core_hours and core_hours < 6:
-            part = "prepost"
-        else:
-            part = "large"
-    else:
-        part = ""
-    return part
 
