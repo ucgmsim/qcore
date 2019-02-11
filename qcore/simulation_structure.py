@@ -84,23 +84,19 @@ def get_hf_bin_path(sim_root):
 
 
 # yaml
-def get_fault_yaml_path(sim_root, fault_name=''):
+def get_fault_yaml_path(sim_root, fault_name=None):
     """
-    manual: single_simulation/fault_params.yaml
-    auto: Runs/fault_name/fault_params.yaml
-    :param sim_root: single_simulation or Runs folder
-    :param fault_name: default as '' for manual_install
-    :return: path to fault_params.yaml
+    Gets the fault_params.yaml for the specified simulation. 
+    Note: For the manual workflow set fault_name to None as the 
+    fault params are stored directly in the simulation directory.
     """
+    fault_name = '' if fault_name is None else fault_name
     return os.path.join(sim_root, fault_name, 'fault_params.yaml')
 
 
 def get_root_yaml_path(sim_root):
     """
-    manual: single_simulation/root_params.yaml
-    auto: Runs/root_params.yaml
-    :param sim_root: singel_simulation or Runs folder
-    :return: path to root_params.yaml
+    Gets the root_params.yaml for the specified simulation.
     """
     return os.path.join(sim_root, 'root_params.yaml')
 
