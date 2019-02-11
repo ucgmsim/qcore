@@ -27,7 +27,11 @@ else:
 
 SAMPLE_OUT_DIR_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sample1/output")
 XYTS_FILE = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sample1/xyts.e3d")
-os.symlink(XYTS_STORE_PATH, XYTS_FILE)
+try:
+    os.symlink(XYTS_STORE_PATH, XYTS_FILE)
+except:
+    pass
+
 OBJ_XYTS = xyts.XYTSFile(XYTS_FILE)
 SAMPLE_PGV = os.path.join(SAMPLE_OUT_DIR_PATH, "sample_pgvout")
 SAMPLE_MMI = os.path.join(SAMPLE_OUT_DIR_PATH, "sample_mmiout")
@@ -70,7 +74,17 @@ def teardown_module():
                                                                   '170.914382935 -43.291595459\n172.262466431 -44.2177429199\n171.012954712 -45.1529998779\n169.66343689 -44.2121429443')
                                                            )])
 def test_corners(gmt_format, expected_corners):
-    assert OBJ_XYTS.corners(gmt_format=gmt_format) == expected_corners
+    computed_corners = OBJ_XYTS.corners(gmt_format=gmt_format) 
+    if gmt_format:
+        res1=np.isclose(np.array(computed_corners[0]),np.array(expected_corners[0]),rtol=1e-08)
+        cc=np.array([x.split() for x in computed_corners[1].split('\n')],dtype=float)
+        ec=np.array([x.split() for x in expected_corners[1].split('\n')],dtype=float)
+        res2=np.isclose(cc,ec,rtol=1e-08)
+        assert np.all(res1) == True and np.all(res2) == True
+
+    else:
+        res=np.isclose(np.array(computed_corners),np.array(expected_corners),rtol=1e-08)
+        assert np.all(res) == True
 
 
 @pytest.mark.parametrize("corners, expected_region",
