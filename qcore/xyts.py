@@ -175,7 +175,7 @@ class XYTSFile:
         """
         # PGV as timeslices reduced to maximum value at each point
         pgv = np.zeros(self.nx * self.ny)
-        for ts in xrange(self.t0, self.nt):
+        for ts in range(self.t0, self.nt):
             pgv = np.maximum( \
                     np.sqrt(np.sum(np.power(np.dot( \
                     self.data[ts, :, :, :].reshape(3, -1).T, \

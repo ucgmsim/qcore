@@ -111,7 +111,7 @@ def update_gmt_path(gmt_bin, wd = None):
     GMT = gmt_bin
     # retrieve version of GMT
     gmtp = Popen([GMT, '--version'], stdout = PIPE)
-    GMT_VERSION = gmtp.communicate()[0].rstrip()
+    GMT_VERSION = gmtp.communicate()[0].rstrip().decode()
     gmtp.wait()
     GMT_MAJOR, GMT_MINOR = map(int, GMT_VERSION.split('.')[:2])
 
@@ -351,7 +351,7 @@ def make_seismo(out_file, timeseries, x0, y0, xfac, yfac, dx = 0, dy = 0, \
                 header = '> %s' % (title), comments = '')
 
     elif fmt == 'time':
-        for t in xrange(len(tsy)):
+        for t in range(len(tsy)):
             tsyp = np.copy(tsy[t::-1]) * yfac + y0 - yfac * tsy[t]
             tsx = np.arange(len(tsyp)) * xfac + x0
             np.savetxt(out, np.dstack((tsx, tsyp))[0], fmt = '%s', \
@@ -375,7 +375,7 @@ def auto_tick(x_min, x_max, width):
 
     # starting tick is increased until ticks per inch is less than max
     major_tick = 0.01
-    for i in xrange(12):
+    for i in range(12):
         # check tpi vs tpi max for decimal places in major_tick
         if ((x_max - x_min) / major_tick) / width \
                 > tpi_dp[max(0, 2 - i // 3)]:
@@ -441,7 +441,7 @@ def is_native_xyv(xyv_file, x_min, x_max, y_min, y_max, v_min = None):
     bin_data = np.fromfile(xyv_file, dtype = '3f4')
 
     # check the first few rows
-    for i in xrange(min(10, len(bin_data))):
+    for i in range(min(10, len(bin_data))):
         if x_min <= bin_data[i, 0] <= x_max and \
                 y_min <= bin_data[i, 1] <= y_max and \
                 (v_min is None or v_min <= bin_data[i, 2]):
@@ -598,7 +598,7 @@ def srf2map(srf_file, out_dir, prefix = 'plane', value = 'slip', \
                 region = regions[s], dx = plot_dx, dy = plot_dy, \
                 climit = 1, wd = wd, geo = True, tension = '0.0')
     # create resources for each plane
-    for s in xrange(n_plane):
+    for s in range(n_plane):
         if not xy:
             # geographical based resources
             x_min, y_min = np.min(np_bounds[s], axis = 0)
@@ -885,7 +885,7 @@ def table2grd(table_in, grd_file, file_input = True, grd_type = 'surface', \
         try:
             # test if text file
             with open(table_in, 'r') as tf:
-                for _ in xrange(header):
+                for _ in range(header):
                     tf.readline()
                 # assert added to catch eg: first line = '\n'
                 assert(len(map(float, tf.readline().split()[:2])) == 2)
@@ -2748,7 +2748,7 @@ class GMTPlot:
                 cmd.append('-hi%d' % (header))
             # ignore stderr: usually because no data in area
             # algorithm in 'surface' is known to fail (no output) seen in 5.1
-            for attempt in xrange(5):
+            for attempt in range(5):
                 # stderr = self.sink
                 Popen(cmd, cwd = self.wd).wait()
                 if os.path.exists(temp_grd):

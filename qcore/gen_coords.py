@@ -5,7 +5,7 @@ import os
 from subprocess import check_call
 import sys
 
-from qcore.binary_version import get_unversioned_bin
+from binary_version import get_unversioned_bin
 
 GEN_COORD_BIN = get_unversioned_bin('gen_model_cords')
 
@@ -23,7 +23,7 @@ def gen_coords(vm_dir = '.', debug = False, geoproj = '1', do_coords = '1', \
     try:
         with open(os.path.join(vm_dir, 'params_vel.json'), 'r') as j:
             vm = json.load(j)
-    except IOError:
+    except (IOError, FileNotFoundError) as e:
         # deprecated, will break if run multiple times as a function
         sys.path.insert(0, vm_dir)
         import params_vel as vm

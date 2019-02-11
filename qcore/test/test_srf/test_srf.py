@@ -33,7 +33,7 @@ DIR_NAME = (os.path.join("/home/",getpass.getuser(),("tmp_" + os.path.basename(_
 
 def setup_module(scope="module"):
     """ create a tmp directory for storing output from test"""
-    print "----------setup_module----------"
+    print("----------setup_module----------")
     try:
         os.mkdir(DIR_NAME)
     except OSError as e:
@@ -43,11 +43,11 @@ def setup_module(scope="module"):
 
 def teardown_module():
     """ delete the tmp directory if it is empty"""
-    print "---------teardown_module------------"
+    print("---------teardown_module------------")
     if (len(os.listdir(DIR_NAME)) == 0):
         try:
             shutil.rmtree(DIR_NAME)
-        except (IOError, OSError) as (e):
+        except (IOError, OSError) as e:
             sys.exit(e)
 
 
@@ -56,7 +56,7 @@ def teardown_module():
                                                 (SRF_2_PLANES[1], [[176.8263, -37.0622], 49, 104, 4.89, 10.44, 37, 50, 0.00, -999.90, -999.90])])
 def test_plane(plane, expected_values):
     """ Tests for the header lines  """
-    for i in xrange(len(HEADERS)):
+    for i in range(len(HEADERS)):
         assert(plane[HEADERS[i]] == expected_values[i])
 
 
@@ -77,10 +77,12 @@ def test_srf2corners(test_srf,filename,sample_cnr_file_path):
     # NOTE : The testing was carried out based on the assumption that the hypocentre was correct
     # srf.srf2corners method calls the get_hypo method inside it, which gives the hypocentre value
     abs_filename = os.path.join(DIR_NAME,filename)
-    print "abs_filename: ",abs_filename
+    print("abs_filename: ",abs_filename)
     srf.srf2corners(test_srf,cnrs=abs_filename)
-    out, err = shared.exe("diff -qr " + sample_cnr_file_path + " " + abs_filename)
-    assert out == "" and err == ""
+    cmd = "diff -q " + sample_cnr_file_path + " " + abs_filename
+
+    out, err = shared.exe(cmd)
+    assert len(out) ==0 and len(err) == 0
     utils.remove_file(abs_filename)
 
 
@@ -121,9 +123,9 @@ def test_nplane1(test_srf_planes, expected_result):
 def test_ps_params(test_srf, expected_result):
     try:
         srf.ps_params(test_srf)
-        print "point is single- in try block"
+        print("point is single- in try block")
     except AssertionError:
-        print "point is not single-except block "
+        print("point is not single-except block ")
         return
     assert srf.ps_params(test_srf) == expected_result #only check strike, dip, rake values if it is a single point source
 

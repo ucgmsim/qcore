@@ -12,6 +12,7 @@ To know the test coverage :python -m pytest --cov ../../gen_coords.py test_gen_c
 """
 
 from qcore import shared
+from glob import glob
 import os
 import shutil
 import getpass
@@ -26,9 +27,9 @@ INPUT_FILENAME = "params_vel.py"
 # print "PATH_TO_SAMPLE_OUTDIR: ",PATH_TO_SAMPLE_OUTDIR
 
 
-DIR_NAME = (os.path.join("/home/",getpass.getuser(),("tmp_test_gen_coords_"+ ''.join(str(datetime.now()).split())).replace('.', '_')).replace(
+PATH_UNDER_TEST = (os.path.join("/home/",getpass.getuser(),("tmp_test_gen_coords_"+ ''.join(str(datetime.now()).split())).replace('.', '_')).replace(
             ':', '_'))
-# print "PATH_TO_NEW_OUTDIR: ", DIR_NAME
+# print "PATH_TO_NEW_OUTDIR: ", PATH_UNDER_TEST
 # PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.abspath(os.path.dirname(__file__)), "../gen_coords.py")
 
 PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.dirname(__file__),'../../gen_coords.py')
@@ -37,27 +38,31 @@ SYMLINK_PATH = os.path.join(os.path.abspath(os.path.dirname(PATH_FOR_PRG_TOBE_TE
 
 def setup_module(scope="module"):
     """ create a symbolic link for params_vel.py"""
-    print "---------setup_module------------"
+    print("---------setup_module------------")
     try:
-        os.mkdir(DIR_NAME)
+        os.mkdir(PATH_UNDER_TEST)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
     sample_path = os.path.join(PATH_TO_SAMPLE_INPUT_DIR, INPUT_FILENAME)
-    os.symlink(sample_path,SYMLINK_PATH)
+#    os.symlink(sample_path,SYMLINK_PATH)
+    os.symlink(sample_path,os.path.join(PATH_UNDER_TEST,INPUT_FILENAME))
 
 
 def test_gencoords():
     """ test qcore/gen_coords.py """
-    print "---------test_gencoords------------"
-    shared.exe("python "+PATH_FOR_PRG_TOBE_TESTED+" "+DIR_NAME)
-    out,err=shared.exe("diff -qr "+DIR_NAME+" "+PATH_TO_SAMPLE_OUTDIR)
-    assert out == "" and err == ""
-    shutil.rmtree(DIR_NAME)
+    print("---------test_gencoords------------")
+    shared.exe("python "+PATH_FOR_PRG_TOBE_TESTED+" "+PATH_UNDER_TEST)
+    ref_files = glob(os.path.join(PATH_TO_SAMPLE_OUTDIR,"*.100"))
+    for ref in ref_files:
+        cmd = "diff {} {}".format(ref, os.path.join(PATH_UNDER_TEST,os.path.basename(ref)))
+        out,err=shared.exe(cmd)
+        assert len(out)==0 and len(err)==0 
 
+    shutil.rmtree(PATH_UNDER_TEST)
 
 def teardown_module():
     """ delete the symbolic link for params_vel.py"""
-    print "---------teardown_module------------"
+    print("---------teardown_module------------")
     if (os.path.isfile(SYMLINK_PATH)):
         os.remove(SYMLINK_PATH)

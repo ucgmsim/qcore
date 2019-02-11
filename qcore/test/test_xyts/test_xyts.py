@@ -17,7 +17,7 @@ DOWNLOAD_CMD = 'wget -O {} {}'.format(XYTS_STORE_PATH, XYTS_DOWNLOAD_PATH)
 
 if not os.path.isfile(XYTS_STORE_PATH):
    out, err = shared.exe(DOWNLOAD_CMD, debug=False)
-   if 'failed' in err:
+   if b'failed' in err:
         os.remove(XYTS_STORE_PATH)
         sys.exit('{} failted to download xyts benchmark file'.format(err))
    else:
@@ -38,7 +38,7 @@ TMP_DIR_NAME = (os.path.join("/home/", getpass.getuser(), (
 
 def setup_module(scope="module"):
     """ create a tmp directory for storing output from test"""
-    print "----------setup_module----------"
+    print("----------setup_module----------")
     try:
         os.mkdir(TMP_DIR_NAME)
     except OSError as e:
@@ -49,13 +49,13 @@ def setup_module(scope="module"):
 def teardown_module():
     """ delete the symbolic link 
     delete the tmp directory if it is empty"""
-    print "---------teardown_module------------"
+    print("---------teardown_module------------")
     if os.path.isfile(XYTS_FILE):
         os.remove(XYTS_FILE)
     if len(os.listdir(TMP_DIR_NAME)) == 0:
         try:
             shutil.rmtree(TMP_DIR_NAME)
-        except (IOError, OSError) as (e):
+        except (IOError, OSError) as e:
             sys.exit(e)
 
 

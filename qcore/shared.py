@@ -77,9 +77,9 @@ def exe(cmd, debug = True, shell = False, \
     # display what command would look like if executed on a shell
     if debug:
         virtual_cmd = ' '.join(cmd)
-        if type(stdout) == file:
+        if type(stdout).__name__ == 'TextIOWrapper':
             virtual_cmd = '%s 1>%s' % (virtual_cmd, stdout.name)
-        if type(stderr) == file:
+        if type(stderr).__name__ == 'TestIOWrapper':
             virtual_cmd = '%s 2>%s' % (virtual_cmd, stderr.name)
         print(virtual_cmd, file = sys.stderr)
 
