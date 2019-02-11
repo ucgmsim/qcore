@@ -10,13 +10,13 @@ def determine_machine_config():
     :return: machine name, config file
     """
     hostname = platform.node()
-    if (hostname.startswith("ni") and len(host_name) == 8) or host_name.startswith(
+    if (hostname.startswith("ni") and len(hostname) == 8) or hostname.startswith(
         "maui"
     ):
         machine = "maui"
         basename = os.path.join("machine_config", "config_maui.json")
 
-    elif (host_name.startswith("wb") and len(host_name) == 6) or host_name.startswith(
+    elif (hostname.startswith("wb") and len(hostname) == 6) or hostname.startswith(
         "mahuika"
     ):
         machine = "mahuika"
