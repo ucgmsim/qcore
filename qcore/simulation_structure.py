@@ -97,23 +97,19 @@ def get_hf_bin_path(sim_root):
 
 
 # yaml
-def get_fault_yaml_path(sim_root, fault_name=''):
+def get_fault_yaml_path(sim_root, fault_name=None):
     """
-    manual: Albury_VM_home_melodypzhu_Albury_new_bench_Data_VMs_Albury-h0p4_EMODv3p0p4_190105/fault_params.yaml
-    auto: Runs/Albury/fault_params.yaml
-    :param sim_root: Albury_VM_home_melodypzhu_Albury_new_bench_Data_VMs_Albury-h0p4_EMODv3p0p4_190105 or Runs
-    :param fault_name: '' or Albury
-    :return: path to fault_params.yaml
+    Gets the fault_params.yaml for the specified simulation. 
+    Note: For the manual workflow set fault_name to None as the 
+    fault params are stored directly in the simulation directory.
     """
+    fault_name = '' if fault_name is None else fault_name
     return os.path.join(sim_root, fault_name, 'fault_params.yaml')
 
 
 def get_root_yaml_path(sim_root):
     """
-    manual: Albury_VM_home_melodypzhu_Albury_new_bench_Data_VMs_Albury-h0p4_EMODv3p0p4_190105/root_params.yaml
-    auto: Runs/root_params.yaml
-    :param sim_root: Albury_VM_home_melodypzhu_Albury_new_bench_Data_VMs_Albury-h0p4_EMODv3p0p4_190105 or Runs
-    :return: path to root_params.yaml
+    Gets the root_params.yaml for the specified simulation.
     """
     return os.path.join(sim_root, 'root_params.yaml')
 
