@@ -76,15 +76,13 @@ def teardown_module():
 def test_corners(gmt_format, expected_corners):
     computed_corners = OBJ_XYTS.corners(gmt_format=gmt_format) 
     if gmt_format:
-        res1=np.isclose(np.array(computed_corners[0]),np.array(expected_corners[0]),rtol=1e-08)
+        utils.compare_np_array(np.array(computed_corners[0]),np.array(expected_corners[0]))
         cc=np.array([x.split() for x in computed_corners[1].split('\n')],dtype=float)
         ec=np.array([x.split() for x in expected_corners[1].split('\n')],dtype=float)
-        res2=np.isclose(cc,ec,rtol=1e-08)
-        assert np.all(res1) == True and np.all(res2) == True
+        utils.compare_np_array(cc,ec)
 
     else:
-        res=np.isclose(np.array(computed_corners),np.array(expected_corners),rtol=1e-08)
-        assert np.all(res) == True
+        utils.compare_np_array(np.array(computed_corners),np.array(expected_corners))
 
 
 @pytest.mark.parametrize("corners, expected_region",
