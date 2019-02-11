@@ -16,9 +16,6 @@ from scipy.stats import norm
 from qcore.geo import closest_location
 from qcore import imdb
 
-# temporary
-from time import time
-
 
 COMM = MPI.COMM_WORLD
 RANK = COMM.Get_rank()
@@ -81,13 +78,11 @@ def emp_data(emp_file):
 
 
 def process_emp_file(emp_file, station_i, im_i):
-    t0 = time()
     try:
         emp, types = emp_data(emp_file)
     except ValueError:
         print("corrupt file", emp_file)
         return
-    t1 = time()
     mn = np.argmin(emp.med)
     mx = np.argmax(emp.med)
     mn = np.e ** (emp[mn].med - 3 * emp[mn].dev)
@@ -104,14 +99,17 @@ def process_emp_file(emp_file, station_i, im_i):
             for i in hazard[0]
         ]
 
-    t2 = time()
     # deaggregation
     bins_rrup = (np.arange(args.rrup_n, dtype=np.float32) + 1) * args.rrup_d
     bins_mag = (np.arange(args.mag_n + 1, dtype=np.float32) * args.mag_d) + args.mag_min
     e = 1 / 500.0
     block = h5_deagg[station_i][im_i]
     # TODO: exceedance_rate: type A (hazard[1]) replaced with cybershake, exceedance_empirical: type A from empirical
-    im_level = np.exp(np.interp(np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])))
+    im_level = np.exp(
+        np.interp(
+            np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
+        )
+    )
     sf = norm.sf(np.log(im_level), emp.med, emp.dev) * emp.prob
     i = sf >= 0
     r = np.digitize(emp[i].rrup, bins_rrup)
@@ -119,15 +117,14 @@ def process_emp_file(emp_file, station_i, im_i):
     i[(r >= args.rrup_n) | (m >= args.mag_n) | (m == -1)] = False
     if sum(i) == 0:
         return
-        #continue
+        # continue if looping over im values
     sf = sf[i]
     r = np.digitize(emp[i].rrup, bins_rrup)
     m = np.digitize(emp[i].mag, bins_mag[1:])
     u = np.unique(np.dstack((r, m, types[i]))[0], axis=0)
     for x, y, z in u:
         block[x, y, z] = sum(sf[(r == x) & (m == y) & (types[i] == z)])
-    block /= np.sum(block) / 100.0
-    print(t1 - t0, t2 - t1, time() - t2)
+    block[...] /= np.sum(block) / 100.0
 
 
 ###
@@ -149,7 +146,9 @@ if IS_MASTER:
     )
     arg("--mag-d", help="magnitude spacing", type=float, default=0.25)
     arg("--mag-min", help="magnitude minimum", type=float, default=5.0)
-    arg("--mag-n", help="magnitude blocks from minimum at spacing", type=int, default=8)
+    arg(
+        "--mag-n", help="magnitude blocks from minimum at spacing", type=int, default=16
+    )
     arg("--rrup-d", help="rrup spacing", type=float, default=10.0)
     arg("--rrup-n", help="rrup blocks at spacing", type=int, default=20)
     try:
@@ -175,6 +174,15 @@ imdb_faults = set(map(lambda sim: sim.split("_HYP")[0], imdb.simulations(args.im
 h5 = h5py.File(args.empdb, "w", driver="mpio", comm=COMM)
 
 h5.attrs["ims"] = np.array(emp_ims, dtype=np.string_)
+h5.attrs["values_x"] = (
+    np.arange(args.rrup_n, dtype=np.float32) * args.rrup_d + args.rrup_d / 2.0
+)
+h5.attrs["values_y"] = (
+    np.arange(args.mag_n, dtype=np.float32) * args.mag_d
+    + args.mag_min
+    + args.mag_d / 2.0
+)
+h5.attrs["values_z"] = np.array(["A", "B", "DS"], dtype=np.string_)
 
 # stations reference
 station_dtype = np.dtype([("name", "|S7"), ("lon", "f4"), ("lat", "f4")])
