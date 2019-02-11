@@ -9,15 +9,15 @@ def get_host_config():
     :return: actual hostname, config josn file path
     """
     host_name = platform.node()
-    if (host_name.startswith("ni") and len(host_name) == 8) or host_name.startswith('maui'):  # maui
+    if (host_name.startswith("ni") and len(host_name) == 8) or host_name.startswith('maui'):
         actual_host_name = "maui"
         base_name = os.path.join('machine_config', 'config_maui.json')
 
-    elif (host_name.startswith("wb") and len(host_name) == 6) or host_name.startswith("mahuika"):  # mahuika
+    elif (host_name.startswith("wb") and len(host_name) == 6) or host_name.startswith("mahuika"):
         actual_host_name = "mahuika"
         base_name = os.path.join('machine_config', 'config_mahuika.json')
 
-    else:  # default
+    else:
         actual_host_name = "default"
         base_name = "config.json"
 
