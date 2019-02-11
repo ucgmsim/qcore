@@ -79,7 +79,7 @@ def test_srf2corners(test_srf,filename,sample_cnr_file_path):
     abs_filename = os.path.join(DIR_NAME,filename)
     print("abs_filename: ",abs_filename)
     srf.srf2corners(test_srf,cnrs=abs_filename)
-    cmd = "diff -q " + sample_cnr_file_path + " " + abs_filename
+    cmd = "diff " + sample_cnr_file_path + " " + abs_filename
 
     out, err = shared.exe(cmd)
     assert len(out) ==0 and len(err) == 0
