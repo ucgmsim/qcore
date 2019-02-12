@@ -21,7 +21,6 @@ def compare_np_array(array1, array2, error_limit=ERROR_LIMIT):
     assert np.all(np.isclose(array1, array2, rtol=error_limit))
 
 
-
 def remove_file(abs_path):
     """ remove test output file if successfully passed the test
         abs_path: abs path of the file to be removed

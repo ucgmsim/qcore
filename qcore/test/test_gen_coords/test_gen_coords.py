@@ -20,21 +20,29 @@ from datetime import datetime
 import errno
 
 
-PATH_TO_SAMPLE_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)),"sample1")
+PATH_TO_SAMPLE_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sample1")
 PATH_TO_SAMPLE_OUTDIR = os.path.join(PATH_TO_SAMPLE_DIR, "output")
 PATH_TO_SAMPLE_INPUT_DIR = os.path.join(PATH_TO_SAMPLE_DIR, "input")
 INPUT_FILENAME = "params_vel.py"
 # print "PATH_TO_SAMPLE_OUTDIR: ",PATH_TO_SAMPLE_OUTDIR
 
 
-PATH_UNDER_TEST = (os.path.join("/home/",getpass.getuser(),("tmp_test_gen_coords_"+ ''.join(str(datetime.now()).split())).replace('.', '_')).replace(
-            ':', '_'))
+PATH_UNDER_TEST = os.path.join(
+    "/home/",
+    getpass.getuser(),
+    ("tmp_test_gen_coords_" + "".join(str(datetime.now()).split())).replace(".", "_"),
+).replace(":", "_")
 # print "PATH_TO_NEW_OUTDIR: ", PATH_UNDER_TEST
 # PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.abspath(os.path.dirname(__file__)), "../gen_coords.py")
 
-PATH_FOR_PRG_TOBE_TESTED = os.path.join(os.path.dirname(__file__),'../../gen_coords.py')
-SYMLINK_PATH = os.path.join(os.path.abspath(os.path.dirname(PATH_FOR_PRG_TOBE_TESTED)),INPUT_FILENAME)
+PATH_FOR_PRG_TOBE_TESTED = os.path.join(
+    os.path.dirname(__file__), "../../gen_coords.py"
+)
+SYMLINK_PATH = os.path.join(
+    os.path.abspath(os.path.dirname(PATH_FOR_PRG_TOBE_TESTED)), INPUT_FILENAME
+)
 # print "symbolic: **** ", SYMLINK_PATH
+
 
 def setup_module(scope="module"):
     """ create a symbolic link for params_vel.py"""
@@ -45,24 +53,27 @@ def setup_module(scope="module"):
         if e.errno != errno.EEXIST:
             raise
     sample_path = os.path.join(PATH_TO_SAMPLE_INPUT_DIR, INPUT_FILENAME)
-#    os.symlink(sample_path,SYMLINK_PATH)
-    os.symlink(sample_path,os.path.join(PATH_UNDER_TEST,INPUT_FILENAME))
+    #    os.symlink(sample_path,SYMLINK_PATH)
+    os.symlink(sample_path, os.path.join(PATH_UNDER_TEST, INPUT_FILENAME))
 
 
 def test_gencoords():
     """ test qcore/gen_coords.py """
     print("---------test_gencoords------------")
-    shared.exe("python "+PATH_FOR_PRG_TOBE_TESTED+" "+PATH_UNDER_TEST)
-    ref_files = glob(os.path.join(PATH_TO_SAMPLE_OUTDIR,"*.100"))
+    shared.exe("python " + PATH_FOR_PRG_TOBE_TESTED + " " + PATH_UNDER_TEST)
+    ref_files = glob(os.path.join(PATH_TO_SAMPLE_OUTDIR, "*.100"))
     for ref in ref_files:
-        cmd = "diff {} {}".format(ref, os.path.join(PATH_UNDER_TEST,os.path.basename(ref)))
-        out,err=shared.exe(cmd)
-        assert len(out)==0 and len(err)==0 
+        cmd = "diff {} {}".format(
+            ref, os.path.join(PATH_UNDER_TEST, os.path.basename(ref))
+        )
+        out, err = shared.exe(cmd)
+        assert len(out) == 0 and len(err) == 0
 
     shutil.rmtree(PATH_UNDER_TEST)
+
 
 def teardown_module():
     """ delete the symbolic link for params_vel.py"""
     print("---------teardown_module------------")
-    if (os.path.isfile(SYMLINK_PATH)):
+    if os.path.isfile(SYMLINK_PATH):
         os.remove(SYMLINK_PATH)
