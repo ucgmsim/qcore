@@ -13,7 +13,7 @@ services:
 script:
   - ls
   - pwd
-  - docker run -it -v `realpath ..`/qcore:/home/root/qcore sungeunbae/qcore-lite-travisci bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
+  - docker run -it -v /home/travis/build/ucgmsim/qcore:/home/root/qcore sungeunbae/qcore-lite-travisci bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
 #after_success:
 #  - coveralls   # uploads reports to coveralls.io
 
