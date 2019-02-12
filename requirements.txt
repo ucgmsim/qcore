@@ -1,6 +1,0 @@
-numpy
-#mpi4py
-scipy
-pytest
-
-python-coveralls
