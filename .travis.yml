@@ -5,7 +5,7 @@ services:
 
 # command to install dependencies
 #before_install:
-#  - docker pull sungeunbae/qcore-lite-travisci
+  - docker pull sungeunbae/qcore-lite-travisci
 #install:
 #  - pip install -r requirements.txt
 #  - pip install python-coverall
