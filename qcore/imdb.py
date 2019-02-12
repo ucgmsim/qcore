@@ -81,15 +81,44 @@ def station_ims(imdb_file, station, im=None, fmt="imdb", rates_as_index=False):
         else:
             index = imdb["simulations"][...][station_index].astype(np.unicode_)
 
-        df = pd.DataFrame(
-            imdb["station_data/%s" % (station)][...],
-            index=index,
-            columns=ims(imdb_file, fmt=fmt),
-        )
+        if im is None:
+            return pd.DataFrame(
+                imdb["station_data/%s" % (station)][...],
+                index=index,
+                columns=ims(imdb_file, fmt=fmt),
+            )
+        else:
+            return pd.Series(
+                imdb["station_data/%s" % (station)][
+                    :, ims(imdb_file, fmt=fmt).index(im)
+                ],
+                index=index,
+            )
 
-    if im is not None:
-        return df[im]
-    return df
+
+def station_simulations(imdb_file, station, sims=True, rates=False):
+    """
+    List of simulation names and/or rupture rates for given station.
+    station: retrieve simulations/rupture rates for this station
+    sims: retrieve simulation names
+    rates: retrieve rupture rates
+    """
+    try:
+        assert sims or rates
+    except AssertionError:
+        return
+    with h5py.File(imdb_file, "r") as imdb:
+        station_index = imdb["station_index/%s" % (station)][...]
+        if sims:
+            sims = imdb["simulations"][...][station_index].astype(np.unicode_)
+            if not rates:
+                return sims
+        if rates:
+            rates = imdb["simulations_arr"][...][station_index]
+            # testing for bool would fail for sims=numpy.bool_(False)
+            if not type(sims) == np.ndarray:
+                return rates
+        return sims, rates
 
 
 def closest_station(imdb_file, lon, lat, event=None):
