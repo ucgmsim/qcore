@@ -1,14 +1,17 @@
 language: python
-python:
-  - "3.6"
+
+services:
+  - docker
 
 # command to install dependencies
-install:
-  - pip install -r requirements.txt
+before_install:
+  - docker pull sungeunbae/qcore-travisci
+#install:
+#  - pip install -r requirements.txt
 #  - pip install python-coverall
 # command to run tests
 script:
-  - pytest -v qcore/test/test_geo # or py.test for Python versions 3.5 and below
-after_success:
-  - coveralls   # uploads reports to coveralls.io
+  - docker run sungeunbae/qcore-travisci bash -c "cd /home/root/qcore/qcore/test; pytest -s;"
+#after_success:
+#  - coveralls   # uploads reports to coveralls.io
 
