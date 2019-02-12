@@ -11,7 +11,7 @@ before_install:
 #  - pip install python-coverall
 # command to run tests
 script:
-  - docker run sungeunbae/qcore-travisci bash -c "cd /home/root/qcore/qcore/test; pytest;"
+  - docker run sungeunbae/qcore-travisci bash -c "cd /home/root/qcore/qcore/test; pytest -s;"
 #after_success:
 #  - coveralls   # uploads reports to coveralls.io
 
