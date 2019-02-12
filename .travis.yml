@@ -5,13 +5,13 @@ services:
 
 # command to install dependencies
 before_install:
-  - docker pull sungeunbae/qcore-travisci
+  - docker pull sungeunbae/qcore-lite-travisci
 #install:
 #  - pip install -r requirements.txt
 #  - pip install python-coverall
 # command to run tests
 script:
-  - docker run sungeunbae/qcore-travisci bash -c "cd /home/root/qcore/qcore/test; pytest -s;"
+  - docker run -it -v qcore:/home/root/qcore sungeunbae/qcore-lite-travisci bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
 #after_success:
 #  - coveralls   # uploads reports to coveralls.io
 
