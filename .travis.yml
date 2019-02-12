@@ -4,7 +4,7 @@ services:
   - docker
 
 # command to install dependencies
-#before_install:
+before_install:
   - docker pull sungeunbae/qcore-lite-travisci
 #install:
 #  - pip install -r requirements.txt
