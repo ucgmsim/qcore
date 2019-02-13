@@ -30,10 +30,13 @@ def get_srf_path(cybershake_root, realisation):
     return os.path.join(cybershake_root, 'Data', 'Sources', get_srf_location(realisation))
 
 # Source_params
+def get_sources_dir(cybershake_root):
+    """Gets the cybershake sources directory"""
+    return os.path.join(cybershake_root, 'Data', 'Sources')
+
 def get_source_params_location(realisation):
     fault = __get_fault_from_realisation(realisation)
     return os.path.join(fault, 'Sim_params', realisation + '.yaml')
-
 
 def get_source_params_path(cybershake_root, realisation):
     return os.path.join(cybershake_root, 'Data', 'Sources', get_source_params_location(realisation))
@@ -42,10 +45,6 @@ def get_source_params_path(cybershake_root, realisation):
 def get_stoch_location(realisation):
     fault = __get_fault_from_realisation(realisation)
     return os.path.join(fault, 'Stoch', realisation + '.stoch')
-
-def get_sources_dir(cybershake_root):
-    """Gets the cybershake sources directory"""
-    return os.path.join(cybershake_root, 'Data', 'Sources')
 
 def get_stoch_path(cybershake_root, realisation):
     return os.path.join(cybershake_root, 'Data', 'Sources', get_stoch_location(realisation))
@@ -99,4 +98,30 @@ def get_hf_acc_dir(sim_root):
 
 def get_hf_bin_path(sim_root):
     return os.path.join(get_hf_acc_dir(sim_root), 'HF.bin')
+
+
+# yaml
+def get_fault_yaml_path(sim_root, fault_name=None):
+    """
+    Gets the fault_params.yaml for the specified simulation. 
+    Note: For the manual workflow set fault_name to None as the 
+    fault params are stored directly in the simulation directory.
+    """
+    fault_name = '' if fault_name is None else fault_name
+    return os.path.join(sim_root, fault_name, 'fault_params.yaml')
+
+
+def get_root_yaml_path(sim_root):
+    """
+    Gets the root_params.yaml for the specified simulation.
+    """
+    return os.path.join(sim_root, 'root_params.yaml')
+
+
+
+
+
+
+
+
 
