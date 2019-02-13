@@ -103,3 +103,10 @@ class Components(ExtendedEnum):
     ver = "ver"
     ellipsis = "ellipsis"
 
+class State(Enum):
+    """Job status on the HPC"""
+    created = 1
+    queued = 2
+    running = 3
+    completed = 4
+    failed = 5
