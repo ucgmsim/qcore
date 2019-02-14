@@ -27,6 +27,9 @@ METADATA_LOG_FILENAME = "metadata_log.json"
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+class HPC(Enum):
+    maui = "maui"
+    mahuika = "mahuika"
 
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
 class ProcessType(Enum):
@@ -110,3 +113,4 @@ class State(Enum):
     running = 3
     completed = 4
     failed = 5
+
