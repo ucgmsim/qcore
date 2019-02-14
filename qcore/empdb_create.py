@@ -64,7 +64,7 @@ def emp_data(emp_file):
     # type B faults
     emp.type += np.invert(np.vectorize(imdb_faults.__contains__)(emp.fault))
     # distributed seismicity
-    emp.loc[emp.fault=="PointEqkSource", "type"] = 2
+    emp.loc[emp.fault == "PointEqkSource", "type"] = 2
 
     # assume magnitude correct where prob is given
     mag = {}
@@ -76,7 +76,7 @@ def emp_data(emp_file):
     f = f[x]
     fl = fl[x]
     for i in range(fl.size - 1):
-        rows = emp.iloc[fl[i]:fl[i+1]]
+        rows = emp.iloc[fl[i] : fl[i + 1]]
         prob = rows.prob.values
         # prevent new input rules being undetected
         assert np.sum(prob != 0) == 1
@@ -84,7 +84,7 @@ def emp_data(emp_file):
         mag[f[i]] = rows.mag[np.argmax(prob) + fl[i]]
         rrup[f[i]] = rows.rrup[fl[i]]
         # because pandas is incapabale of storing a view
-        emp.iloc[fl[i]:fl[i+1], 5] = np.average(prob)
+        emp.iloc[fl[i] : fl[i + 1], 5] = np.average(prob)
 
     return emp, mag, rrup
 
@@ -103,10 +103,9 @@ def process_emp_file(args, emp_file, station, im):
     hazard = h5["hazard/{}/{}".format(station, im)]
     hazard[0] = np.logspace(np.log10(mn), np.log10(mx), num=args.hazard_n)
     for t in range(3):
-        rows = emp.loc[emp.type==t]
+        rows = emp.loc[emp.type == t]
         hazard[t + 1] = [
-            np.dot(norm.sf(np.log(i), rows.med, rows.dev), rows.prob)
-            for i in hazard[0]
+            np.dot(norm.sf(np.log(i), rows.med, rows.dev), rows.prob) for i in hazard[0]
         ]
     # close pointer, use local RO copy
     hazard = hazard[...]
@@ -154,7 +153,7 @@ def process_emp_file(args, emp_file, station, im):
         if m == 0:
             continue
         try:
-            block[r, m-1, 0] += rates[i]
+            block[r, m - 1, 0] += rates[i]
         except ValueError:
             continue
 
@@ -216,7 +215,7 @@ h5.attrs["values_y"] = (
     + args.mag_min
     + args.mag_d / 2.0
 )
-h5.attrs["values_z"] = np.array(["A", "B", "DS"], dtype=np.string_)
+h5.attrs["values_z"] = np.array(["A (CS)", "A (EMP)", "B", "DS"], dtype=np.string_)
 
 # stations reference
 station_dtype = np.dtype([("name", "|S7"), ("lon", "f4"), ("lat", "f4")])
