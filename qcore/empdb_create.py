@@ -146,7 +146,7 @@ def process_emp_file(args, emp_file, station, im):
             continue
         # check if out of range
         try:
-            r = np.digitize([rrups_d[i]], bins_rrup)[0]
+            r = np.digitize([rrups_d[faults[i]]], bins_rrup)[0]
             m = np.digitize([mags_d[faults[i]]], bins_mag)[0]
         except KeyError:
             continue
