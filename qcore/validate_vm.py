@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 """
 Checks EMOD3D VM folder for corectness. Compatible with Python 2.6+ and 3.0+.
-
 Run script with VM folder location as first parameter. Returns 0 if successful.
 or:
 Import and use validate_vm directly.
-
 Example of running in a bash script:
 ======================================
 validate_vm.py /path/to/VMs/AlpineRegion

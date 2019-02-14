@@ -2,7 +2,6 @@ import json
 import os
 import platform
 
-
 def determine_machine_config(hostname=platform.node()):
     """
     Manages multiple configurations for different machines.
