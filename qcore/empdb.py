@@ -27,5 +27,9 @@ def deagg_grid(empdb_file, station, im):
     """
 
     with h5py.File(empdb_file, "r") as empdb:
-        # TODO: labels for x, y, z axis
-        return empdb["deagg/{}/{}".format(station, im)][...]
+        return (
+            empdb["deagg/{}/{}".format(station, im)][...],
+            empdb.attrs["values_x"],
+            empdb.attrs["values_y"],
+            empdb.attrs["values_z"],
+        )
