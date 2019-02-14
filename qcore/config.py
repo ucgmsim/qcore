@@ -3,13 +3,13 @@ import os
 import platform
 
 
-def determine_machine_config():
+def determine_machine_config(hostname=platform.node()):
     """
     Manages multiple configurations for different machines.
     Determines the machine name eg: nodes ni0002 and maui01 belong to maui.
     :return: machine name, config file
     """
-    hostname = platform.node()
+
     if (hostname.startswith("ni") and len(hostname) == 8) or hostname.startswith(
         "maui"
     ):
@@ -30,7 +30,14 @@ def determine_machine_config():
     return machine, config_path
 
 
+def get_machine_config(hostname=platform.node()):
+    _, config_path = determine_machine_config(hostname)
+    with open(config_file, "r") as machine_config_file:
+        return json.load(machine_config_file)
+
+
 host, config_file = determine_machine_config()
 
-with open(config_file, "r") as f:
-    qconfig = json.load(f)
+
+qconfig = get_machine_config()
+
