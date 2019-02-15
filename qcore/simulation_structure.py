@@ -13,10 +13,12 @@ def get_realisation_name(fault_name, rel_no):
 
 
 # VM
-def get_VM_dir(cybershake_root, realisation):
+def get_fault_VM_dir(cybershake_root, realisation):
     fault = __get_fault_from_realisation(realisation)
-    return os.path.join(cybershake_root, 'Data', 'VMs', fault)
+    return os.path.join(get_VM_dir(cybershake_root), fault)
 
+def get_VM_dir(cybershake_root):
+    return os.path.join(cybershake_root, 'Data', 'VMs')
 
 # SRF
 def get_srf_location(realisation):
@@ -60,6 +62,9 @@ def get_cybershake_config(cybershake_root):
 def get_cybershake_list(cybershake_root):
     """Gets the cybershake list, specifying the faults and number of realisation"""
     return os.path.join(cybershake_root, "list.txt")
+
+def get_fault_dir(cybershake_root, fault_name):
+    return os.path.join(cybershake_root, "Runs", fault_name)
 
 # LF
 def get_lf_dir(sim_root):

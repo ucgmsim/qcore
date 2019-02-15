@@ -3,7 +3,6 @@ from datetime import datetime
 
 LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
 
-
 HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 HF_DEFAULT_VERSION = "run_hf_mpi"
 
@@ -24,6 +23,7 @@ DEFAULT_MEMORY = "16G"
 
 # Why do we have to different time formats?
 METADATA_TIMESTAMP_FMT = "%Y-%m-%d_%H:%M:%S"
+METADATA_LOG_FILENAME = "metadata_log.json"
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
