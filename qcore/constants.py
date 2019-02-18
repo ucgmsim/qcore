@@ -103,3 +103,60 @@ class Components(ExtendedEnum):
     ver = "ver"
     ellipsis = "ellipsis"
 
+class RootParams(Enum):
+    """Keywords for the root yaml file.
+    Note: These are not complete!
+    """
+    flo = "flo"
+    dt = "dt"
+    version = "version"
+    stat_file = "stat_file"
+    stat_vs_est = "stat_vs_est"
+    stat_vs_ref = "stat_vs_ref"
+    v_mod_1d_name = "v_mod_1d_name"
+    mgmt_db_location = "mgmt_db_location"
+
+
+class FaultParams(Enum):
+    """Keywords for the fault yaml file.
+    Note: These are not complete!
+    """
+    root_yaml_path = "root_yaml_path"
+    vel_mod_dir = "vel_mod_dir"
+    stat_coords = "stat_coords"
+    FD_STATLIST = "FD_STATLIST"
+
+
+class SimParams(Enum):
+    """Keywords for the simulation yaml file.
+    Note: These are not complete!
+    """
+    fault_yaml_path = "fault_yaml_path"
+    run_name = "run_name"
+    user_root = "user_root"
+    run_dir = "run_dir"
+    sim_dir = "sim_dir"
+    srf_file = "srf_file"
+    params_vel = "params_vel"
+    sim_duration = "sim_duration"
+    hf_slip = "hf_slip"
+    stat_file = "stat_file"
+
+
+class VMParams(Enum):
+    """Keywords for the vm params yaml file.
+    """
+    model_lat = "MODEL_LAT"
+    model_lon = "MODEL_LON"
+    model_rot = "MODEL_ROT"
+    hh = "hh"
+    nx = "nx"
+    ny = "ny"
+    nz = "nz"
+    sufx = "sufx"
+    gridfile = "GRIDFILE"
+    gridout = "GRIDOUT"
+    model_coords = "MODEL_COORDS"
+    model_params = "MODEL_PARAMS"
+    model_bounds = "MODEL_BOUNDS"
+
