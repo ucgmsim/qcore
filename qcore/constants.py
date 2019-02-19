@@ -27,6 +27,9 @@ METADATA_LOG_FILENAME = "metadata_log.json"
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+class HPC(Enum):
+    maui = "maui"
+    mahuika = "mahuika"
 
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
 class ProcessType(Enum):
@@ -103,6 +106,16 @@ class Components(ExtendedEnum):
     ver = "ver"
     ellipsis = "ellipsis"
 
+
+class State(Enum):
+    """Job status on the HPC"""
+    created = 1
+    queued = 2
+    running = 3
+    completed = 4
+    failed = 5
+
+
 class RootParams(Enum):
     """Keywords for the root yaml file.
     Note: These are not complete!
@@ -159,4 +172,5 @@ class VMParams(Enum):
     model_coords = "MODEL_COORDS"
     model_params = "MODEL_PARAMS"
     model_bounds = "MODEL_BOUNDS"
+
 
