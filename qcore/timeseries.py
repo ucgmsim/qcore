@@ -5,10 +5,16 @@ Shared functions to work on time-series.
 @date 13/09/2016
 """
 
+import base64
 from glob import glob
 import math
 import os
 
+try:
+    # only used in BBFlac
+    import mutagen
+except ImportError:
+    pass
 try:
     from scipy.signal import butter, resample
 except ImportError:
@@ -498,8 +504,8 @@ class BBSeis:
 
     def __init__(self, bb_path):
         """
-        Load HF binary store.
-        hf_path: path to the HF binary file
+        Load BB binary store.
+        bb_path: path to the BB binary file
         """
 
         bbs = os.stat(bb_path).st_size
@@ -526,8 +532,9 @@ class BBSeis:
         self.duration, self.dt, self.start_sec = \
             np.fromfile(bbf, dtype='%sf4' % (endian), count=3)
         # read header - strings
-        self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(bbf, count=3,
-                                                            dtype='|S256')
+        self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(
+            bbf, count=3, dtype='|S256'
+        ).astype(np.unicode_)
 
         # load station info
         bbf.seek(self.HEAD_SIZE)
@@ -555,6 +562,115 @@ class BBSeis:
         self.ts_pos = self.HEAD_SIZE + nstat * self.HEAD_STAT
         # data format
         self.dtype = '3%sf4' % (endian)
+
+    def acc(self, station, comp=Ellipsis):
+        """
+        Returns timeseries (acceleration, g) for station.
+        TODO: select component by changing dtype
+        station: station name, must exist
+        comp: component (default all) examples: 0, self.X
+        """
+        with open(self.path, 'r') as data:
+            data.seek(self.ts_pos + self.stat_idx[station] * self.nt * 3 * 4)
+            return np.fromfile(data, dtype=self.dtype,
+                               count=self.nt)[:, comp]
+
+    def vel(self, station, comp=Ellipsis):
+        """
+        Returns timeseries (velocity, cm/s) for station.
+        station: station name, must exist
+        comp: component (default all) examples: 0, self.X
+        """
+        return acc2vel(self.acc(station, comp=comp) * 981.0, self.dt)
+
+    def save_txt(self, station, prefix='./', title='', f='acc'):
+        """
+        Creates standard EMOD3D text files for the station.
+        """
+        i = self.stat_idx[station]
+        if f == 'vel':
+            f = self.vel
+        else:
+            f = self.acc
+        for i, c in enumerate(f(station).T):
+            seis2txt(c, self.dt, prefix, station, self.COMP_NAME[i],
+                     start_sec=self.start_sec,
+                     edist=self.stations.e_dist[i], title=title)
+
+    def all2txt(self, prefix='./', f='acc'):
+        """
+        Produces outputs as if the HF binary produced individual text files.
+        For compatibility. Should run slices in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
+        """
+        for s in self.stations.name:
+            self.save_txt(s, prefix=prefix, title=prefix, f=f)
+
+    def save_ll(self, path):
+        """
+        Saves station list to text file containing: lon lat station_name.
+        """
+        np.savetxt(path, self.stations[['lon', 'lat', 'name']], fmt='%f %f %s')
+
+
+###
+### PROCESSING OF BB CONTAINER WITH FLAC COMPRESSION
+###
+class BBFlac:
+    # format constants
+    N_COMP = 3
+    # indexing constants
+    X = 0
+    Y = 1
+    Z = 2
+    COMP_NAME = {X: '090', Y: '000', Z: 'ver'}
+
+    def __init__(self, bb_path):
+        """
+        Load BB flac store.
+        bb_path: path to the BB flac file
+        """
+        try:
+            meta = mutagen.File(bb_path)
+        except NameError:
+            sys.exit("Do you have mutagen installed?")
+
+        # read header - integers
+        self.nstat = int(meta["nstat"][0])
+        self.nt = int(meta["nt"][0])
+        # read header - floats
+        self.duration = float(meta["duration"][0])
+        self.dt = float(meta["dt"][0])
+        self.start_sec = float(meta["start_sec"][0])
+        # read header - strings
+        self.lf_dir = meta["lf_dir"][0]
+        self.lf_vm = meta["lf_vm"][0]
+        self.hf_file = meta["hf_file"][0]
+
+        # load station info
+        stations = np.frombuffer(
+            base64.b64decode(meta["stations"][0]),
+            dtype=[('lon', 'f4'),
+                   ('lat', 'f4'),
+                   ('name', '|S8'),
+                   ('x', 'i4'),
+                   ('y', 'i4'),
+                   ('z', 'i4'),
+                   ('e_dist', 'f4'),
+                   ('hf_vs_ref', 'f4'),
+                   ('lf_vs_ref', 'f4'),
+                   ('vsite', 'f4'),
+                   ('scale', 'f8')]
+        )
+        stat_type = stations.dtype.descr
+        stat_type[2] = stat_type[2][0], "U7"
+        self.stations = np.rec.fromrecords(stations, dtype=stat_type)
+
+
+        # allow indexing by station names
+        self.stat_idx = dict(list(zip(self.stations.name, np.arange(self.nstat))))
+        # keep location for data retrieval
+        self.path = bb_path
 
     def acc(self, station, comp=Ellipsis):
         """
