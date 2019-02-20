@@ -9,6 +9,7 @@ import base64
 from glob import glob
 import math
 import os
+from subprocess import Popen, PIPE
 
 try:
     # only used in BBFlac
@@ -616,7 +617,7 @@ class BBSeis:
 ###
 ### PROCESSING OF BB CONTAINER WITH FLAC COMPRESSION
 ###
-class BBFlac:
+class BBFlac(BBSeis):
     # format constants
     N_COMP = 3
     # indexing constants
@@ -675,48 +676,22 @@ class BBFlac:
     def acc(self, station, comp=Ellipsis):
         """
         Returns timeseries (acceleration, g) for station.
-        TODO: select component by changing dtype
         station: station name, must exist
         comp: component (default all) examples: 0, self.X
-        """
-        with open(self.path, 'r') as data:
-            data.seek(self.ts_pos + self.stat_idx[station] * self.nt * 3 * 4)
-            return np.fromfile(data, dtype=self.dtype,
-                               count=self.nt)[:, comp]
-
-    def vel(self, station, comp=Ellipsis):
-        """
-        Returns timeseries (velocity, cm/s) for station.
-        station: station name, must exist
-        comp: component (default all) examples: 0, self.X
-        """
-        return acc2vel(self.acc(station, comp=comp) * 981.0, self.dt)
-
-    def save_txt(self, station, prefix='./', title='', f='acc'):
-        """
-        Creates standard EMOD3D text files for the station.
         """
         i = self.stat_idx[station]
-        if f == 'vel':
-            f = self.vel
-        else:
-            f = self.acc
-        for i, c in enumerate(f(station).T):
-            seis2txt(c, self.dt, prefix, station, self.COMP_NAME[i],
-                     start_sec=self.start_sec,
-                     edist=self.stations.e_dist[i], title=title)
+        p = Popen(["sox", self.path,
+            "-b", "32",
+            "-L",
+            "-e", "signed-integer",
+            "-c", "3",
+            "-t", "raw",
+            "-",
+            "trim",
+            str(self.duration * i),
+            str(self.duration)
+        ], stdout=PIPE)
+        o = p.communicate()[0]
 
-    def all2txt(self, prefix='./', f='acc'):
-        """
-        Produces outputs as if the HF binary produced individual text files.
-        For compatibility. Should run slices in parallel for performance.
-        Slowest part is numpy formating numbers into text and number of lines.
-        """
-        for s in self.stations.name:
-            self.save_txt(s, prefix=prefix, title=prefix, f=f)
+        return np.frombuffer(o, dtype=np.int32).astype(np.float32).reshape(-1, 3)[:, comp] / self.stations.scale[i]
 
-    def save_ll(self, path):
-        """
-        Saves station list to text file containing: lon lat station_name.
-        """
-        np.savetxt(path, self.stations[['lon', 'lat', 'name']], fmt='%f %f %s')
