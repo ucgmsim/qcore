@@ -5,10 +5,17 @@ Shared functions to work on time-series.
 @date 13/09/2016
 """
 
+import base64
 from glob import glob
 import math
 import os
+from subprocess import Popen, PIPE
 
+try:
+    # only used in BBFlac
+    import mutagen
+except ImportError:
+    pass
 try:
     from scipy.signal import butter, resample
 except ImportError:
@@ -498,8 +505,8 @@ class BBSeis:
 
     def __init__(self, bb_path):
         """
-        Load HF binary store.
-        hf_path: path to the HF binary file
+        Load BB binary store.
+        bb_path: path to the BB binary file
         """
 
         bbs = os.stat(bb_path).st_size
@@ -526,8 +533,9 @@ class BBSeis:
         self.duration, self.dt, self.start_sec = \
             np.fromfile(bbf, dtype='%sf4' % (endian), count=3)
         # read header - strings
-        self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(bbf, count=3,
-                                                            dtype='|S256')
+        self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(
+            bbf, count=3, dtype='|S256'
+        ).astype(np.unicode_)
 
         # load station info
         bbf.seek(self.HEAD_SIZE)
@@ -604,3 +612,86 @@ class BBSeis:
         Saves station list to text file containing: lon lat station_name.
         """
         np.savetxt(path, self.stations[['lon', 'lat', 'name']], fmt='%f %f %s')
+
+
+###
+### PROCESSING OF BB CONTAINER WITH FLAC COMPRESSION
+###
+class BBFlac(BBSeis):
+    # format constants
+    N_COMP = 3
+    # indexing constants
+    X = 0
+    Y = 1
+    Z = 2
+    COMP_NAME = {X: '090', Y: '000', Z: 'ver'}
+
+    def __init__(self, bb_path):
+        """
+        Load BB flac store.
+        bb_path: path to the BB flac file
+        """
+        try:
+            meta = mutagen.File(bb_path)
+        except NameError:
+            sys.exit("Do you have mutagen installed?")
+
+        # read header - integers
+        self.nstat = int(meta["nstat"][0])
+        self.nt = int(meta["nt"][0])
+        # read header - floats
+        self.duration = float(meta["duration"][0])
+        self.dt = float(meta["dt"][0])
+        self.start_sec = float(meta["start_sec"][0])
+        # read header - strings
+        self.lf_dir = meta["lf_dir"][0]
+        self.lf_vm = meta["lf_vm"][0]
+        self.hf_file = meta["hf_file"][0]
+
+        # load station info
+        stations = np.frombuffer(
+            base64.b64decode(meta["stations"][0]),
+            dtype=[('lon', 'f4'),
+                   ('lat', 'f4'),
+                   ('name', '|S8'),
+                   ('x', 'i4'),
+                   ('y', 'i4'),
+                   ('z', 'i4'),
+                   ('e_dist', 'f4'),
+                   ('hf_vs_ref', 'f4'),
+                   ('lf_vs_ref', 'f4'),
+                   ('vsite', 'f4'),
+                   ('scale', 'f8')]
+        )
+        stat_type = stations.dtype.descr
+        stat_type[2] = stat_type[2][0], "U7"
+        self.stations = np.rec.fromrecords(stations, dtype=stat_type)
+
+
+        # allow indexing by station names
+        self.stat_idx = dict(list(zip(self.stations.name, np.arange(self.nstat))))
+        # keep location for data retrieval
+        self.path = bb_path
+
+    def acc(self, station, comp=Ellipsis):
+        """
+        Returns timeseries (acceleration, g) for station.
+        station: station name, must exist
+        comp: component (default all) examples: 0, self.X
+        """
+        i = self.stat_idx[station]
+        p = Popen(["sox", self.path,
+            "-b", "32",
+            "-L",
+            "-e", "signed-integer",
+            "-c", "3",
+            "-t", "raw",
+            "-",
+            "trim",
+            str(self.duration * i),
+            str(self.duration)
+        ], stdout=PIPE)
+        o = p.communicate()[0]
+
+        return np.frombuffer(o, dtype=np.int32).astype(np.float32).reshape(-1, 3)[:, comp] / self.stations.scale[i]
+
