@@ -118,6 +118,8 @@ def process_emp_file(args, emp_file, station, im):
     rrups = emp.rrup.values
     mags = emp.mag.values
     types = emp.type.values
+    meds = emp.med.values
+    devs = emp.dev.values
     # deagg blocks
     r = np.digitize(rrups, bins_rrup)
     m = np.digitize(mags, bins_mag) - 1
@@ -135,8 +137,9 @@ def process_emp_file(args, emp_file, station, im):
                 np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
             )
         )
+        epsilon = (im_level - meds) / devs
         # survival function (1 - cdf)
-        sf = norm.sf(np.log(im_level), emp.med.values, emp.dev.values) * emp.prob.values
+        sf = norm.sf(np.log(im_level), meds, devs) * emp.prob.values
         for x, y, z in u:
             block[b, x, y, z + 1] = sum(sf[(r == x) & (m == y) & (types == z)])
 
