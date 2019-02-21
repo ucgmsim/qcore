@@ -19,7 +19,7 @@ def hazard_curve(empdb_file, station, im):
         return empdb["hazard/{}/{}".format(station, im)][...]
 
 
-def deagg_grid(empdb_file, station, im):
+def deagg_grid(empdb_file, station, im, exceedance):
     """
     Load deagg data grid for a given station / IM.
     station: load deagg grid for this station name
@@ -28,7 +28,7 @@ def deagg_grid(empdb_file, station, im):
 
     with h5py.File(empdb_file, "r") as empdb:
         return (
-            empdb["deagg/{}/{}".format(station, im)][...],
+            empdb["deagg/{}/{}".format(station, im)][exceedance],
             empdb.attrs["values_x"],
             empdb.attrs["values_y"],
             empdb.attrs["values_z"],

@@ -90,18 +90,19 @@ def emp_data(emp_file):
 
 
 def process_emp_file(args, emp_file, station, im):
-    t0 = time()
     try:
         emp, mags_d, rrups_d = emp_data(emp_file)
     except ValueError:
         print("corrupt file", emp_file)
         return
-    mn = emp.loc[emp.med.idxmin()]
     mx = emp.loc[emp.med.idxmax()]
-    mn = np.e ** (mn.med - 3 * mn.dev)
+    if im == "PGV":
+        mn = 1.0
+    else:
+        mn = 0.01
     mx = np.e ** (mx.med + 3 * mx.dev)
     hazard = h5["hazard/{}/{}".format(station, im)]
-    hazard[0] = np.logspace(np.log10(mn), np.log10(mx), num=args.hazard_n)
+    hazard[0] = np.logspace(np.log10(mn), np.log10(mx), num=args.hazard_n, dtype=np.float16)
     for t in range(3):
         rows = emp.loc[emp.type == t]
         hazard[t + 1] = [
@@ -109,55 +110,53 @@ def process_emp_file(args, emp_file, station, im):
         ]
     # close pointer, use local RO copy
     hazard = hazard[...]
-    t1 = time()
 
     # deaggregation
     bins_rrup = (np.arange(args.rrup_n, dtype=np.float32) + 1) * args.rrup_d
     bins_mag = (np.arange(args.mag_n + 1, dtype=np.float32) * args.mag_d) + args.mag_min
-    e = 1 / 500.0
-    block = h5["deagg/{}/{}".format(station, im)]
-    # TODO: exceedance_rate: type A (hazard[1]) replaced with cybershake, exceedance_empirical: type A from empirical
-    im_level = np.exp(
-        np.interp(
-            np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
-        )
-    )
     # pandas is slow
     rrups = emp.rrup.values
     mags = emp.mag.values
     types = emp.type.values
-    # survival function (1 - cdf)
-    sf = norm.sf(np.log(im_level), emp.med.values, emp.dev.values) * emp.prob.values
+    # deagg blocks
     r = np.digitize(rrups, bins_rrup)
     m = np.digitize(mags, bins_mag) - 1
     i = (r < bins_rrup.size) & (m < bins_mag.size) & (m != -1)
     u = np.unique(np.dstack((r[i], m[i], types[i]))[0], axis=0)
-    for x, y, z in u:
-        block[x, y, z + 1] = sum(sf[(r == x) & (m == y) & (types == z)])
-    t2 = time()
-
-    # deagg - cybershake
+    # cybershake details
     ims = imdb.station_ims(args.imdb, station, im=im, fmt="file")
     rates = imdb.station_simulations(args.imdb, station, sims=False, rates=True)
     faults = list(map(lambda sim: sim.split("_HYP")[0], ims.index.values))
-    for i, sim in enumerate(ims.index.values):
-        if ims[i] < e:
-            # below exceedance, not contributing
-            continue
-        # check if out of range
-        try:
-            r = np.digitize([rrups_d[faults[i]]], bins_rrup)[0]
-            m = np.digitize([mags_d[faults[i]]], bins_mag)[0]
-        except KeyError:
-            continue
-        if m == 0:
-            continue
-        try:
-            block[r, m - 1, 0] += rates[i]
-        except ValueError:
-            continue
+    for b, e in enumerate(map(lambda tp : -1.0 / tp[0] * np.log(1 - tp[1]), args.deagg_e)):
+        block = h5["deagg/{}/{}".format(station, im)]
+        # TODO: exceedance_rate: type A (hazard[1]) replaced with cybershake, exceedance_empirical: type A from empirical
+        im_level = np.exp(
+            np.interp(
+                np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
+            )
+        )
+        # survival function (1 - cdf)
+        sf = norm.sf(np.log(im_level), emp.med.values, emp.dev.values) * emp.prob.values
+        for x, y, z in u:
+            block[b, x, y, z + 1] = sum(sf[(r == x) & (m == y) & (types == z)])
 
-    print("%.2fs %.2fs %.2fs" % (t1 - t0, t2 - t1, time() - t2))
+        # deagg - cybershake
+        for i, sim in enumerate(ims.index.values):
+            if ims[i] < e:
+                # below exceedance, not contributing
+                continue
+            # check if out of range
+            try:
+                cs_r = np.digitize([rrups_d[faults[i]]], bins_rrup)[0]
+                cs_m = np.digitize([mags_d[faults[i]]], bins_mag)[0]
+            except KeyError:
+                continue
+            if cs_m == 0:
+                continue
+            try:
+                block[b, cs_r, cs_m - 1, 0] += rates[i]
+            except ValueError:
+                continue
 
 
 ###
@@ -175,7 +174,7 @@ if IS_MASTER:
         "--hazard-n",
         help="Number of points making up hazard curve.",
         type=int,
-        default=100,
+        default=50,
     )
     arg("--mag-d", help="magnitude spacing", type=float, default=0.25)
     arg("--mag-min", help="magnitude minimum", type=float, default=5.0)
@@ -184,11 +183,14 @@ if IS_MASTER:
     )
     arg("--rrup-d", help="rrup spacing", type=float, default=10.0)
     arg("--rrup-n", help="rrup blocks at spacing", type=int, default=20)
+    arg("--deagg-e", help="exceedence for deagg", nargs=2, metavar=("years", "probability"), type=float, action="append")
     try:
         args = parser.parse_args()
     except SystemExit:
         # invalid arguments or -h
         COMM.Abort()
+    if args.deagg_e is None:
+        args.deagg_e = [[50.0, 0.5], [50.0, 0.1], [50.0, 0.02]]
 args = COMM.bcast(args, root=MASTER)
 
 emp_ims = [
@@ -216,6 +218,7 @@ h5.attrs["values_y"] = (
     + args.mag_d / 2.0
 )
 h5.attrs["values_z"] = np.array(["A (CS)", "A (EMP)", "B", "DS"], dtype=np.string_)
+h5.attrs["deagg_e"] = args.deagg_e
 
 # stations reference
 station_dtype = np.dtype([("name", "|S7"), ("lon", "f4"), ("lat", "f4")])
@@ -233,13 +236,12 @@ for stat in imdb_stations.name:
         )
         h5.create_dataset(
             "deagg/{}/{}".format(stat, im),
-            (args.rrup_n, args.mag_n, N_TYPES),
-            dtype="f4",
+            (len(args.deagg_e), args.rrup_n, args.mag_n, N_TYPES),
+            dtype="f2",
         )
 
 if IS_MASTER:
     print("HDF datastructures created.")
-
 
 ###
 ### STEP 2: distribute work to fill datasets
