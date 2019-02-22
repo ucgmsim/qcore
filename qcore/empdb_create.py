@@ -111,7 +111,7 @@ def process_emp_file(args, emp_file, station, im):
     # close pointer, use local RO copy
     hazard = hazard[...]
 
-    # deaggregation
+    # deaggregatio/
     bins_rrup = (np.arange(args.rrup_n, dtype=np.float32) + 1) * args.rrup_d
     bins_mag = (np.arange(args.mag_n + 1, dtype=np.float32) * args.mag_d) + args.mag_min
     bins_epsilon = np.array([-2, -1, -0.5, 0, 0.5, 1, 2])
@@ -124,8 +124,8 @@ def process_emp_file(args, emp_file, station, im):
     # deagg blocks
     r = np.digitize(rrups, bins_rrup)
     m = np.digitize(mags, bins_mag) - 1
-    i = (r < bins_rrup.size) & (m < bins_mag.size) & (m != -1) & (types != 0)
-    u = np.unique(np.dstack((r[i], m[i], types[i]))[0], axis=0)
+    vi = (r < bins_rrup.size) & (m < bins_mag.size) & (m != -1) & (types != 0)
+    u = np.unique(np.dstack((r[vi], m[vi], types[vi]))[0], axis=0)
     # cybershake details
     ims = imdb.station_ims(args.imdb, station, im=im, fmt="file")
     rates = imdb.station_simulations(args.imdb, station, sims=False, rates=True)
@@ -143,7 +143,7 @@ def process_emp_file(args, emp_file, station, im):
         sf = norm.sf(np.log(im_level), meds, devs) * emp.prob.values
         for x, y, z in u:
             block[b, x, y, z] = sum(sf[(r == x) & (m == y) & (types == z)])
-        ue = np.unique(np.dstack((r[i], m[i], epsilon[i]))[0], axis=0)
+        ue = np.unique(np.dstack((r[vi], m[vi], epsilon[vi]))[0], axis=0)
         for x, y, z in ue:
             block[b, x, y, z + 3] = sum(sf[(r == x) & (m == y) & (epsilon == z)])
 
@@ -168,7 +168,7 @@ def process_emp_file(args, emp_file, station, im):
             except KeyError:
                 s_im[faults[i]] = None
                 continue
-            if cs_m == 0:
+            if cs_m == 0 or cs_r == bins_rrup.size or cs_m == bins_mag.size:
                 s_im[faults[i]] = None
                 continue
             try:
@@ -190,7 +190,9 @@ def process_emp_file(args, emp_file, station, im):
             except KeyError:
                 # not found in empirical
                 continue
-            block[b, cs_r, cs_m, epsilon + 3] += np.sum(rates[faults == fault])
+            if cs_m == 0 or cs_r == bins_rrup.size or cs_m == bins_mag.size:
+                continue
+            block[b, cs_r, cs_m - 1, epsilon + 3] += np.sum(rates[faults == fault])
 
 
 ###
