@@ -30,8 +30,8 @@ SIZE = COMM.Get_size()
 MASTER = 0
 IS_MASTER = not RANK
 
-# A cs, A emp, B emp, DS emp
-N_TYPES = 4
+# A (cs), B (emp), DS (emp), e 0->7 (cs)
+N_TYPES = 11
 # X, A emp, B emp, DS emp
 N_SERIES = 1 + 3
 
@@ -114,6 +114,7 @@ def process_emp_file(args, emp_file, station, im):
     # deaggregation
     bins_rrup = (np.arange(args.rrup_n, dtype=np.float32) + 1) * args.rrup_d
     bins_mag = (np.arange(args.mag_n + 1, dtype=np.float32) * args.mag_d) + args.mag_min
+    bins_epsilon = np.array([-2, -1, -0.5, 0, 0.5, 1, 2])
     # pandas is slow
     rrups = emp.rrup.values
     mags = emp.mag.values
@@ -123,12 +124,12 @@ def process_emp_file(args, emp_file, station, im):
     # deagg blocks
     r = np.digitize(rrups, bins_rrup)
     m = np.digitize(mags, bins_mag) - 1
-    i = (r < bins_rrup.size) & (m < bins_mag.size) & (m != -1)
+    i = (r < bins_rrup.size) & (m < bins_mag.size) & (m != -1) & (types != 0)
     u = np.unique(np.dstack((r[i], m[i], types[i]))[0], axis=0)
     # cybershake details
     ims = imdb.station_ims(args.imdb, station, im=im, fmt="file")
     rates = imdb.station_simulations(args.imdb, station, sims=False, rates=True)
-    faults = list(map(lambda sim: sim.split("_HYP")[0], ims.index.values))
+    faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], ims.index.values)))
     for b, e in enumerate(map(lambda tp : -1.0 / tp[0] * np.log(1 - tp[1]), args.deagg_e)):
         block = h5["deagg/{}/{}".format(station, im)]
         # TODO: exceedance_rate: type A (hazard[1]) replaced with cybershake, exceedance_empirical: type A from empirical
@@ -137,29 +138,59 @@ def process_emp_file(args, emp_file, station, im):
                 np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
             )
         )
-        epsilon = (im_level - meds) / devs
+        epsilon = np.digitize((im_level - meds) / devs, bins_epsilon)
         # survival function (1 - cdf)
         sf = norm.sf(np.log(im_level), meds, devs) * emp.prob.values
         for x, y, z in u:
-            block[b, x, y, z + 1] = sum(sf[(r == x) & (m == y) & (types == z)])
+            block[b, x, y, z] = sum(sf[(r == x) & (m == y) & (types == z)])
+        ue = np.unique(np.dstack((r[i], m[i], epsilon[i]))[0], axis=0)
+        for x, y, z in ue:
+            block[b, x, y, z + 3] = sum(sf[(r == x) & (m == y) & (epsilon == z)])
 
+        # sums and totals for each fault
+        s_im = {}
         # deagg - cybershake
         for i, sim in enumerate(ims.index.values):
-            if ims[i] < e:
+            if ims[i] >= e:
                 # below exceedance, not contributing
                 continue
+            try:
+                s_im[faults[i]] += 1
+            except TypeError:
+                # out of range from before (None)
+                continue
+            except KeyError:
+                s_im[faults[i]] = 1
             # check if out of range
             try:
                 cs_r = np.digitize([rrups_d[faults[i]]], bins_rrup)[0]
                 cs_m = np.digitize([mags_d[faults[i]]], bins_mag)[0]
             except KeyError:
+                s_im[faults[i]] = None
                 continue
             if cs_m == 0:
+                s_im[faults[i]] = None
                 continue
             try:
                 block[b, cs_r, cs_m - 1, 0] += rates[i]
             except ValueError:
                 continue
+        for fault, count in np.column_stack(np.unique(faults, return_counts=True)):
+            try:
+                epsilon = np.digitize([norm.ppf(s_im[fault] / count)], bins_epsilon)[0]
+            except KeyError:
+                # s_im[fault] = 0, result -np.inf, bin 0
+                epsilon = 0
+            except TypeError:
+                # out of range
+                continue
+            try:
+                cs_r = np.digitize([rrups_d[fault]], bins_rrup)[0]
+                cs_m = np.digitize([mags_d[fault]], bins_mag)[0]
+            except KeyError:
+                # not found in empirical
+                continue
+            block[b, cs_r, cs_m, epsilon + 3] += np.sum(rates[faults == fault])
 
 
 ###
@@ -220,7 +251,19 @@ h5.attrs["values_y"] = (
     + args.mag_min
     + args.mag_d / 2.0
 )
-h5.attrs["values_z"] = np.array(["A (CS)", "A (EMP)", "B", "DS"], dtype=np.string_)
+h5.attrs["values_z"] = np.array([
+    "A (CS)",
+    "B",
+    "DS",
+    "E < -2",
+    "-2 < E < -1",
+    "-1 < E < -0.5",
+    "-0.5 < E < 0",
+    "0 < E < 0.5",
+    "0.5 < E < 1",
+    "1 < E < 2",
+    "2 < E",
+], dtype=np.string_)
 h5.attrs["deagg_e"] = args.deagg_e
 
 # stations reference
@@ -237,6 +280,7 @@ for stat in imdb_stations.name:
         h5.create_dataset(
             "hazard/{}/{}".format(stat, im), (N_SERIES, args.hazard_n), dtype="f4"
         )
+        # TODO: add compression, see difference because many 0s
         h5.create_dataset(
             "deagg/{}/{}".format(stat, im),
             (len(args.deagg_e), args.rrup_n, args.mag_n, N_TYPES),
