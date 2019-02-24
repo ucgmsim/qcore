@@ -1,5 +1,6 @@
 from enum import Enum
 from datetime import datetime
+from collections import namedtuple
 
 LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
 
@@ -31,6 +32,28 @@ class HPC(Enum):
     maui = "maui"
     mahuika = "mahuika"
 
+#
+# class ProcessType:
+#     Info = namedtuple("Info", ["value", "str_value", "uses_hyperth"])
+#
+#     EMOD3D = Info(1, "EMOD3D", False)
+#     merge_ts = Info(2, "merge_ts", True)
+#     winbin_aio = Info(3, None, True)
+#     HF = Info(4, "HF", True)
+#     BB = Info(5, "BB", True)
+#     IM_calculation = Info(6, "IM_calc", True)
+#     IM_plot = Info(7, None, None)
+#     rrup = Info(8, None, None)
+#     Empirical = Info(9, None, None)
+#     Verification = Info(10, None, None)
+#
+#     @classmethod
+#     def has_str_value(cls, str_value):
+#         return any(str_value == item.str_value for item in cls)
+
+
+
+
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
 class ProcessType(Enum):
     """Constants for process type. Int values are used in python workflow,
@@ -40,26 +63,36 @@ class ProcessType(Enum):
     The string value of the enum can be accessed with Process.EMOD3D.str_value
     """
 
-    EMOD3D = 1, "EMOD3D"
-    merge_ts = 2, "merge_ts"
-    winbin_aio = 3, None
-    HF = 4, "HF"
-    BB = 5, "BB"
-    IM_calculation = 6, "IM_calc"
-    IM_plot = 7, None
-    rrup = 8, None
-    Empirical = 9, None
-    Verification = 10, None
+    EMOD3D = 1, "EMOD3D", False
+    merge_ts = 2, "merge_ts", True
+    winbin_aio = 3, None, True
+    HF = 4, "HF", True
+    BB = 5, "BB", True
+    IM_calculation = 6, "IM_calc", True
+    IM_plot = 7, None, None
+    rrup = 8, None, None
+    Empirical = 9, None, None
+    Verification = 10, None, None
 
-    def __new__(cls, value, str_value):
+    def __new__(cls, value, str_value, is_hyperth):
         obj = object.__new__(cls)
         obj._value_ = value
         obj.str_value = str_value
+        obj.is_hyperth = is_hyperth
         return obj
 
     @classmethod
-    def has_str_value(cls, value):
-        return any(value == item.str_value for item in cls)
+    def has_str_value(cls, str_value):
+        return any(str_value == item.str_value for item in cls)
+
+    @classmethod
+    def from_str(cls, str_value):
+        if not cls.has_str_value(str_value):
+            raise ValueError("{} is not a valid {}".format(str_value, ProcessType.__name__))
+        else:
+            for item in ProcessType:
+                if item.str_value == str_value:
+                    return item
 
     @classmethod
     def iterate_str_values(cls, ignore_none: bool = True):
