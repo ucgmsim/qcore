@@ -7,6 +7,7 @@ Usage: Run with mpirun/similar. See help (run with -h).
 from argparse import ArgumentParser
 from glob import glob
 import os
+from subprocess import call
 from time import time
 
 import h5py
@@ -242,7 +243,7 @@ imdb_faults = set(map(lambda sim: sim.split("_HYP")[0], imdb.simulations(args.im
 ### STEP 1: create hdf structures (groups, datasets, attributes)
 ###
 
-h5 = h5py.File(args.empdb, "w", driver="mpio", comm=COMM)
+h5 = h5py.File(args.empdb + ".P", "w", driver="mpio", comm=COMM)
 
 h5.attrs["ims"] = np.array(emp_ims, dtype=np.string_)
 h5.attrs["values_x"] = (
@@ -286,7 +287,7 @@ for stat in imdb_stations.name:
         h5.create_dataset(
             "deagg/{}/{}".format(stat, im),
             (len(args.deagg_e), args.rrup_n, args.mag_n, N_TYPES),
-            dtype="f2",
+            dtype="f2"
         )
 
 if IS_MASTER:
@@ -308,3 +309,11 @@ for i in range(len(emp_ims)):
         # next job
         process_emp_file(args, emp_files[f], imdb_stations[j].name, emp_ims[i])
 h5.close()
+
+###
+### STEP 3: master to compress deagg data
+###
+COMM.barrier()
+if is_master:
+    call("h5repack", "-f", "deagg:GZIP=4", args.empdb + ".P", args.empdb)
+    os.remove(args.empdb + ".P")
