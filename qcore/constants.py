@@ -1,6 +1,5 @@
 from enum import Enum
 from datetime import datetime
-from collections import namedtuple
 
 LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
 
