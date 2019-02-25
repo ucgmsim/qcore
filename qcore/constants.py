@@ -32,27 +32,6 @@ class HPC(Enum):
     maui = "maui"
     mahuika = "mahuika"
 
-#
-# class ProcessType:
-#     Info = namedtuple("Info", ["value", "str_value", "uses_hyperth"])
-#
-#     EMOD3D = Info(1, "EMOD3D", False)
-#     merge_ts = Info(2, "merge_ts", True)
-#     winbin_aio = Info(3, None, True)
-#     HF = Info(4, "HF", True)
-#     BB = Info(5, "BB", True)
-#     IM_calculation = Info(6, "IM_calc", True)
-#     IM_plot = Info(7, None, None)
-#     rrup = Info(8, None, None)
-#     Empirical = Info(9, None, None)
-#     Verification = Info(10, None, None)
-#
-#     @classmethod
-#     def has_str_value(cls, str_value):
-#         return any(str_value == item.str_value for item in cls)
-
-
-
 
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
 class ProcessType(Enum):
@@ -68,7 +47,7 @@ class ProcessType(Enum):
     winbin_aio = 3, None, True
     HF = 4, "HF", True
     BB = 5, "BB", True
-    IM_calculation = 6, "IM_calc", True
+    IM_calculation = 6, "IM_calc", False
     IM_plot = 7, None, None
     rrup = 8, None, None
     Empirical = 9, None, None
