@@ -208,8 +208,10 @@ def process_emp_file(args, emp_file, station, im):
                 summ_contrib[fault] += fault_contrib
             except KeyError:
                 summ_contrib[fault] = fault_contrib
+        # find top 50 contributors
+        percent_factor = sum(summ_contrib.values()) / 100.0
         for k in np.array(list(summ_contrib.keys()))[np.argsort(list(summ_contrib.values()))[::-1][:50]]:
-            print(k, summ_contrib[k])
+            print(k, summ_contrib[k] / percent_factor)
 
 
 ###
@@ -293,17 +295,24 @@ for i, stat in enumerate(imdb_stations[RANK::SIZE]):
     h5_ll[RANK + i * SIZE] = (stat.name.astype(np.string_), stat.lon, stat.lat)
 del h5_ll
 
+# fault list reference
+#TODO
+
 # per station IM and simulation datasets
 for stat in imdb_stations.name:
     for im in emp_ims:
         h5.create_dataset(
             "hazard/{}/{}".format(stat, im), (N_SERIES, args.hazard_n), dtype="f4"
         )
-        # TODO: add compression, see difference because many 0s
         h5.create_dataset(
             "deagg/{}/{}".format(stat, im),
             (len(args.deagg_e), args.rrup_n, args.mag_n, N_TYPES),
             dtype="f2"
+        )
+        h5.create_dataset(
+            "deagg/{}/SUMM_{}".format(stat, im),
+            (50, 2),
+            dtype="i2,f2"
         )
 
 if IS_MASTER:
