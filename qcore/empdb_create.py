@@ -146,8 +146,9 @@ def process_emp_file(args, emp_file, station, im):
     ims = imdb.station_ims(args.imdb, station, im=im, fmt="file")
     rates = imdb.station_simulations(args.imdb, station, sims=False, rates=True)
     faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], ims.index.values)))
+    # results storage
+    block = h5["deagg/{}/{}".format(station, im)]
     for b, e in enumerate(map(lambda tp : -1.0 / tp[0] * np.log(1 - tp[1]), args.deagg_e)):
-        block = h5["deagg/{}/{}".format(station, im)]
         # store max contributors to epsilon and type charts
         summ_contrib = {}
         # TODO: exceedance_rate: type A (hazard[1]) replaced with cybershake, exceedance_empirical: type A from empirical
@@ -222,9 +223,12 @@ def process_emp_file(args, emp_file, station, im):
             except KeyError:
                 summ_contrib[fault] = fault_contrib
         # find top 50 contributors
+        summ_block = h5["deagg/{}/SUMM_{}".format(station, im)]
         percent_factor = sum(summ_contrib.values()) / 100.0
-        for k in np.array(list(summ_contrib.keys()))[np.argsort(list(summ_contrib.values()))[::-1][:50]]:
-            print(k, summ_contrib[k] / percent_factor)
+        top50 = np.argsort(list(summ_contrib.values()))[::-1][:50]
+        names = np.array(list(summ_contrib.keys()))[top50]
+        summ_block[:len(top50), 0] = 
+        summ_block[:len(top50), 1] = np.array(list(summ_contrib.values()))[top50] / percent_factor
 
 
 ###
@@ -317,7 +321,7 @@ h5_fault = h5.create_dataset(
     dtype="|S{}".format(len(max(faults, key=len)))
 )
 for i, fault in enumerate(faults[RANK::SIZE]):
-    h5_fault[RANK + i * SIZE] = fault[i]
+    h5_fault[RANK + i * SIZE] = fault.encode()
 del h5_fault
 
 # per station IM and simulation datasets
