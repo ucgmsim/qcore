@@ -116,12 +116,14 @@ def process_emp_file(args, emp_file, station, im):
     bins_rrup = (np.arange(args.rrup_n, dtype=np.float32) + 1) * args.rrup_d
     bins_mag = (np.arange(args.mag_n + 1, dtype=np.float32) * args.mag_d) + args.mag_min
     bins_epsilon = np.array([-2, -1, -0.5, 0, 0.5, 1, 2])
-    # pandas is slow
+    # pandas is slow (fast for reading csv)
     rrups = emp.rrup.values
     mags = emp.mag.values
     types = emp.type.values
     meds = emp.med.values
     devs = emp.dev.values
+    # for summing empirical accross faults
+    emp_fault_u_bins, emp_fault_u = pd.factorize(emp.fault.values)
     # deagg blocks
     r = np.digitize(rrups, bins_rrup)
     m = np.digitize(mags, bins_mag) - 1
@@ -133,6 +135,8 @@ def process_emp_file(args, emp_file, station, im):
     faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], ims.index.values)))
     for b, e in enumerate(map(lambda tp : -1.0 / tp[0] * np.log(1 - tp[1]), args.deagg_e)):
         block = h5["deagg/{}/{}".format(station, im)]
+        # store max contributors to epsilon and type charts
+        summ_contrib = {}
         # TODO: exceedance_rate: type A (hazard[1]) replaced with cybershake, exceedance_empirical: type A from empirical
         im_level = np.exp(
             np.interp(
@@ -142,8 +146,13 @@ def process_emp_file(args, emp_file, station, im):
         epsilon = np.digitize((im_level - meds) / devs, bins_epsilon)
         # survival function (1 - cdf)
         sf = norm.sf(np.log(im_level), meds, devs) * emp.prob.values
+        # fault based contribution
+        for i, contrib in enumerate(np.bincount(emp_fault_u_bins, weights=sf)):
+            summ_contrib[emp_fault_u[i]] = contrib
+        # type based contribution
         for x, y, z in u:
             block[b, x, y, z] = sum(sf[(r == x) & (m == y) & (types == z)])
+        # epsilon based contribution
         ue = np.unique(np.dstack((r[vi], m[vi], epsilon[vi]))[0], axis=0)
         for x, y, z in ue:
             block[b, x, y, z + 3] = sum(sf[(r == x) & (m == y) & (epsilon == z)])
@@ -193,7 +202,14 @@ def process_emp_file(args, emp_file, station, im):
                 continue
             if cs_m == 0 or cs_r == bins_rrup.size or cs_m == bins_mag.size:
                 continue
-            block[b, cs_r, cs_m - 1, epsilon + 3] += np.sum(rates[faults == fault])
+            fault_contrib = np.sum(rates[faults == fault])
+            block[b, cs_r, cs_m - 1, epsilon + 3] += fault_contrib
+            try:
+                summ_contrib[fault] += fault_contrib
+            except KeyError:
+                summ_contrib[fault] = fault_contrib
+        for k in np.array(list(summ_contrib.keys()))[np.argsort(list(summ_contrib.values()))[::-1][:50]]:
+            print(k, summ_contrib[k])
 
 
 ###
