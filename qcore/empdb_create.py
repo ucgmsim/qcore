@@ -37,6 +37,19 @@ N_TYPES = 11
 N_SERIES = 1 + 3
 
 
+def fault_names(nhm_file):
+    faults = ["PointEqkSource"]
+    with open(nhm_file, "r") as nf:
+        db = nf.readlines()
+        dbi = 15
+        dbl = len(db)
+    while dbi < dbl:
+        faults.append(db[dbi].strip())
+        dbi += 13 + int(db[dbi + 11])
+
+    return faults
+
+
 def extract_ll(path):
     return [
         float(ll[3:].replace("p", ".")) for ll in os.path.basename(path).split("_")[1:3]
@@ -224,6 +237,7 @@ if IS_MASTER:
     arg = parser.add_argument
     arg("imdb", help="Location of imdb.h5")
     arg("emp_src", help="Location of empiricals dir containing IM subfolders")
+    arg("nhm_file", help="Location of NHM file for fault names.")
     arg("empdb", help="Where to store Empirical DB empdb.h5")
     arg(
         "--hazard-n",
@@ -248,6 +262,7 @@ if IS_MASTER:
         args.deagg_e = [[50.0, 0.5], [50.0, 0.1], [50.0, 0.02]]
 args = COMM.bcast(args, root=MASTER)
 
+faults = fault_names(args.nhm_file)
 emp_ims = [
     i for i in os.listdir(args.emp_src) if os.path.isdir(os.path.join(args.emp_src, i))
 ]
@@ -296,7 +311,14 @@ for i, stat in enumerate(imdb_stations[RANK::SIZE]):
 del h5_ll
 
 # fault list reference
-#TODO
+h5_fault = h5.create_dataset(
+    "faults",
+    (len(faults),),
+    dtype="|S{}".format(len(max(faults, key=len)))
+)
+for i, fault in enumerate(faults[RANK::SIZE]):
+    h5_fault[RANK + i * SIZE] = fault[i]
+del h5_fault
 
 # per station IM and simulation datasets
 for stat in imdb_stations.name:
