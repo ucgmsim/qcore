@@ -31,7 +31,7 @@ def determine_machine_config(hostname=platform.node()):
 
 def get_machine_config(hostname=platform.node()):
     _, config_path = determine_machine_config(hostname)
-    with open(config_file, "r") as machine_config_file:
+    with open(config_path, "r") as machine_config_file:
         return json.load(machine_config_file)
 
 
