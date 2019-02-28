@@ -238,8 +238,7 @@ def process_emp_file(args, all_faults, emp_file, station, im):
         percent_factor = sum(summ_contrib.values()) / 100.0
         top50 = np.argsort(list(summ_contrib.values()))[::-1][:50]
         names = np.array(list(summ_contrib.keys()))[top50]
-        summ_block[b, :len(top50), 0] = np.searchsorted(all_faults, names)
-        summ_block[b, :len(top50), 1] = np.array(list(summ_contrib.values()))[top50] / percent_factor
+        summ_block[b, :len(top50)] = list(zip(np.searchsorted(all_faults, names), np.array(list(summ_contrib.values()))[top50] / percent_factor))
 
 
 ###
@@ -346,7 +345,7 @@ for stat in imdb_stations.name:
             (len(args.deagg_e), args.rrup_n, args.mag_n, N_TYPES),
             dtype="f2"
         )
-        x = h5.create_dataset(
+        h5.create_dataset(
             "deagg/{}/SUMM_{}".format(stat, im),
             (len(args.deagg_e), 50),
             dtype="i2,f2"
