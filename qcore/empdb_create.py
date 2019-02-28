@@ -47,7 +47,7 @@ def fault_names(nhm_file):
         faults.append(db[dbi].strip())
         dbi += 13 + int(db[dbi + 11])
 
-    return faults
+    return np.sort(faults)
 
 
 def extract_ll(path):
@@ -103,7 +103,7 @@ def emp_data(emp_file):
     return emp, mag, rrup
 
 
-def process_emp_file(args, emp_file, station, im):
+def process_emp_file(args, all_faults, emp_file, station, im):
     try:
         emp, mags_d, rrups_d = emp_data(emp_file)
     except ValueError:
@@ -173,6 +173,8 @@ def process_emp_file(args, emp_file, station, im):
 
         # sums and totals for each fault
         s_im = {}
+        # TODO: should be excluding empirical type A faults??? would make this duplication
+        s_rate = {}
         # deagg - cybershake
         for i, sim in enumerate(ims.index.values):
             if ims[i] >= e:
@@ -181,7 +183,7 @@ def process_emp_file(args, emp_file, station, im):
             try:
                 s_im[faults[i]] += 1
             except TypeError:
-                # out of range from before (None)
+                # out of range from previous message (None)
                 continue
             except KeyError:
                 s_im[faults[i]] = 1
@@ -190,21 +192,26 @@ def process_emp_file(args, emp_file, station, im):
                 cs_r = np.digitize([rrups_d[faults[i]]], bins_rrup)[0]
                 cs_m = np.digitize([mags_d[faults[i]]], bins_mag)[0]
             except KeyError:
+                # fault not found in empirical file
                 s_im[faults[i]] = None
                 continue
             if cs_m == 0 or cs_r == bins_rrup.size or cs_m == bins_mag.size:
+                # outside range being displayed
                 s_im[faults[i]] = None
                 continue
             try:
                 block[b, cs_r, cs_m - 1, 0] += rates[i]
+                s_rate[faults[i]] += rates[i]
             except ValueError:
                 continue
+            except KeyError:
+                s_rate[faults[i]] = rates[i]
         for fault, count in np.column_stack(np.unique(faults, return_counts=True)):
             try:
                 epsilon = np.digitize([norm.ppf(s_im[fault] / count)], bins_epsilon)[0]
             except KeyError:
-                # s_im[fault] = 0, result -np.inf, bin 0
-                epsilon = 0
+                # s_im[fault] = 0, no valid contributing realisations
+                continue
             except TypeError:
                 # out of range
                 continue
@@ -212,11 +219,15 @@ def process_emp_file(args, emp_file, station, im):
                 cs_r = np.digitize([rrups_d[fault]], bins_rrup)[0]
                 cs_m = np.digitize([mags_d[fault]], bins_mag)[0]
             except KeyError:
-                # not found in empirical
+                # not found in empirical file
                 continue
             if cs_m == 0 or cs_r == bins_rrup.size or cs_m == bins_mag.size:
                 continue
-            fault_contrib = np.sum(rates[faults == fault])
+            #fault_contrib = np.sum(rates[(faults == fault) and ()])
+            try:
+                fault_contrib = s_rate[fault]
+            except KeyError:
+                continue
             block[b, cs_r, cs_m - 1, epsilon + 3] += fault_contrib
             try:
                 summ_contrib[fault] += fault_contrib
@@ -227,8 +238,8 @@ def process_emp_file(args, emp_file, station, im):
         percent_factor = sum(summ_contrib.values()) / 100.0
         top50 = np.argsort(list(summ_contrib.values()))[::-1][:50]
         names = np.array(list(summ_contrib.keys()))[top50]
-        summ_block[:len(top50), 0] = 
-        summ_block[:len(top50), 1] = np.array(list(summ_contrib.values()))[top50] / percent_factor
+        summ_block[b, :len(top50), 0] = np.searchsorted(all_faults, names)
+        summ_block[b, :len(top50), 1] = np.array(list(summ_contrib.values()))[top50] / percent_factor
 
 
 ###
@@ -266,7 +277,7 @@ if IS_MASTER:
         args.deagg_e = [[50.0, 0.5], [50.0, 0.1], [50.0, 0.02]]
 args = COMM.bcast(args, root=MASTER)
 
-faults = fault_names(args.nhm_file)
+all_faults = fault_names(args.nhm_file)
 emp_ims = [
     i for i in os.listdir(args.emp_src) if os.path.isdir(os.path.join(args.emp_src, i))
 ]
@@ -317,10 +328,10 @@ del h5_ll
 # fault list reference
 h5_fault = h5.create_dataset(
     "faults",
-    (len(faults),),
-    dtype="|S{}".format(len(max(faults, key=len)))
+    (len(all_faults),),
+    dtype="|S{}".format(len(max(all_faults, key=len)))
 )
-for i, fault in enumerate(faults[RANK::SIZE]):
+for i, fault in enumerate(all_faults[RANK::SIZE]):
     h5_fault[RANK + i * SIZE] = fault.encode()
 del h5_fault
 
@@ -335,9 +346,9 @@ for stat in imdb_stations.name:
             (len(args.deagg_e), args.rrup_n, args.mag_n, N_TYPES),
             dtype="f2"
         )
-        h5.create_dataset(
+        x = h5.create_dataset(
             "deagg/{}/SUMM_{}".format(stat, im),
-            (50, 2),
+            (len(args.deagg_e), 50),
             dtype="i2,f2"
         )
 
@@ -358,13 +369,13 @@ for i in range(len(emp_ims)):
             print("WARNING: missing station:", imdb_stations[j].name, emp_ims[i])
             continue
         # next job
-        process_emp_file(args, emp_files[f], imdb_stations[j].name, emp_ims[i])
+        process_emp_file(args, all_faults, emp_files[f], imdb_stations[j].name, emp_ims[i])
 h5.close()
 
 ###
 ### STEP 3: master to compress deagg data
 ###
 COMM.barrier()
-if is_master:
+if IS_MASTER:
     call("h5repack", "-f", "deagg:GZIP=4", args.empdb + ".P", args.empdb)
     os.remove(args.empdb + ".P")
