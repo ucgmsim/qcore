@@ -306,6 +306,11 @@ class LFSeis:
         if self.stations.name[-1] == '':
             self.stations = self.stations[:-np.argmin(
                                               (self.stations.name == '')[::-1])]
+        # store station names as unicode (python 3 strings)
+        stat_type = stations.dtype.descr
+        stat_type[7] = stat_type[7][0], "U7"
+        self.stations = np.rec.fromrecords(self.stations, dtype=stat_type)
+
         self.nstat = self.stations.size
         # allow indexing by station names
         self.stat_idx = dict(list(zip(self.stations.name, np.arange(self.nstat))))
