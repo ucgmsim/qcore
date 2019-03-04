@@ -308,7 +308,7 @@ class LFSeis:
                                             (stations.name == '')[::-1])]
         # store station names as unicode (python 3 strings)
         stat_type = stations.dtype.descr
-        stat_type[7] = stat_type[7][0], "U7"
+        stat_type[6] = stat_type[6][0], "U7"
         self.stations = np.rec.fromrecords(stations, dtype=stat_type)
 
         self.nstat = self.stations.size
