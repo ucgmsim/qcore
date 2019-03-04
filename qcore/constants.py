@@ -73,7 +73,7 @@ class ProcessType(Enum):
                     return item
 
     @classmethod
-    def iterate_str_values(cls, ignore_none: bool = True):
+    def iterate_str_values(cls, ignore_none = True):
         """Iterates over the string values of the enum,
         ignores entries without a string value by default
         """
