@@ -280,7 +280,7 @@ class LFSeis:
         for i, s in enumerate(self.seis):
             nstats[i] = np.fromfile(s, dtype=self.i4, count=1)
         # container for station data
-        self.stations = np.rec.array(np.zeros(np.sum(nstats), dtype=\
+        stations = np.rec.array(np.zeros(np.sum(nstats), dtype=\
                             [('x', 'i4'), ('y', 'i4'), ('z', 'i4'),
                              ('seis_idx', 'i4', 2), ('lat', 'f4'),
                              ('lon', 'f4'), ('name', '|S8')]))
@@ -288,7 +288,7 @@ class LFSeis:
         for i, s in enumerate(self.seis):
             with open(s) as f:
                 f.seek(4)
-                stations = np.fromfile(
+                stations_n = np.fromfile(
                     f, count=nstats[i],
                     dtype=np.dtype({
                         'names': ['stat_pos', 'x', 'y', 'z',
@@ -296,16 +296,21 @@ class LFSeis:
                         'formats': [self.i4, self.i4, self.i4, self.i4,
                                     (self.i4, 2), self.f4, self.f4, '|S8'],
                         'offsets': [0, 4, 8, 12, 16, 32, 36, 40]}))
-            stations['seis_idx'][:, 0] = i
-            stations['seis_idx'][:, 1] = np.arange(nstats[i])
-            self.stations[stations['stat_pos']] = \
-                stations[list(stations.dtype.names[1:])]
+            stations_n['seis_idx'][:, 0] = i
+            stations_n['seis_idx'][:, 1] = np.arange(nstats[i])
+            stations[stations_n['stat_pos']] = \
+                stations_n[list(stations_n.dtype.names[1:])]
         # protect against duplicated stations between processes
         # results in too many stations entries created, last ones are empty
         # important to keep indexes correct, only remove empty items from end
-        if self.stations.name[-1] == '':
-            self.stations = self.stations[:-np.argmin(
-                                              (self.stations.name == '')[::-1])]
+        if stations.name[-1] == '':
+            stations = stations[:-np.argmin(
+                                            (stations.name == '')[::-1])]
+        # store station names as unicode (python 3 strings)
+        stat_type = stations.dtype.descr
+        stat_type[7] = stat_type[7][0], "U7"
+        self.stations = np.rec.fromrecords(stations, dtype=stat_type)
+
         self.nstat = self.stations.size
         # allow indexing by station names
         self.stat_idx = dict(list(zip(self.stations.name, np.arange(self.nstat))))
@@ -425,14 +430,18 @@ class HFSeis:
 
         # load station info
         hff.seek(self.HEAD_SIZE)
-        self.stations = np.rec.array(np.fromfile(
+        stations = np.fromfile(
             hff, count=self.nstat,
             dtype=[('lon', '%sf4' % (endian)),
                    ('lat', '%sf4' % (endian)),
                    ('name', '|S8'),
                    ('e_dist', '%sf4' % (endian)),
-                   ('vs', '%sf4' % (endian))]))
+                   ('vs', '%sf4' % (endian))])
         hff.close()
+        # store station names as unicode (python 3 strings)
+        stat_type = stations.dtype.descr
+        stat_type[2] = stat_type[2][0], "U7"
+        self.stations = np.rec.fromrecords(stations, dtype=stat_type)
         if np.min(self.stations.vs) == 0:
             print('WARNING: looks like an incomplete file: %s' % (hf_path))
 
@@ -539,7 +548,7 @@ class BBSeis:
 
         # load station info
         bbf.seek(self.HEAD_SIZE)
-        self.stations = np.rec.array(np.fromfile(
+        stations = np.rec.array(np.fromfile(
             bbf, count=self.nstat,
             dtype=[('lon', 'f4'),
                    ('lat', 'f4'),
@@ -552,6 +561,10 @@ class BBSeis:
                    ('lf_vs_ref', 'f4'),
                    ('vsite', 'f4')]))
         bbf.close()
+        # store station names as unicode (python 3 strings)
+        stat_type = stations.dtype.descr
+        stat_type[2] = stat_type[2][0], "U7"
+        self.stations = np.rec.fromrecords(stations, dtype=stat_type)
         if np.min(self.stations.vsite) == 0:
             print('WARNING: looks like an incomplete file: %s' % (bb_path))
 
