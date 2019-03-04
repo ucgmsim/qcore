@@ -8,4 +8,5 @@ setup(
     description='QuakeCoRE Library',
     package_data={'qcore': ['*.json']},
     install_requires=['numpy', 'scipy>=0.16'],
+    include_package_data=True,
 )
