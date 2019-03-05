@@ -6,6 +6,7 @@ create db using empdb_create.py
 """
 
 import h5py
+import numpy as np
 
 
 def hazard_curve(empdb_file, station, im):
@@ -33,3 +34,22 @@ def deagg_grid(empdb_file, station, im, exceedance):
             empdb.attrs["values_y"],
             empdb.attrs["values_z"],
         )
+
+
+def deagg_top(empdb_file, station, im, exceedance):
+    """
+    Return top contributing faults to hazard.
+    """
+
+    with h5py.File(empdb_file, "r") as empdb:
+        index_value = empdb["deagg/{}/SUMM_{}".format(station, im)][exceedance]
+        n = np.argmax(index_value["fault"] < 0)
+        if n == 0:
+            n = index_value.size
+        faults = empdb["faults"][...][index_value["fault"][:n]].astype(np.unicode_)
+        result = np.empty(
+            n, dtype=[("fault", faults.dtype.descr[0][1]), ("contribution", np.float16)]
+        )
+        result["fault"] = faults
+        result["contribution"] = index_value["contribution"][:n]
+        return result
