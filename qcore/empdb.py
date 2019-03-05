@@ -35,6 +35,7 @@ def deagg_grid(empdb_file, station, im, exceedance):
             empdb.attrs["values_z"],
         )
 
+
 def deagg_top(empdb_file, station, im, exceedance):
     """
     Return top contributing faults to hazard.
@@ -46,16 +47,9 @@ def deagg_top(empdb_file, station, im, exceedance):
         if n == 0:
             n = index_value.size
         faults = empdb["faults"][...][index_value["fault"][:n]].astype(np.unicode_)
-        result = np.empty(n, dtype=[("fault", faults.dtype.descr[0][1]), ("contribution", np.float16)])
+        result = np.empty(
+            n, dtype=[("fault", faults.dtype.descr[0][1]), ("contribution", np.float16)]
+        )
         result["fault"] = faults
-        result["contribution"] =  index_value["contribution"][:n]
+        result["contribution"] = index_value["contribution"][:n]
         return result
-
-
-
-
-
-
-
-
-
