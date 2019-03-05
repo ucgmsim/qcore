@@ -240,11 +240,11 @@ def process_emp_file(args, all_faults, emp_file, station, im):
         summ_block = h5["deagg/{}/SUMM_{}".format(station, im)]
         percent_factor = sum(summ_contrib.values()) / 100.0
         top50 = np.argsort(list(summ_contrib.values()))[::-1][:50]
+        print(summ_contrib)
         names = np.array(list(summ_contrib.keys()))[top50]
-        # or index by ['f0'] and ['f1']
         summ_block[b, :top50.size] = list(zip(np.searchsorted(all_faults, names), np.array(list(summ_contrib.values()))[top50] / percent_factor))
         if top50.size < 50:
-            summ_block[b, top50.size:]['f0'] = -1
+            summ_block[b, top50.size:]["fault"] = -1
 
 
 ###
@@ -341,6 +341,7 @@ for i, fault in enumerate(all_faults[RANK::SIZE]):
 del h5_fault
 
 # per station IM and simulation datasets
+top_dtype = np.dtype([("fault", np.int16), ("contribution", np.float16)])
 for stat in imdb_stations.name:
     for im in emp_ims:
         h5.create_dataset(
@@ -354,7 +355,7 @@ for stat in imdb_stations.name:
         h5.create_dataset(
             "deagg/{}/SUMM_{}".format(stat, im),
             (len(args.deagg_e), 50),
-            dtype="i2,f2"
+            dtype=top_dtype
         )
 
 if IS_MASTER:
