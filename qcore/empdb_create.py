@@ -125,10 +125,15 @@ def process_emp_file(args, all_faults, emp_file, station, im):
     # close pointer, use local RO copy
     hazard = hazard[...]
 
-    # deaggregatio/
+    # deaggregation
     bins_rrup = (np.arange(args.rrup_n, dtype=np.float32) + 1) * args.rrup_d
     bins_mag = (np.arange(args.mag_n + 1, dtype=np.float32) * args.mag_d) + args.mag_min
     bins_epsilon = np.array([-2, -1, -0.5, 0, 0.5, 1, 2])
+    # only interested in data within deagg blocks and not empirical type A
+    r = np.digitize(emp.rrup.values, bins_rrup)
+    m = np.digitize(emp.mag.values, bins_mag) - 1
+    vi = (r < bins_rrup.size) & (m < bins_mag.size) & (m != -1) & (emp.type.values != 0)
+    emp = emp[vi]
     # pandas is slow (fast for reading csv)
     rrups = emp.rrup.values
     mags = emp.mag.values
@@ -140,8 +145,7 @@ def process_emp_file(args, all_faults, emp_file, station, im):
     # deagg blocks
     r = np.digitize(rrups, bins_rrup)
     m = np.digitize(mags, bins_mag) - 1
-    vi = (r < bins_rrup.size) & (m < bins_mag.size) & (m != -1) & (types != 0)
-    u = np.unique(np.dstack((r[vi], m[vi], types[vi]))[0], axis=0)
+    u = np.unique(np.dstack((r, m, types))[0], axis=0)
     # cybershake details
     ims = imdb.station_ims(args.imdb, station, im=im, fmt="file")
     rates = imdb.station_simulations(args.imdb, station, sims=False, rates=True)
@@ -157,7 +161,6 @@ def process_emp_file(args, all_faults, emp_file, station, im):
                 np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
             )
         )
-        epsilon = np.digitize((im_level - meds) / devs, bins_epsilon)
         # survival function (1 - cdf)
         sf = norm.sf(np.log(im_level), meds, devs) * emp.prob.values
         # fault based contribution
@@ -167,13 +170,13 @@ def process_emp_file(args, all_faults, emp_file, station, im):
         for x, y, z in u:
             block[b, x, y, z] = sum(sf[(r == x) & (m == y) & (types == z)])
         # epsilon based contribution
-        ue = np.unique(np.dstack((r[vi], m[vi], epsilon[vi]))[0], axis=0)
+        epsilon = np.digitize((im_level - meds) / devs, bins_epsilon)
+        ue = np.unique(np.dstack((r, m, epsilon))[0], axis=0)
         for x, y, z in ue:
             block[b, x, y, z + 3] = sum(sf[(r == x) & (m == y) & (epsilon == z)])
 
         # sums and totals for each fault
         s_im = {}
-        # TODO: should be excluding empirical type A faults??? would make this duplication
         s_rate = {}
         # deagg - cybershake
         for i, sim in enumerate(ims.index.values):
@@ -208,7 +211,7 @@ def process_emp_file(args, all_faults, emp_file, station, im):
                 s_rate[faults[i]] = rates[i]
         for fault, count in np.column_stack(np.unique(faults, return_counts=True)):
             try:
-                epsilon = np.digitize([norm.ppf(s_im[fault] / count)], bins_epsilon)[0]
+                epsilon = np.digitize([norm.ppf(s_im[fault] / float(count))], bins_epsilon)[0]
             except KeyError:
                 # s_im[fault] = 0, no valid contributing realisations
                 continue
@@ -238,7 +241,10 @@ def process_emp_file(args, all_faults, emp_file, station, im):
         percent_factor = sum(summ_contrib.values()) / 100.0
         top50 = np.argsort(list(summ_contrib.values()))[::-1][:50]
         names = np.array(list(summ_contrib.keys()))[top50]
-        summ_block[b, :len(top50)] = list(zip(np.searchsorted(all_faults, names), np.array(list(summ_contrib.values()))[top50] / percent_factor))
+        # or index by ['f0'] and ['f1']
+        summ_block[b, :top50.size] = list(zip(np.searchsorted(all_faults, names), np.array(list(summ_contrib.values()))[top50] / percent_factor))
+        if top50.size < 50:
+            summ_block[b, top50.size:]['f0'] = -1
 
 
 ###
@@ -376,5 +382,5 @@ h5.close()
 ###
 COMM.barrier()
 if IS_MASTER:
-    call("h5repack", "-f", "deagg:GZIP=4", args.empdb + ".P", args.empdb)
+    call(["h5repack", "-f", "deagg:GZIP=4", args.empdb + ".P", args.empdb])
     os.remove(args.empdb + ".P")
