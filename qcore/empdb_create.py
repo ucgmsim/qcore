@@ -116,7 +116,9 @@ def process_emp_file(args, all_faults, emp_file, station, im):
         mn = 0.01
     mx = np.e ** (mx.med + 3 * mx.dev)
     hazard = h5["hazard/{}/{}".format(station, im)]
-    hazard[0] = np.logspace(np.log10(mn), np.log10(mx), num=args.hazard_n, dtype=np.float16)
+    hazard[0] = np.logspace(
+        np.log10(mn), np.log10(mx), num=args.hazard_n, dtype=np.float16
+    )
     for t in range(3):
         rows = emp.loc[emp.type == t]
         hazard[t + 1] = [
@@ -152,13 +154,17 @@ def process_emp_file(args, all_faults, emp_file, station, im):
     faults = np.array(list(map(lambda sim: sim.split("_HYP")[0], ims.index.values)))
     # results storage
     block = h5["deagg/{}/{}".format(station, im)]
-    for b, e in enumerate(map(lambda tp : -1.0 / tp[0] * np.log(1 - tp[1]), args.deagg_e)):
+    for b, e in enumerate(
+        map(lambda tp: -1.0 / tp[0] * np.log(1 - tp[1]), args.deagg_e)
+    ):
         # store max contributors to epsilon and type charts
         summ_contrib = {}
         # exceedance -> im
         im_level = np.exp(
             np.interp(
-                np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
+                np.log(e) * -1,
+                np.log(np.sum(hazard[1:], axis=0)) * -1,
+                np.log(hazard[0]),
             )
         )
         # survival function (1 - cdf)
@@ -211,7 +217,9 @@ def process_emp_file(args, all_faults, emp_file, station, im):
                 s_rate[faults[i]] = rates[i]
         for fault, count in np.column_stack(np.unique(faults, return_counts=True)):
             try:
-                epsilon = np.digitize([norm.ppf(s_im[fault] / float(count))], bins_epsilon)[0]
+                epsilon = np.digitize(
+                    [norm.ppf(s_im[fault] / float(count))], bins_epsilon
+                )[0]
             except KeyError:
                 # s_im[fault] = 0, no valid contributing realisations
                 continue
@@ -226,7 +234,7 @@ def process_emp_file(args, all_faults, emp_file, station, im):
                 continue
             if cs_m == 0 or cs_r == bins_rrup.size or cs_m == bins_mag.size:
                 continue
-            #fault_contrib = np.sum(rates[(faults == fault) and ()])
+            # fault_contrib = np.sum(rates[(faults == fault) and ()])
             try:
                 fault_contrib = s_rate[fault]
             except KeyError:
@@ -241,9 +249,14 @@ def process_emp_file(args, all_faults, emp_file, station, im):
         percent_factor = sum(summ_contrib.values()) / 100.0
         top50 = np.argsort(list(summ_contrib.values()))[::-1][:50]
         names = np.array(list(summ_contrib.keys()))[top50]
-        summ_block[b, :top50.size] = list(zip(np.searchsorted(all_faults, names), np.array(list(summ_contrib.values()))[top50] / percent_factor))
+        summ_block[b, : top50.size] = list(
+            zip(
+                np.searchsorted(all_faults, names),
+                np.array(list(summ_contrib.values()))[top50] / percent_factor,
+            )
+        )
         if top50.size < 50:
-            summ_block[b, top50.size:] = -1, 0
+            summ_block[b, top50.size :] = -1, 0
 
 
 ###
@@ -271,7 +284,14 @@ if IS_MASTER:
     )
     arg("--rrup-d", help="rrup spacing", type=float, default=10.0)
     arg("--rrup-n", help="rrup blocks at spacing", type=int, default=20)
-    arg("--deagg-e", help="exceedence for deagg", nargs=2, metavar=("years", "probability"), type=float, action="append")
+    arg(
+        "--deagg-e",
+        help="exceedence for deagg",
+        nargs=2,
+        metavar=("years", "probability"),
+        type=float,
+        action="append",
+    )
     try:
         args = parser.parse_args()
     except SystemExit:
@@ -306,19 +326,22 @@ h5.attrs["values_y"] = (
     + args.mag_min
     + args.mag_d / 2.0
 )
-h5.attrs["values_z"] = np.array([
-    "A (CS)",
-    "B",
-    "DS",
-    "E < -2",
-    "-2 < E < -1",
-    "-1 < E < -0.5",
-    "-0.5 < E < 0",
-    "0 < E < 0.5",
-    "0.5 < E < 1",
-    "1 < E < 2",
-    "2 < E",
-], dtype=np.string_)
+h5.attrs["values_z"] = np.array(
+    [
+        "A (CS)",
+        "B",
+        "DS",
+        "E < -2",
+        "-2 < E < -1",
+        "-1 < E < -0.5",
+        "-0.5 < E < 0",
+        "0 < E < 0.5",
+        "0.5 < E < 1",
+        "1 < E < 2",
+        "2 < E",
+    ],
+    dtype=np.string_,
+)
 h5.attrs["deagg_e"] = args.deagg_e
 
 # stations reference
@@ -331,9 +354,7 @@ del h5_ll
 
 # fault list reference
 h5_fault = h5.create_dataset(
-    "faults",
-    (len(all_faults),),
-    dtype="|S{}".format(len(max(all_faults, key=len)))
+    "faults", (len(all_faults),), dtype="|S{}".format(len(max(all_faults, key=len)))
 )
 for i, fault in enumerate(all_faults[RANK::SIZE]):
     h5_fault[RANK + i * SIZE] = fault.encode()
@@ -349,12 +370,12 @@ for stat in imdb_stations.name:
         h5.create_dataset(
             "deagg/{}/{}".format(stat, im),
             (len(args.deagg_e), args.rrup_n, args.mag_n, N_TYPES),
-            dtype="f2"
+            dtype="f2",
         )
         h5.create_dataset(
             "deagg/{}/SUMM_{}".format(stat, im),
             (len(args.deagg_e), 50),
-            dtype=top_dtype
+            dtype=top_dtype,
         )
 
 if IS_MASTER:
@@ -374,7 +395,9 @@ for i in range(len(emp_ims)):
             print("WARNING: missing station:", imdb_stations[j].name, emp_ims[i])
             continue
         # next job
-        process_emp_file(args, all_faults, emp_files[f], imdb_stations[j].name, emp_ims[i])
+        process_emp_file(
+            args, all_faults, emp_files[f], imdb_stations[j].name, emp_ims[i]
+        )
 h5.close()
 
 ###
