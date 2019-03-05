@@ -42,7 +42,7 @@ def deagg_top(empdb_file, station, im, exceedance):
 
     with h5py.File(empdb_file, "r") as empdb:
         index_value = empdb["deagg/{}/SUMM_{}".format(station, im)][exceedance]
-        n = np.argmax(index_value["f0"] < 0)
+        n = np.argmax(index_value["f1"] < 0)
         if n == 0:
             n = index_value.size
         faults = empdb["faults"][...][index_value['f0'][:n]].astype(np.unicode_)
