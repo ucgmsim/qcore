@@ -155,7 +155,7 @@ def process_emp_file(args, all_faults, emp_file, station, im):
     for b, e in enumerate(map(lambda tp : -1.0 / tp[0] * np.log(1 - tp[1]), args.deagg_e)):
         # store max contributors to epsilon and type charts
         summ_contrib = {}
-        # TODO: exceedance_rate: type A (hazard[1]) replaced with cybershake, exceedance_empirical: type A from empirical
+        # exceedance -> im
         im_level = np.exp(
             np.interp(
                 np.log(e) * -1, np.log(np.sum(hazard[1:], axis=0)) * -1, np.log(hazard[0])
