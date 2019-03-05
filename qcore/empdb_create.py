@@ -240,11 +240,10 @@ def process_emp_file(args, all_faults, emp_file, station, im):
         summ_block = h5["deagg/{}/SUMM_{}".format(station, im)]
         percent_factor = sum(summ_contrib.values()) / 100.0
         top50 = np.argsort(list(summ_contrib.values()))[::-1][:50]
-        print(summ_contrib)
         names = np.array(list(summ_contrib.keys()))[top50]
         summ_block[b, :top50.size] = list(zip(np.searchsorted(all_faults, names), np.array(list(summ_contrib.values()))[top50] / percent_factor))
         if top50.size < 50:
-            summ_block[b, top50.size:]["fault"] = -1
+            summ_block[b, top50.size:] = -1, 0
 
 
 ###
