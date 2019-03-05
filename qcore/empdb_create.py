@@ -18,11 +18,7 @@ from scipy.stats import norm
 
 from qcore.geo import closest_location
 
-# from qcore import imdb
-import sys
-
-sys.path.append("/home/vap30/ucgmsim/qcore/qcore")
-import imdb
+from qcore import imdb
 
 
 COMM = MPI.COMM_WORLD
