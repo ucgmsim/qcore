@@ -39,6 +39,12 @@ class DotDictify(dict):
             super(DotDictify, self).__setitem__(key, found)
         return found
 
+    def __call__(self, *args, **kwargs):
+        return self
+
+    def __getstate__(self):
+        return self.__dict__
+
     __setattr__, __getattr__ = __setitem__, __getitem__
 
 
