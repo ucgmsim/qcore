@@ -20,14 +20,21 @@ def ims(imdb_file, fmt="imdb"):
 
     with h5py.File(imdb_file, "r") as imdb:
         ims = imdb.attrs["ims"].astype(np.unicode_).tolist()
+    if fmt == "imdb":
+        return ims
 
     if fmt == "file":
-        fmt_file = (
-            lambda im: im if not im.startswith("pSA") else im[1:].replace(".", "p")
+        fmt = lambda im: im if not im.startswith("pSA") else im[1:].replace(".", "p")
+    elif fmt == "human":
+        fmt = (
+            lambda im: im
+            if not im.startswith("pSA")
+            else "pSA ({}s)".format(im.split("_")[1])
         )
-        return list(map(fmt_file, ims))
+    else:
+        return
 
-    return ims
+    return list(map(fmt, ims))
 
 
 def simulations(imdb_file):
