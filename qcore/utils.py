@@ -248,9 +248,13 @@ def test_set_up(realizations):
             print("Benchmark data folder already exits: ", data_store_path)
     print(test_data_save_dirs)
     # Run all tests
-    yield test_data_save_dirs
+    return test_data_save_dirs
 
     # Remove the test data directory
     #rmtree(data_store_path)
 
 
+def test_tear_down(test_data_save_dirs):
+    for test_data_dir in test_data_save_dirs:
+        #rmtree(test_data_dir)
+        pass
