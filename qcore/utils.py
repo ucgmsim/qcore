@@ -230,7 +230,7 @@ def test_set_up(realizations):
         download_cmd = "wget -O {} {}".format(zip_download_path, data_download_path)
         unzip_cmd = "unzip {} -d {}".format(zip_download_path, data_store_path)
         # print(DATA_STORE_PATH)
-        test_data_save_dirs.append(os.path.join(data_store_path, realization.split('_HYP')[0], 'pickled', realization))
+        test_data_save_dirs.append(data_store_path)
         if not os.path.isdir(data_store_path):
             os.makedirs(data_store_path, exist_ok=True)
             out, err = shared.exe(download_cmd, debug=False)
@@ -256,11 +256,8 @@ def test_set_up(realizations):
     # Run all tests
     return test_data_save_dirs
 
-    # Remove the test data directory
-    #rmtree(data_store_path)
-
 
 def test_tear_down(test_data_save_dirs):
     for test_data_dir in test_data_save_dirs:
-        #rmtree(test_data_dir)
-        pass
+        if os.path.isdir(test_data_dir):
+            rmtree(test_data_dir)
