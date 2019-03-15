@@ -4,8 +4,24 @@ from shutil import rmtree
 
 from qcore import shared
 
+"""
+Functions used during testing by other repositories.
+Expected to be called in the style of
+
+@pytest.yield_fixture(scope="session", autouse=True)
+def set_up(request):
+    data_locations = utils.test_set_up(REALISATIONS)
+    yield list(zip(data_locations, [rel[0] for rel in REALISATIONS]))
+    utils.test_tear_down(data_locations) 
+"""
+
 
 def test_set_up(realizations):
+    """
+    Downloads test data and places each set in a separate folder, then returns the list of test data locations
+    :param realizations: A list of (realisation name, data zip url) pairs to download data for testing
+    :return: A list of test data locations, containing the contents of the downloaded zip files
+    """
     test_data_save_dirs = []
     for i, (realization, data_download_path) in enumerate(realizations):
         data_store_path = os.path.join(os.getcwd(), "sample" + str(i))
@@ -42,6 +58,10 @@ def test_set_up(realizations):
 
 
 def test_tear_down(test_data_save_dirs):
+    """
+    Removes all the given test data locations
+    :param test_data_save_dirs: a list of test data locations. Same as return value of test_set_up
+    """
     for test_data_dir in test_data_save_dirs:
         if os.path.isdir(test_data_dir):
             rmtree(test_data_dir)
