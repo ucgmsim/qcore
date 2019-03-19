@@ -5,7 +5,7 @@ import os
 from subprocess import check_call
 import sys
 
-from binary_version import get_unversioned_bin
+from qcore.binary_version import get_unversioned_bin
 
 
 def gen_coords(vm_dir=".", debug=False, geoproj="1", do_coords="1", centre_origin="1"):
