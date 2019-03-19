@@ -3,10 +3,11 @@ Functions used throughout ucgmsim.
 Mostly related to file system operations and other non-specific functionality.
 """
 
-from shutil import rmtree
+
 import os
 import imp
 import yaml
+from shutil import rmtree
 from collections import OrderedDict
 from collections import Mapping
 

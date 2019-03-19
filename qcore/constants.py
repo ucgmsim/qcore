@@ -40,8 +40,41 @@ class HPC(Enum):
     mahuika = "mahuika"
 
 
+class ExtendedEnum(Enum):
+    @classmethod
+    def has_value(cls, value):
+        return any(value == item.value for item in cls)
+
+
+class ExtendedStrEnum(ExtendedEnum):
+    @classmethod
+    def has_str_value(cls, str_value):
+        return any(str_value == item.str_value for item in cls)
+
+    @classmethod
+    def from_str(cls, str_value):
+        if not cls.has_str_value(str_value):
+            raise ValueError(
+                "{} is not a valid {}".format(str_value, ProcessType.__name__)
+            )
+        else:
+            for item in cls:
+                if item.str_value == str_value:
+                    return item
+
+    @classmethod
+    def iterate_str_values(cls, ignore_none=True):
+        """Iterates over the string values of the enum,
+        ignores entries without a string value by default
+        """
+        for item in cls:
+            if ignore_none and item.str_value is None:
+                continue
+            yield item.str_value
+
+
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
-class ProcessType(Enum):
+class ProcessType(ExtendedStrEnum):
     """Constants for process type. Int values are used in python workflow,
     str values are for metadata collection and estimator training (str values used
     in the estimator configs)
@@ -66,35 +99,6 @@ class ProcessType(Enum):
         obj.str_value = str_value
         obj.is_hyperth = is_hyperth
         return obj
-
-    @classmethod
-    def has_str_value(cls, str_value):
-        return any(str_value == item.str_value for item in cls)
-
-    @classmethod
-    def from_str(cls, str_value):
-        if not cls.has_str_value(str_value):
-            raise ValueError("{} is not a valid {}".format(str_value, ProcessType.__name__))
-        else:
-            for item in ProcessType:
-                if item.str_value == str_value:
-                    return item
-
-    @classmethod
-    def iterate_str_values(cls, ignore_none = True):
-        """Iterates over the string values of the enum,
-        ignores entries without a string value by default
-        """
-        for item in cls:
-            if ignore_none and item.str_value is None:
-                continue
-            yield item.str_value
-
-
-class ExtendedEnum(Enum):
-    @classmethod
-    def has_value(cls, value):
-        return any(value == item.value for item in cls)
 
 
 class MetadataField(ExtendedEnum):
@@ -126,19 +130,21 @@ class Components(ExtendedEnum):
     ellipsis = "ellipsis"
 
 
-class State(Enum):
+class State(ExtendedStrEnum):
     """Job status on the HPC"""
-    created = 1
-    queued = 2
-    running = 3
-    completed = 4
-    failed = 5
+
+    created = 1, "created"
+    queued = 2, "queued"
+    running = 3, "running"
+    completed = 4, "completed"
+    failed = 5, "failed"
 
 
 class RootParams(Enum):
     """Keywords for the root yaml file.
     Note: These are not complete!
     """
+
     flo = "flo"
     dt = "dt"
     version = "version"
@@ -153,6 +159,7 @@ class FaultParams(Enum):
     """Keywords for the fault yaml file.
     Note: These are not complete!
     """
+
     root_yaml_path = "root_yaml_path"
     vel_mod_dir = "vel_mod_dir"
     stat_coords = "stat_coords"
@@ -163,6 +170,7 @@ class SimParams(Enum):
     """Keywords for the simulation yaml file.
     Note: These are not complete!
     """
+
     fault_yaml_path = "fault_yaml_path"
     run_name = "run_name"
     user_root = "user_root"
@@ -178,6 +186,7 @@ class SimParams(Enum):
 class VMParams(Enum):
     """Keywords for the vm params yaml file.
     """
+
     model_lat = "MODEL_LAT"
     model_lon = "MODEL_LON"
     model_rot = "MODEL_ROT"
@@ -191,5 +200,3 @@ class VMParams(Enum):
     model_coords = "MODEL_COORDS"
     model_params = "MODEL_PARAMS"
     model_bounds = "MODEL_BOUNDS"
-
-
