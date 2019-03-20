@@ -113,6 +113,7 @@ class MetadataField(ExtendedEnum):
     nx = "nx"
     ny = "ny"
     nz = "nz"
+    n_steps = "n_steps"
     start_time = "start_time"
     end_time = "end_time"
     submit_time = "submit_time"
