@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='qcore',
-    version='1.1',
+    version='1.1.2',
     packages=['qcore'],
     url='https://github.com/ucgmsim/qcore',
     description='QuakeCoRE Library',

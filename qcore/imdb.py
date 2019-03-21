@@ -169,3 +169,27 @@ def station_details(imdb_file, station_name=None):
     if station_name is not None:
         return stations[np.where(stations.name == station_name)[0][0]]
     return stations
+
+
+def faults(imdb_file):
+    """
+    Returns list of fault names in imdb.
+    requires imdb V6
+    """
+    with h5py.File(imdb_file, "r") as imdb:
+        return list(imdb["fault_traces"].attrs.keys())
+
+
+def fault_traces(imdb_file, named=False, fault_name=None):
+    """
+    Give a list of fault traces (2D array of lon, lat).
+    Or give a single fault trace given fault name.
+    requires imdb V6
+    """
+    with h5py.File(imdb_file, "r") as imdb:
+        traces = imdb["fault_traces"].attrs
+        if fault_name is None:
+            if named:
+                return list(traces.items())
+            return list(traces.values())
+        return traces[fault_name]
