@@ -172,7 +172,7 @@ class SimParams(Enum):
     srf_file = "srf_file"
     params_vel = "params_vel"
     sim_duration = "sim_duration"
-    hf_slip = "hf_slip"
+    slip = "slip"
     stat_file = "stat_file"
 
 
