@@ -158,13 +158,16 @@ def closest_station(imdb_file, lon, lat, event=None):
     return r[np.argmin(r.dist)]
 
 
-def station_details(imdb_file, station_name=None):
+def station_details(imdb_file, station_name=None, event=None):
     """
     Give station details given name or id. Return all stations if no selection.
+    Only stations available in event if given.
     """
     with h5py.File(imdb_file, "r") as imdb:
         # TODO: don't read all station data, just where "name" == station_name
         stations = np.rec.array(imdb["stations"][...].astype(stat_dtype))
+        if event is not None:
+            return stations[imdb["sim_stats/{}".format(event)][...]]
 
     if station_name is not None:
         return stations[np.where(stations.name == station_name)[0][0]]
