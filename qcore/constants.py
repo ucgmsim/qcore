@@ -9,7 +9,7 @@ HF_DEFAULT_VERSION = "run_hf_mpi"
 BB_DEFAULT_VERSION = "run_bb_mpi"
 BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 
-IM_CALC_DEFAULT_N_PROCESSES = 40
+IM_CALC_DEFAULT_N_CORES = 40 # 1 node, no hyperthreading
 IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
 
 IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
