@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 
-import json
 import os
 from subprocess import check_call
 import sys
