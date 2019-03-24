@@ -9,7 +9,7 @@ HF_DEFAULT_VERSION = "run_hf_mpi"
 BB_DEFAULT_VERSION = "run_bb_mpi"
 BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 
-IM_CALC_DEFAULT_N_PROCESSES = 40
+IM_CALC_DEFAULT_N_CORES = 40 # 1 node, no hyperthreading
 IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
 
 IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
@@ -27,6 +27,13 @@ METADATA_LOG_FILENAME = "metadata_log.json"
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+EST_MODEL_NN_PREFIX = "model_NN_"
+EST_MODEL_SVR_PREFIX = "model_SVR_"
+
+class EstModelType(Enum):
+    NN = "NN"
+    SVR = "SVR"
+    NN_SVR = "NN_SVR"
 
 class HPC(Enum):
     maui = "maui"
@@ -106,6 +113,7 @@ class MetadataField(ExtendedEnum):
     nx = "nx"
     ny = "ny"
     nz = "nz"
+    n_steps = "n_steps"
     start_time = "start_time"
     end_time = "end_time"
     submit_time = "submit_time"
