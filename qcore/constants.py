@@ -89,28 +89,28 @@ class ProcessType(ExtendedStrEnum):
         "EMOD3D",
         False,
         False,
-        'srun {{emod3d_bin}} -args "par={{lf_sim_dir}}/e3d.par"',
+        'srun {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
     )
     merge_ts = (
         2,
         "merge_ts",
         True,
         False,
-        "time srun {{merge_ts_path}} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
+        "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
     )
     winbin_aio = (
         3,
         None,
         True,
         False,
-        "srun python $gmsim/workflow/scripts/winbin-aio-mpi.py {{lf_sim_dir}}",
+        "srun python $gmsim/workflow/scripts/winbin-aio-mpi.py {lf_sim_dir}",
     )
     HF = (
         4,
         "HF",
         True,
         True,
-        "srun python $gmsim/workflow /scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
+        "srun python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
     )
     BB = (
@@ -126,8 +126,8 @@ class ProcessType(ExtendedStrEnum):
         "IM_calc",
         False,
         False,
-        "time python $IMPATH/calculate_ims.py {{sim_dir}}/BB/Acc/BB.bin b -o {{sim_dir}}/IM_calc/ -np {{np}} -i "
-        "{{sim_name}} -r {{fault_name}} -c {{component}} -t s {{extended}} {{simple}}",
+        "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
+        "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
     )
     IM_plot = 7, None, None, False, None
     rrup = 8, None, None, False, None
