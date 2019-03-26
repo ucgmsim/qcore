@@ -82,22 +82,23 @@ class ProcessType(ExtendedStrEnum):
     The string value of the enum can be accessed with Process.EMOD3D.str_value
     """
 
-    EMOD3D = 1, "EMOD3D", False
-    merge_ts = 2, "merge_ts", True
-    winbin_aio = 3, None, True
-    HF = 4, "HF", True
-    BB = 5, "BB", True
-    IM_calculation = 6, "IM_calc", False
-    IM_plot = 7, None, None
-    rrup = 8, None, None
-    Empirical = 9, None, None
-    Verification = 10, None, None
+    EMOD3D = 1, "EMOD3D", False, False
+    merge_ts = 2, "merge_ts", True, False
+    winbin_aio = 3, None, True, False
+    HF = 4, "HF", True, True
+    BB = 5, "BB", True, True
+    IM_calculation = 6, "IM_calc", False, False
+    IM_plot = 7, None, None, False
+    rrup = 8, None, None, False
+    Empirical = 9, None, None, False
+    Verification = 10, None, None, False
 
-    def __new__(cls, value, str_value, is_hyperth):
+    def __new__(cls, value, str_value, is_hyperth, usesAcc):
         obj = object.__new__(cls)
         obj._value_ = value
         obj.str_value = str_value
         obj.is_hyperth = is_hyperth
+        obj.usesAcc = usesAcc
         return obj
 
 
