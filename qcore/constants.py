@@ -129,10 +129,10 @@ class ProcessType(ExtendedStrEnum):
         "time python $IMPATH/calculate_ims.py {{sim_dir}}/BB/Acc/BB.bin b -o {{sim_dir}}/IM_calc/ -np {{np}} -i "
         "{{sim_name}} -r {{fault_name}} -c {{component}} -t s {{extended}} {{simple}}",
     )
-    IM_plot = 7, None, None, False
-    rrup = 8, None, None, False
-    Empirical = 9, None, None, False
-    Verification = 10, None, None, False
+    IM_plot = 7, None, None, False, None
+    rrup = 8, None, None, False, None
+    Empirical = 9, None, None, False, None
+    Verification = 10, None, None, False, None
 
     def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template):
         obj = object.__new__(cls)
