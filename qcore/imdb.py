@@ -24,13 +24,42 @@ def ims(imdb_file, fmt="imdb"):
         return ims
 
     if fmt == "file":
+        # as found when stored in filenames
         fmt = lambda im: im if not im.startswith("pSA") else im[1:].replace(".", "p")
     elif fmt == "human":
+        # human readable
         fmt = (
             lambda im: im
             if not im.startswith("pSA")
             else "pSA ({}s)".format(im.split("_")[1])
         )
+    elif fmt == "units":
+        # like human but with units
+        # use startswith because AI may be AI (new method) or something
+        def fmt(im):
+            if im.startswith("pSA"):
+                im = "pSA ({}s)".format(im.split("_")[1])
+                units = "g"
+            elif im.startswith("AI"):
+                units = "cm/s"
+            elif im.startswith("CAV"):
+                units = "cm"
+            elif im.startswith("Ds"):
+                units = "s"
+            elif im.startswith("MMI"):
+                units = "intensity"
+            elif im.startswith("PGA"):
+                units = "g"
+            elif im.startswith("PGV"):
+                units = "cm/s"
+            else:
+                units = None
+
+            if units is not None:
+                return "{} [{}]".format(im, units)
+            else:
+                return im
+
     else:
         return
 
