@@ -13,16 +13,13 @@ import pandas as pd
 stat_dtype = np.dtype([("name", "|U7"), ("lon", np.float32), ("lat", np.float32)])
 
 
-def ims(imdb_file, fmt="imdb"):
+def im_format(ims, fmt, in_fmt="imdb"):
     """
-    Returns list of IMs available in IMDB
+    Converts IM naming formats.
+    ims: input list of IMs
+    fmt: output format of IMs
+    in_fmt: format of `ims`, only imdb supported
     """
-
-    with h5py.File(imdb_file, "r") as imdb:
-        ims = imdb.attrs["ims"].astype(np.unicode_).tolist()
-    if fmt == "imdb":
-        return ims
-
     if fmt == "file":
         # as found when stored in filenames
         fmt = lambda im: im if not im.startswith("pSA") else im[1:].replace(".", "p")
@@ -60,10 +57,21 @@ def ims(imdb_file, fmt="imdb"):
             else:
                 return im
 
-    else:
-        return
-
     return list(map(fmt, ims))
+
+
+def ims(imdb_file, fmt="imdb"):
+    """
+    Returns list of IMs available in IMDB
+    """
+
+    with h5py.File(imdb_file, "r") as imdb:
+        ims = imdb.attrs["ims"].astype(np.unicode_).tolist()
+
+    if fmt == "imdb":
+        return ims
+    else:
+        return im_format(ims, fmt)
 
 
 def simulations(imdb_file):
