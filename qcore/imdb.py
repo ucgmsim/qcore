@@ -68,10 +68,10 @@ def ims(imdb_file, fmt="imdb"):
     with h5py.File(imdb_file, "r") as imdb:
         ims = imdb.attrs["ims"].astype(np.unicode_).tolist()
 
-    if fmt == "imdb":
-        return ims
-    else:
-        return im_format(ims, fmt)
+    if fmt != "imdb":
+        ims.index = im_format(ims, fmt)
+
+    return ims
 
 
 def simulations(imdb_file):
