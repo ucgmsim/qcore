@@ -13,6 +13,53 @@ import pandas as pd
 stat_dtype = np.dtype([("name", "|U7"), ("lon", np.float32), ("lat", np.float32)])
 
 
+def im_format(ims, fmt, in_fmt="imdb"):
+    """
+    Converts IM naming formats.
+    ims: input list of IMs
+    fmt: output format of IMs
+    in_fmt: format of `ims`, only imdb supported
+    """
+    if fmt == "file":
+        # as found when stored in filenames
+        fmt = lambda im: im if not im.startswith("pSA") else im[1:].replace(".", "p")
+    elif fmt == "human":
+        # human readable
+        fmt = (
+            lambda im: im
+            if not im.startswith("pSA")
+            else "pSA ({}s)".format(im.split("_")[1])
+        )
+    elif fmt == "units":
+        # like human but with units
+        # use startswith because AI may be AI (new method) or something
+        def fmt(im):
+            if im.startswith("pSA"):
+                im = "pSA ({}s)".format(im.split("_")[1])
+                units = "g"
+            elif im.startswith("AI"):
+                units = "cm/s"
+            elif im.startswith("CAV"):
+                units = "cm"
+            elif im.startswith("Ds"):
+                units = "s"
+            elif im.startswith("MMI"):
+                units = "intensity"
+            elif im.startswith("PGA"):
+                units = "g"
+            elif im.startswith("PGV"):
+                units = "cm/s"
+            else:
+                units = None
+
+            if units is not None:
+                return "{} [{}]".format(im, units)
+            else:
+                return im
+
+    return list(map(fmt, ims))
+
+
 def ims(imdb_file, fmt="imdb"):
     """
     Returns list of IMs available in IMDB
@@ -20,21 +67,11 @@ def ims(imdb_file, fmt="imdb"):
 
     with h5py.File(imdb_file, "r") as imdb:
         ims = imdb.attrs["ims"].astype(np.unicode_).tolist()
-    if fmt == "imdb":
-        return ims
 
-    if fmt == "file":
-        fmt = lambda im: im if not im.startswith("pSA") else im[1:].replace(".", "p")
-    elif fmt == "human":
-        fmt = (
-            lambda im: im
-            if not im.startswith("pSA")
-            else "pSA ({}s)".format(im.split("_")[1])
-        )
-    else:
-        return
+    if fmt != "imdb":
+        ims.index = im_format(ims, fmt)
 
-    return list(map(fmt, ims))
+    return ims
 
 
 def simulations(imdb_file):
