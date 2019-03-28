@@ -1,12 +1,11 @@
 #!/usr/bin/env python2
 
-import json
 import os
 from subprocess import check_call
 import sys
 
 from qcore.binary_version import get_unversioned_bin
-
+from qcore.utils import load_yaml
 
 def gen_coords(vm_dir=".", debug=False, geoproj="1", do_coords="1", centre_origin="1"):
     """
@@ -19,8 +18,7 @@ def gen_coords(vm_dir=".", debug=False, geoproj="1", do_coords="1", centre_origi
 
     # load params for velocity model
     try:
-        with open(os.path.join(vm_dir, "params_vel.json"), "r") as j:
-            vm = json.load(j)
+        vm=load_yaml(os.path.join(vm_dir,"params_vel.yaml"))
     except (IOError, FileNotFoundError) as e:
         # deprecated, will break if run multiple times as a function
         sys.path.insert(0, vm_dir)

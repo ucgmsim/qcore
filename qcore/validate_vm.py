@@ -14,10 +14,10 @@ else
 fi
 """
 
-import json
 import os
 import sys
 import argparse
+from qcore.utils import load_yaml
 
 DEM_PATH = "/nesi/project/nesi00213/opt/Velocity-Model/Data/DEM/NZ_DEM_HD.in"
 
@@ -51,13 +51,12 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
     for fixed_name in vm.values():
         if not os.path.exists(fixed_name):
             return False, 'VM file not found: %s' % (fixed_name)
-    if not os.path.exists(vmfile('params_vel.json')):
+    if not os.path.exists(vmfile('params_vel.yaml')):
         return False, 'VM configuration missing: %s' \
-                      % (vmfile('params_vel.json'))
+                      % (vmfile('params_vel.yaml'))
 
     # 3: metadata files exist (made by gen_cords.py)
-    with open(vmfile('params_vel.json'), 'r') as j:
-        vm_conf = json.load(j)
+    vm_conf = load_yaml(vmfile('params_vel.yaml'))
     meta = {'gridfile':'%s' % (vmfile('gridfile%s' % (vm_conf['sufx']))), \
             'gridout':'%s' % (vmfile('gridout%s' % (vm_conf['sufx']))), \
             'bounds':'%s' % (vmfile('model_bounds%s' % (vm_conf['sufx']))), \
@@ -67,7 +66,7 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
         if not os.path.exists(meta_file):
             return False, 'VM metadata not found: %s' % (meta_file)
 
-    # 4: params_vel.json consistency
+    # 4: params_vel.yaml consistency
     try:
         assert(vm_conf['nx'] == int(round(vm_conf['extent_x'] / vm_conf['hh'])))
         assert(vm_conf['ny'] == int(round(vm_conf['extent_y'] / vm_conf['hh'])))
@@ -76,7 +75,7 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
                                           / vm_conf['hh'])))
     except AssertionError:
         return False, 'VM config missmatch between extents and nx, ny, nz: %s' \
-                      % (vmfile('params_vel.json'))
+                      % (vmfile('params_vel.yaml'))
 
     # 5: binary file sizes
     vm_size = vm_conf['nx'] * vm_conf['ny'] * vm_conf['nz'] * SIZE_FLOAT
