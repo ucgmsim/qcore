@@ -183,6 +183,7 @@ class State(ExtendedStrEnum):
     running = 3, "running"
     completed = 4, "completed"
     failed = 5, "failed"
+    ignored = 6, "ignored"
 
 
 class RootParams(Enum):
