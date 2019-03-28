@@ -9,7 +9,7 @@ HF_DEFAULT_VERSION = "run_hf_mpi"
 BB_DEFAULT_VERSION = "run_bb_mpi"
 BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 
-IM_CALC_DEFAULT_N_CORES = 40 # 1 node, no hyperthreading
+IM_CALC_DEFAULT_N_CORES = 40  # 1 node, no hyperthreading
 IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
 
 IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
@@ -30,10 +30,12 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 EST_MODEL_NN_PREFIX = "model_NN_"
 EST_MODEL_SVR_PREFIX = "model_SVR_"
 
+
 class EstModelType(Enum):
     NN = "NN"
     SVR = "SVR"
     NN_SVR = "NN_SVR"
+
 
 class HPC(Enum):
     maui = "maui"
@@ -82,22 +84,63 @@ class ProcessType(ExtendedStrEnum):
     The string value of the enum can be accessed with Process.EMOD3D.str_value
     """
 
-    EMOD3D = 1, "EMOD3D", False
-    merge_ts = 2, "merge_ts", True
-    winbin_aio = 3, None, True
-    HF = 4, "HF", True
-    BB = 5, "BB", True
-    IM_calculation = 6, "IM_calc", False
-    IM_plot = 7, None, None
-    rrup = 8, None, None
-    Empirical = 9, None, None
-    Verification = 10, None, None
+    EMOD3D = (
+        1,
+        "EMOD3D",
+        False,
+        False,
+        'srun {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
+    )
+    merge_ts = (
+        2,
+        "merge_ts",
+        True,
+        False,
+        "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
+    )
+    winbin_aio = (
+        3,
+        None,
+        True,
+        False,
+        "srun python $gmsim/workflow/scripts/winbin-aio-mpi.py {lf_sim_dir}",
+    )
+    HF = (
+        4,
+        "HF",
+        True,
+        True,
+        "srun python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
+        "{duration} --dt {dt} --sim_bin {sim_bin_path}",
+    )
+    BB = (
+        5,
+        "BB",
+        True,
+        True,
+        "srun python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
+        "{bb_bin_path} --flo {flo}",
+    )
+    IM_calculation = (
+        6,
+        "IM_calc",
+        False,
+        False,
+        "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
+        "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
+    )
+    IM_plot = 7, None, None, False, None
+    rrup = 8, None, None, False, None
+    Empirical = 9, None, None, False, None
+    Verification = 10, None, None, False, None
 
-    def __new__(cls, value, str_value, is_hyperth):
+    def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template):
         obj = object.__new__(cls)
         obj._value_ = value
         obj.str_value = str_value
         obj.is_hyperth = is_hyperth
+        obj.uses_acc = uses_acc
+        obj.command_template = command_template
         return obj
 
 
