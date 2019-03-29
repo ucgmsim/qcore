@@ -216,3 +216,20 @@ def load_py_cfg(f_path):
         cfg_dict = module.__dict__
 
     return cfg_dict
+
+def create_directory(dir_name):
+    """
+    Create a directory if it does not exist, otherwise fail
+    :param dir_name:
+    :return:
+    """
+    # Create output dir if needed
+    if dir_name != ".":
+        if not os.path.isdir(dir_name):
+            print("Directory %s does not exist" % dir_name)
+            try:
+                os.mkdir(dir_name)
+            except OSError:
+                print("Impossible to create directory %s" % dir_name)
+                exit(1)
+
