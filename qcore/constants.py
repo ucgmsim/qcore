@@ -133,6 +133,7 @@ class ProcessType(ExtendedStrEnum):
     rrup = 8, None, None, False, None
     Empirical = 9, None, None, False, None
     Verification = 10, None, None, False, None
+    clean_up = 11, "clean_up", None, None, None
 
     def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template):
         obj = object.__new__(cls)
