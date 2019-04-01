@@ -100,7 +100,7 @@ class ProcessType(ExtendedStrEnum):
     )
     winbin_aio = (
         3,
-        None,
+        "winbin_aio",
         True,
         False,
         "srun python $gmsim/workflow/scripts/winbin-aio-mpi.py {lf_sim_dir}",
@@ -184,6 +184,11 @@ class State(ExtendedStrEnum):
     completed = 4, "completed"
     failed = 5, "failed"
 
+    def __new__(cls, value, str_value):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.str_value = str_value
+        return obj
 
 class RootParams(Enum):
     """Keywords for the root yaml file.
