@@ -28,6 +28,11 @@ def get_srf_location(realisation):
     return os.path.join(fault, "Srf", realisation + ".srf")
 
 
+def get_srf_info_location(realisation):
+    fault = __get_fault_from_realisation(realisation)
+    return os.path.join(fault, "Srf", realisation + ".info")
+
+
 def get_srf_path(cybershake_root, realisation):
     return os.path.join(
         cybershake_root, "Data", "Sources", get_srf_location(realisation)
