@@ -4,7 +4,7 @@ Gives access to the folder structure of the cybershake directory
 import os
 
 
-def __get_fault_from_realisation(realisation):
+def get_fault_from_realisation(realisation):
     return realisation.split("_")[0]
 
 
@@ -14,7 +14,7 @@ def get_realisation_name(fault_name, rel_no):
 
 # VM
 def get_fault_VM_dir(cybershake_root, realisation):
-    fault = __get_fault_from_realisation(realisation)
+    fault = get_fault_from_realisation(realisation)
     return os.path.join(get_VM_dir(cybershake_root), fault)
 
 
@@ -24,7 +24,7 @@ def get_VM_dir(cybershake_root):
 
 # SRF
 def get_srf_location(realisation):
-    fault = __get_fault_from_realisation(realisation)
+    fault = get_fault_from_realisation(realisation)
     return os.path.join(fault, "Srf", realisation + ".srf")
 
 
@@ -41,7 +41,7 @@ def get_sources_dir(cybershake_root):
 
 
 def get_source_params_location(realisation):
-    fault = __get_fault_from_realisation(realisation)
+    fault = get_fault_from_realisation(realisation)
     return os.path.join(fault, "Sim_params", realisation + ".yaml")
 
 
@@ -53,7 +53,7 @@ def get_source_params_path(cybershake_root, realisation):
 
 # Stoch
 def get_stoch_location(realisation):
-    fault = __get_fault_from_realisation(realisation)
+    fault = get_fault_from_realisation(realisation)
     return os.path.join(fault, "Stoch", realisation + ".stoch")
 
 
