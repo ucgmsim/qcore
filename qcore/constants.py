@@ -30,6 +30,7 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 EST_MODEL_NN_PREFIX = "model_NN_"
 EST_MODEL_SVR_PREFIX = "model_SVR_"
 
+SLURM_MGMT_DB_NAME = "slurm_mgmt.db.sql"
 
 class EstModelType(Enum):
     NN = "NN"
@@ -175,7 +176,7 @@ class Components(ExtendedEnum):
     ellipsis = "ellipsis"
 
 
-class State(ExtendedStrEnum):
+class Status(ExtendedStrEnum):
     """Job status on the HPC"""
 
     created = 1, "created"
@@ -183,6 +184,7 @@ class State(ExtendedStrEnum):
     running = 3, "running"
     completed = 4, "completed"
     failed = 5, "failed"
+    unknown = 6, "unknown"
 
     def __new__(cls, value, str_value):
         obj = object.__new__(cls)

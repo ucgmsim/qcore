@@ -90,8 +90,19 @@ def get_mgmt_db(cybershake_root):
     return os.path.join(cybershake_root, "slurm_mgmt.db")
 
 
+def get_mgmt_db_queue(cybershake_root):
+    return os.path.join(cybershake_root, "mgmt_db_queue")
+
+
 def get_fault_dir(cybershake_root, fault_name):
-    return os.path.join(cybershake_root, "Runs", fault_name)
+    return os.path.join(get_runs_dir(cybershake_root), fault_name)
+
+
+def get_sim_dir(cybershake_root, realisation):
+    return os.path.join(
+        get_fault_dir(cybershake_root, __get_fault_from_realisation(realisation)),
+        realisation,
+    )
 
 
 # LF
