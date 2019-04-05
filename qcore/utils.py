@@ -169,18 +169,6 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
     return DotDictify(update(vm_params, root_params, fault_params, sim_params))
 
 
-def load_params(*yaml_files):
-    """
-    load yamlfile(s) into a DotDictify object
-    :param yaml_files: path to yaml file(s)
-    :return: a DotDictify object
-    """
-    d = {}
-    for yaml_file in yaml_files:
-        update(d, load_yaml(yaml_file))
-    return DotDictify(d)
-
-
 def setup_dir(directory, empty=False):
     """
     Make sure a directory exists, optionally make sure it is empty.
