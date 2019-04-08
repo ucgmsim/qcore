@@ -122,7 +122,7 @@ def dump_yaml(input_dict, output_name, obj_type=dict):
         # yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
 
-def _update(d, *u):
+def _update_params(d, *u):
     """
     prevents removal of keys in a nested dict
     Note the same key will still be overwritten
@@ -139,7 +139,7 @@ def _update(d, *u):
         if uu:  # if uu is not empty
             for k, v in uu.items():
                 if isinstance(v, Mapping):
-                    d[k] = _update(d.get(k, {}), v)
+                    d[k] = _update_params(d.get(k, {}), v)
                 else:
                     d[k] = v
     return d
@@ -166,7 +166,7 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
         root_params = load_yaml(fault_params['root_yaml_path'])
     if load_vm:
         vm_params = load_yaml(os.path.join(fault_params['vel_mod_dir'], 'vm_params.yaml'))
-    return DotDictify(_update(vm_params, root_params, fault_params, sim_params))
+    return DotDictify(_update_params(vm_params, root_params, fault_params, sim_params))
 
 
 def setup_dir(directory, empty=False):
