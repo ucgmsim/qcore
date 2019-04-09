@@ -3,6 +3,7 @@ Gives access to the folder structure of the cybershake directory
 """
 import os
 
+import qcore.constants as const
 
 def get_fault_from_realisation(realisation):
     return realisation.split("_")[0]
@@ -29,7 +30,7 @@ def get_srf_location(realisation):
 
 
 def get_srf_info_location(realisation):
-    fault = __get_fault_from_realisation(realisation)
+    fault = get_fault_from_realisation(realisation)
     return os.path.join(fault, "Srf", realisation + ".info")
 
 
@@ -87,11 +88,22 @@ def get_cybershake_list(cybershake_root):
 
 def get_mgmt_db(cybershake_root):
     """Get the mgmt_db file"""
-    return os.path.join(cybershake_root, "slurm_mgmt.db")
+    return os.path.join(cybershake_root, const.SLURM_MGMT_DB_NAME)
+
+
+def get_mgmt_db_queue(cybershake_root):
+    return os.path.join(cybershake_root, "mgmt_db_queue")
 
 
 def get_fault_dir(cybershake_root, fault_name):
-    return os.path.join(cybershake_root, "Runs", fault_name)
+    return os.path.join(get_runs_dir(cybershake_root), fault_name)
+
+
+def get_sim_dir(cybershake_root, realisation):
+    return os.path.join(
+        get_fault_dir(cybershake_root, get_fault_from_realisation(realisation)),
+        realisation,
+    )
 
 
 # LF
