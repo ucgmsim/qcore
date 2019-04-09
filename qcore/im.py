@@ -23,7 +23,7 @@ def order_im_cols_df(df, pattern_order=default_pattern_order):
     If there are several columns matching a pattern, and the column contains a
     number seperated by a '_', such as pSA_0.5, then those columns are sorted
     lowest to highest based on the number. The number has to be in the same
-    position for all column names of a patter.
+    position for all column names of a pattern.
 
     All columns that don't match a pattern are just appended to the end in the
     original order.
