@@ -357,6 +357,16 @@ class LFSeis:
             seis2txt(c, dt, prefix, station, self.COMP_NAME[i],
                      start_sec=self.T_START, title=title)
 
+    def acc2txt(self, station, prefix='./', title='', dt=None):
+        """
+        Creates standard EMOD3D text files for the station (acc).
+        """
+        if dt is None:
+            dt = self.dt
+        for i, c in enumerate(self.acc(station, dt=dt).T):
+            seis2txt(c, dt, prefix, station, self.COMP_NAME[i],
+                     start_sec=self.T_START, title=title)
+
     def all2txt(self, prefix='./', dt=None):
         """
         Produces text files previously done by script called `winbin-aio`.
@@ -367,6 +377,17 @@ class LFSeis:
             dt = self.dt
         for s in self.stations.name:
             self.vel2txt(s, prefix=prefix, title=prefix, dt=dt)
+
+    def all2acc(self, prefix='./', dt=None):
+        """
+        Produces acc text files similar to what all2txt does for vel.
+        For compatibility. Consecutive file indexes in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
+        """
+        if dt is None:
+            dt = self.dt
+        for s in self.stations.name:
+            self.acc2txt(s, prefix=prefix, title=prefix, dt=dt)
 
 ###
 ### PROCESSING OF HF BINARY CONTAINER
