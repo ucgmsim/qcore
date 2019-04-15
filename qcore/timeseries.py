@@ -347,47 +347,33 @@ class LFSeis:
             dt = self.dt
         return vel2acc3d(self.vel(station, dt=dt), dt)
 
-    def vel2txt(self, station, prefix='./', title='', dt=None):
+    def vel2txt(self, station, prefix='./', title='', dt=None, acc=False):
         """
         Creates standard EMOD3D text files for the station.
         """
         if dt is None:
             dt = self.dt
-        for i, c in enumerate(self.vel(station, dt=dt).T):
+        if acc:
+            f = self.acc
+        else:
+            f = self.vel
+        for i, c in enumerate(f(station, dt=dt).T):
             seis2txt(c, dt, prefix, station, self.COMP_NAME[i],
                      start_sec=self.T_START, title=title)
 
-    def acc2txt(self, station, prefix='./', title='', dt=None):
+    def all2txt(self, prefix='./', dt=None, f="vel"):
         """
-        Creates standard EMOD3D text files for the station (acc).
-        """
-        if dt is None:
-            dt = self.dt
-        for i, c in enumerate(self.acc(station, dt=dt).T):
-            seis2txt(c, dt, prefix, station, self.COMP_NAME[i],
-                     start_sec=self.T_START, title=title)
-
-    def all2txt(self, prefix='./', dt=None):
-        """
+        NOTE: This function is not designed to be used other than for single/debug use.
+        Make a parallel wrapper for any "real" use cases.
         Produces text files previously done by script called `winbin-aio`.
         For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
         """
         if dt is None:
             dt = self.dt
+        acc = f == "acc"
         for s in self.stations.name:
-            self.vel2txt(s, prefix=prefix, title=prefix, dt=dt)
-
-    def all2acc(self, prefix='./', dt=None):
-        """
-        Produces acc text files similar to what all2txt does for vel.
-        For compatibility. Consecutive file indexes in parallel for performance.
-        Slowest part is numpy formating numbers into text and number of lines.
-        """
-        if dt is None:
-            dt = self.dt
-        for s in self.stations.name:
-            self.acc2txt(s, prefix=prefix, title=prefix, dt=dt)
+            self.vel2txt(s, prefix=prefix, title=prefix, dt=dt, acc=acc)
 
 ###
 ### PROCESSING OF HF BINARY CONTAINER
