@@ -25,7 +25,8 @@ DEFAULT_MEMORY = "16G"
 METADATA_TIMESTAMP_FMT = "%Y-%m-%d_%H:%M:%S"
 METADATA_LOG_FILENAME = "metadata_log.json"
 
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
+timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
 
 EST_MODEL_NN_PREFIX = "model_NN_"
 EST_MODEL_SVR_PREFIX = "model_SVR_"
