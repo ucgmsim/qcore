@@ -18,6 +18,7 @@ import os
 import sys
 import argparse
 from qcore.utils import load_yaml
+from qcore.constants import VM_PARAMS_FILE_NAME
 
 DEM_PATH = "/nesi/project/nesi00213/opt/Velocity-Model/Data/DEM/NZ_DEM_HD.in"
 
@@ -51,12 +52,12 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
     for fixed_name in vm.values():
         if not os.path.exists(fixed_name):
             return False, 'VM file not found: %s' % (fixed_name)
-    if not os.path.exists(vmfile('vm_params.yaml')):
+    if not os.path.exists(vmfile(VM_PARAMS_FILE_NAME)):
         return False, 'VM configuration missing: %s' \
-                      % (vmfile('vm_params.yaml'))
+                      % (vmfile(VM_PARAMS_FILE_NAME))
 
     # 3: metadata files exist (made by gen_cords.py)
-    vm_conf = load_yaml(vmfile('vm_params.yaml'))
+    vm_conf = load_yaml(vmfile(VM_PARAMS_FILE_NAME))
     meta = {'gridfile':'%s' % (vmfile('gridfile%s' % (vm_conf['sufx']))), \
             'gridout':'%s' % (vmfile('gridout%s' % (vm_conf['sufx']))), \
             'bounds':'%s' % (vmfile('model_bounds%s' % (vm_conf['sufx']))), \
@@ -75,7 +76,7 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
                                           / vm_conf['hh'])))
     except AssertionError:
         return False, 'VM config missmatch between extents and nx, ny, nz: %s' \
-                      % (vmfile('vm_params.yaml'))
+                      % (vmfile(VM_PARAMS_FILE_NAME))
 
     # 5: binary file sizes
     vm_size = vm_conf['nx'] * vm_conf['ny'] * vm_conf['nz'] * SIZE_FLOAT

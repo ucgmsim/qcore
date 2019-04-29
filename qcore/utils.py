@@ -10,6 +10,7 @@ import yaml
 from shutil import rmtree
 from collections import OrderedDict
 from collections import Mapping
+from qcore.constants import VM_PARAMS_FILE_NAME
 
 
 class DotDictify(dict):
@@ -165,7 +166,7 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
     if load_root:
         root_params = load_yaml(fault_params['root_yaml_path'])
     if load_vm:
-        vm_params = load_yaml(os.path.join(fault_params['vel_mod_dir'], 'vm_params.yaml'))
+        vm_params = load_yaml(os.path.join(fault_params['vel_mod_dir'], VM_PARAMS_FILE_NAME))
     return DotDictify(_update_params(vm_params, root_params, fault_params, sim_params))
 
 
