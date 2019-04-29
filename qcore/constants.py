@@ -230,7 +230,7 @@ class SimParams(Enum):
     run_dir = "run_dir"
     sim_dir = "sim_dir"
     srf_file = "srf_file"
-    params_vel = "params_vel"
+    vm_params = "vm_params"
     sim_duration = "sim_duration"
     slip = "slip"
     stat_file = "stat_file"
