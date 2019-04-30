@@ -60,7 +60,7 @@ def validate_vm(cybershake_root, fault, dem_path=DEM_PATH):
     result, message = verify_VM_files_exist(cybershake_root, fault, vm_params)
     if not result:
         return result, message
-    vm_params_file_path = get_VM_file(cybershake_root, fault, [VM_PARAMS_FILE_NAME])
+    vm_params_file_path = get_VM_file(cybershake_root, fault, VM_PARAMS_FILE_NAME)
 
     # 3: metadata files exist (made by gen_cords.py)
     vm_params_dict = load_yaml(vm_params_file_path)
@@ -79,10 +79,26 @@ def validate_vm(cybershake_root, fault, dem_path=DEM_PATH):
 
     # 4: vm_params.yaml consistency
     try:
-        assert vm_params_dict["nx"] == int(round(vm_params_dict["extent_x"] / vm_params_dict["hh"]))
-        assert vm_params_dict["ny"] == int(round(vm_params_dict["extent_y"] / vm_params_dict["hh"]))
-        assert vm_params_dict["nz"] == int(
-            round((vm_params_dict["extent_zmax"] - vm_params_dict["extent_zmin"]) / vm_params_dict["hh"])
+        assert vm_params_dict[VMParams.nx.value] == int(
+            round(
+                vm_params_dict[VMParams.extent_x.value]
+                / vm_params_dict[VMParams.hh.value]
+            )
+        )
+        assert vm_params_dict[VMParams.ny.value] == int(
+            round(
+                vm_params_dict[VMParams.extent_y.value]
+                / vm_params_dict[VMParams.hh.value]
+            )
+        )
+        assert vm_params_dict[VMParams.nz.value] == int(
+            round(
+                (
+                    vm_params_dict[VMParams.extent_zmax.value]
+                    - vm_params_dict[VMParams.extent_zmin.value]
+                )
+                / vm_params_dict[VMParams.hh.value]
+            )
         )
     except AssertionError:
         return (
@@ -94,44 +110,38 @@ def validate_vm(cybershake_root, fault, dem_path=DEM_PATH):
 
     # 5: binary file sizes
     vm_size = (
-        vm_params_dict["nx"] * vm_params_dict["ny"] * vm_params_dict["nz"] * SIZE_FLOAT
+        vm_params_dict[VMParams.nx.value]
+        * vm_params_dict[VMParams.ny.value]
+        * vm_params_dict[VMParams.nz.value]
+        * SIZE_FLOAT
     )
     for bin_file in vm.values():
-        size = os.path.getsize(bin_file)
+        size = os.path.getsize(get_VM_file(cybershake_root, fault, bin_file))
         if size != vm_size:
             return (
                 False,
                 "VM filesize for {} expected: {} found: {}".format(
-                    bin_file, vm_size, size
+                    get_VM_file(cybershake_root, fault, bin_file), vm_size, size
                 ),
             )
 
     # 6: binary contents
     if numpy:
-        # check first zx slice (y = 0)
-        smin = np.min(
-            np.fromfile(
-                vm["p"],
-                dtype="<f{}".format(SIZE_FLOAT),
-                count=vm_params_dict["nz"] * vm_params_dict["nx"],
+        mins = []
+        for file_name in vm.values:
+            mins.append(
+                np.min(
+                    np.fromfile(
+                        get_VM_file(cybershake_root, fault, file_name),
+                        dtype="<f{}".format(SIZE_FLOAT),
+                        count=vm_params_dict[VMParams.nz.value]
+                        * vm_params_dict[VMParams.nx.value],
+                    )
+                )
             )
-        )
-        pmin = np.min(
-            np.fromfile(
-                vm["s"],
-                dtype="<f{}".format(SIZE_FLOAT),
-                count=vm_params_dict["nz"] * vm_params_dict["nx"],
-            )
-        )
-        dmin = np.min(
-            np.fromfile(
-                vm["d"],
-                dtype="<f{}".format(SIZE_FLOAT),
-                count=vm_params_dict["nz"] * vm_params_dict["nx"],
-            )
-        )
+
         # works even if min is np.nan
-        if not min(smin, pmin, dmin) > 0:
+        if not min(mins) > 0:
             return False, "VM vs, vp or rho <= 0|nan found: {}".format(vm_dir)
 
     # 7: contents of meta files

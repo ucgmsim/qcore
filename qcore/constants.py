@@ -256,3 +256,7 @@ class VMParams(Enum):
     model_coords = "MODEL_COORDS"
     model_params = "MODEL_PARAMS"
     model_bounds = "MODEL_BOUNDS"
+    extent_x = "extent_x"
+    extent_y = "extent_y"
+    extent_zmax = "extent_zmax"
+    extent_zmin = "extent_zmin"
