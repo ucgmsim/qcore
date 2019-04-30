@@ -24,6 +24,7 @@ DEM_PATH = "/nesi/project/nesi00213/opt/Velocity-Model/Data/DEM/NZ_DEM_HD.in"
 
 try:
     import numpy as np
+
     numpy = True
 except ImportError:
     numpy = False
@@ -43,67 +44,90 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
 
     # 1: has to exist
     if not os.path.isdir(vm_dir):
-        return False, 'VM dir is not a directory: %s' % (vm_dir)
+        return False, "VM dir is not a directory: %s" % (vm_dir)
 
     # 2: fixed file names exist
-    vm = {'s':'%s' % (vmfile('vs3dfile.s')), \
-            'p':'%s' % (vmfile('vp3dfile.p')), \
-            'd':'%s' % (vmfile('rho3dfile.d'))}
+    vm = {
+        "s": "%s" % (vmfile("vs3dfile.s")),
+        "p": "%s" % (vmfile("vp3dfile.p")),
+        "d": "%s" % (vmfile("rho3dfile.d")),
+    }
     for fixed_name in vm.values():
         if not os.path.exists(fixed_name):
-            return False, 'VM file not found: %s' % (fixed_name)
+            return False, "VM file not found: %s" % (fixed_name)
     if not os.path.exists(vmfile(VM_PARAMS_FILE_NAME)):
-        return False, 'VM configuration missing: %s' \
-                      % (vmfile(VM_PARAMS_FILE_NAME))
+        return False, "VM configuration missing: %s" % (vmfile(VM_PARAMS_FILE_NAME))
 
     # 3: metadata files exist (made by gen_cords.py)
     vm_conf = load_yaml(vmfile(VM_PARAMS_FILE_NAME))
-    meta = {'gridfile':'%s' % (vmfile('gridfile%s' % (vm_conf['sufx']))), \
-            'gridout':'%s' % (vmfile('gridout%s' % (vm_conf['sufx']))), \
-            'bounds':'%s' % (vmfile('model_bounds%s' % (vm_conf['sufx']))), \
-            'coords':'%s' % (vmfile('model_coords%s' % (vm_conf['sufx']))), \
-            'params':'%s' % (vmfile('model_params%s' % (vm_conf['sufx'])))}
+    meta = {
+        "gridfile": "%s" % (vmfile("gridfile%s" % (vm_conf["sufx"]))),
+        "gridout": "%s" % (vmfile("gridout%s" % (vm_conf["sufx"]))),
+        "bounds": "%s" % (vmfile("model_bounds%s" % (vm_conf["sufx"]))),
+        "coords": "%s" % (vmfile("model_coords%s" % (vm_conf["sufx"]))),
+        "params": "%s" % (vmfile("model_params%s" % (vm_conf["sufx"]))),
+    }
     for meta_file in meta.values():
         if not os.path.exists(meta_file):
-            return False, 'VM metadata not found: %s' % (meta_file)
+            return False, "VM metadata not found: %s" % (meta_file)
 
     # 4: vm_params.yaml consistency
     try:
-        assert(vm_conf['nx'] == int(round(vm_conf['extent_x'] / vm_conf['hh'])))
-        assert(vm_conf['ny'] == int(round(vm_conf['extent_y'] / vm_conf['hh'])))
-        assert(vm_conf['nz'] == int(round((vm_conf['extent_zmax'] \
-                                           - vm_conf['extent_zmin']) \
-                                          / vm_conf['hh'])))
+        assert vm_conf["nx"] == int(round(vm_conf["extent_x"] / vm_conf["hh"]))
+        assert vm_conf["ny"] == int(round(vm_conf["extent_y"] / vm_conf["hh"]))
+        assert vm_conf["nz"] == int(
+            round((vm_conf["extent_zmax"] - vm_conf["extent_zmin"]) / vm_conf["hh"])
+        )
     except AssertionError:
-        return False, 'VM config missmatch between extents and nx, ny, nz: %s' \
-                      % (vmfile(VM_PARAMS_FILE_NAME))
+        return (
+            False,
+            "VM config missmatch between extents and nx, ny, nz: %s"
+            % (vmfile(VM_PARAMS_FILE_NAME)),
+        )
 
     # 5: binary file sizes
-    vm_size = vm_conf['nx'] * vm_conf['ny'] * vm_conf['nz'] * SIZE_FLOAT
+    vm_size = vm_conf["nx"] * vm_conf["ny"] * vm_conf["nz"] * SIZE_FLOAT
     for bin_file in vm.values():
         size = os.path.getsize(bin_file)
         if size != vm_size:
-            return False, 'VM filesize for %s expected: %d found: %d' \
-                    % (bin_file, vm_size, size)
+            return (
+                False,
+                "VM filesize for %s expected: %d found: %d" % (bin_file, vm_size, size),
+            )
 
     # 6: binary contents
     if numpy:
         # check first zx slice (y = 0)
-        smin = np.min(np.fromfile(vm['s'], dtype = '<f%d' % (SIZE_FLOAT), \
-                count = vm_conf['nz'] * vm_conf['nx']))
-        pmin = np.min(np.fromfile(vm['p'], dtype = '<f%d' % (SIZE_FLOAT), \
-                count = vm_conf['nz'] * vm_conf['nx']))
-        dmin = np.min(np.fromfile(vm['d'], dtype = '<f%d' % (SIZE_FLOAT), \
-                count = vm_conf['nz'] * vm_conf['nx']))
+        smin = np.min(
+            np.fromfile(
+                vm["s"],
+                dtype="<f%d" % (SIZE_FLOAT),
+                count=vm_conf["nz"] * vm_conf["nx"],
+            )
+        )
+        pmin = np.min(
+            np.fromfile(
+                vm["p"],
+                dtype="<f%d" % (SIZE_FLOAT),
+                count=vm_conf["nz"] * vm_conf["nx"],
+            )
+        )
+        dmin = np.min(
+            np.fromfile(
+                vm["d"],
+                dtype="<f%d" % (SIZE_FLOAT),
+                count=vm_conf["nz"] * vm_conf["nx"],
+            )
+        )
         # works even if min is np.nan
         if not min(smin, pmin, dmin) > 0:
-            return False, 'VM vs, vp or rho <= 0|nan found: %s' % (vm_dir)
+            return False, "VM vs, vp or rho <= 0|nan found: %s" % (vm_dir)
 
     # 7: contents of meta files
-#    if meta_created:
-#        # TODO: check individual file contents
-#        # not as important, can be re-created based on vm_params.py
-#        pass
+    #    if meta_created:
+    #        # TODO: check individual file contents
+    #        # not as important, can be re-created based on vm_params.py
+    #        pass
 
     # 8: Check VM within bounds -If DEM file is not present, fails the VM
     if os.path.exists(dem_path):
@@ -115,25 +139,31 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
             lon = next(dem_fp).split()
             min_lon = float(lon[0])
             max_lon = float(lon[-1])
-        vel_crns_file = os.path.join(vm_dir, 'VeloModCorners.txt')
+        vel_crns_file = os.path.join(vm_dir, "VeloModCorners.txt")
         with open(vel_crns_file) as crns_fp:
             next(crns_fp)
             next(crns_fp)
             for line in crns_fp:
                 lon, lat = map(float, line.split())
                 if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
-                    return False, 'VM extents not contained within NZVM DEM'
+                    return False, "VM extents not contained within NZVM DEM"
     else:
         return False, "DEM file missing"
 
-    return True, 'VM seems alright: %s.' % (vm_dir)
+    return True, "VM seems alright: %s." % (vm_dir)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
     parser.add_argument("VM_dir", type=str, help="path the VM folder")
-    parser.add_argument("-d", "--dem_path", type=str, help="path to the NZVM dem file, "
-                                                             "validates that the VM is within the bounds of the DEM")
+    parser.add_argument(
+        "-d",
+        "--dem_path",
+        type=str,
+        help="path to the NZVM dem file, "
+        "validates that the VM is within the bounds of the DEM",
+    )
     args = parser.parse_args()
     try:
         success, message = validate_vm(args.VM_dir, dem_path=args.dem_path)
