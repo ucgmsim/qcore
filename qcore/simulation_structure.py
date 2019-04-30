@@ -5,6 +5,7 @@ import os
 
 import qcore.constants as const
 
+
 def get_fault_from_realisation(realisation):
     return realisation.split("_")[0]
 
@@ -21,6 +22,18 @@ def get_fault_VM_dir(cybershake_root, realisation):
 
 def get_VM_dir(cybershake_root):
     return os.path.join(cybershake_root, "Data", "VMs")
+
+
+def get_VM_file(cybershake_root, realisation, filename):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), filename)
+
+
+def verify_VM_files_exist(cybershake_root, fault, file_names):
+    for name in file_names:
+        full_file_name = get_VM_file(cybershake_root, fault, name)
+        if not os.path.exists(full_file_name):
+            return False, "VM file not found: {}".format(full_file_name)
+    return True, ""
 
 
 # SRF

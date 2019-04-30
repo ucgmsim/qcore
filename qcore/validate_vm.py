@@ -18,7 +18,12 @@ import os
 import sys
 import argparse
 from qcore.utils import load_yaml
-from qcore.constants import VM_PARAMS_FILE_NAME
+from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
+from qcore.simulation_structure import (
+    get_VM_file,
+    get_fault_VM_dir,
+    verify_VM_files_exist,
+)
 
 DEM_PATH = "/nesi/project/nesi00213/opt/Velocity-Model/Data/DEM/NZ_DEM_HD.in"
 
@@ -30,69 +35,75 @@ except ImportError:
     numpy = False
 
 
-def validate_vm(vm_dir, dem_path=DEM_PATH):
+def validate_vm(cybershake_root, fault, dem_path=DEM_PATH):
     """
     Go through rules of VM directories. Return False if invalid.
-    vm_dir: folder path containing VM files
-    verbose: print progress
-    errors: print errors and warnings to stderr
+    cybershake_root: cybershake root folder
+    fault: name of the fault the vm is for
+    dem_path: path to DEM file
     """
     SIZE_FLOAT = 4
 
-    def vmfile(filename):
-        return os.path.join(vm_dir, filename)
-
     # 1: has to exist
+    vm_dir = get_fault_VM_dir(cybershake_root, fault)
     if not os.path.isdir(vm_dir):
-        return False, "VM dir is not a directory: %s" % (vm_dir)
+        return False, "VM dir is not a directory: {}".format(vm_dir)
+    if not os.path.exists(dem_path):
+        return False, "DEM file missing"
 
     # 2: fixed file names exist
-    vm = {
-        "s": "%s" % (vmfile("vs3dfile.s")),
-        "p": "%s" % (vmfile("vp3dfile.p")),
-        "d": "%s" % (vmfile("rho3dfile.d")),
-    }
-    for fixed_name in vm.values():
-        if not os.path.exists(fixed_name):
-            return False, "VM file not found: %s" % (fixed_name)
-    if not os.path.exists(vmfile(VM_PARAMS_FILE_NAME)):
-        return False, "VM configuration missing: %s" % (vmfile(VM_PARAMS_FILE_NAME))
+    vm = {"s": "vs3dfile.s", "p": "vp3dfile.p", "d": "rho3dfile.d"}
+    result, message = verify_VM_files_exist(cybershake_root, fault, vm.values())
+    if not result:
+        return result, message
+    vm_params = [VM_PARAMS_FILE_NAME]
+    result, message = verify_VM_files_exist(cybershake_root, fault, vm_params)
+    if not result:
+        return result, message
+    vm_params_file_path = get_VM_file(cybershake_root, fault, [VM_PARAMS_FILE_NAME])
 
     # 3: metadata files exist (made by gen_cords.py)
-    vm_conf = load_yaml(vmfile(VM_PARAMS_FILE_NAME))
-    meta = {
-        "gridfile": "%s" % (vmfile("gridfile%s" % (vm_conf["sufx"]))),
-        "gridout": "%s" % (vmfile("gridout%s" % (vm_conf["sufx"]))),
-        "bounds": "%s" % (vmfile("model_bounds%s" % (vm_conf["sufx"]))),
-        "coords": "%s" % (vmfile("model_coords%s" % (vm_conf["sufx"]))),
-        "params": "%s" % (vmfile("model_params%s" % (vm_conf["sufx"]))),
-    }
-    for meta_file in meta.values():
-        if not os.path.exists(meta_file):
-            return False, "VM metadata not found: %s" % (meta_file)
+    vm_params_dict = load_yaml(vm_params_file_path)
+    sufx = vm_params_dict[VMParams.sufx.value]
+
+    meta_files = [
+        "gridfile{}".format(sufx),
+        "gridout{}".format(sufx),
+        "model_bounds{}".format(sufx),
+        "model_coords{}".format(sufx),
+        "model_params{}".format(sufx),
+    ]
+    result, message = verify_VM_files_exist(cybershake_root, fault, meta_files)
+    if not result:
+        return False, message
 
     # 4: vm_params.yaml consistency
     try:
-        assert vm_conf["nx"] == int(round(vm_conf["extent_x"] / vm_conf["hh"]))
-        assert vm_conf["ny"] == int(round(vm_conf["extent_y"] / vm_conf["hh"]))
-        assert vm_conf["nz"] == int(
-            round((vm_conf["extent_zmax"] - vm_conf["extent_zmin"]) / vm_conf["hh"])
+        assert vm_params_dict["nx"] == int(round(vm_params_dict["extent_x"] / vm_params_dict["hh"]))
+        assert vm_params_dict["ny"] == int(round(vm_params_dict["extent_y"] / vm_params_dict["hh"]))
+        assert vm_params_dict["nz"] == int(
+            round((vm_params_dict["extent_zmax"] - vm_params_dict["extent_zmin"]) / vm_params_dict["hh"])
         )
     except AssertionError:
         return (
             False,
-            "VM config missmatch between extents and nx, ny, nz: %s"
-            % (vmfile(VM_PARAMS_FILE_NAME)),
+            "VM config missmatch between extents and nx, ny, nz: {}".format(
+                vm_params_file_path
+            ),
         )
 
     # 5: binary file sizes
-    vm_size = vm_conf["nx"] * vm_conf["ny"] * vm_conf["nz"] * SIZE_FLOAT
+    vm_size = (
+        vm_params_dict["nx"] * vm_params_dict["ny"] * vm_params_dict["nz"] * SIZE_FLOAT
+    )
     for bin_file in vm.values():
         size = os.path.getsize(bin_file)
         if size != vm_size:
             return (
                 False,
-                "VM filesize for %s expected: %d found: %d" % (bin_file, vm_size, size),
+                "VM filesize for {} expected: {} found: {}".format(
+                    bin_file, vm_size, size
+                ),
             )
 
     # 6: binary contents
@@ -100,28 +111,28 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
         # check first zx slice (y = 0)
         smin = np.min(
             np.fromfile(
-                vm["s"],
-                dtype="<f%d" % (SIZE_FLOAT),
-                count=vm_conf["nz"] * vm_conf["nx"],
+                vm["p"],
+                dtype="<f{}".format(SIZE_FLOAT),
+                count=vm_params_dict["nz"] * vm_params_dict["nx"],
             )
         )
         pmin = np.min(
             np.fromfile(
-                vm["p"],
-                dtype="<f%d" % (SIZE_FLOAT),
-                count=vm_conf["nz"] * vm_conf["nx"],
+                vm["s"],
+                dtype="<f{}".format(SIZE_FLOAT),
+                count=vm_params_dict["nz"] * vm_params_dict["nx"],
             )
         )
         dmin = np.min(
             np.fromfile(
                 vm["d"],
-                dtype="<f%d" % (SIZE_FLOAT),
-                count=vm_conf["nz"] * vm_conf["nx"],
+                dtype="<f{}".format(SIZE_FLOAT),
+                count=vm_params_dict["nz"] * vm_params_dict["nx"],
             )
         )
         # works even if min is np.nan
         if not min(smin, pmin, dmin) > 0:
-            return False, "VM vs, vp or rho <= 0|nan found: %s" % (vm_dir)
+            return False, "VM vs, vp or rho <= 0|nan found: {}".format(vm_dir)
 
     # 7: contents of meta files
     #    if meta_created:
@@ -130,33 +141,35 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
     #        pass
 
     # 8: Check VM within bounds -If DEM file is not present, fails the VM
-    if os.path.exists(dem_path):
-        with open(dem_path) as dem_fp:
-            next(dem_fp)
-            lat = next(dem_fp).split()
-            min_lat = float(lat[0])
-            max_lat = float(lat[-1])
-            lon = next(dem_fp).split()
-            min_lon = float(lon[0])
-            max_lon = float(lon[-1])
-        vel_crns_file = os.path.join(vm_dir, "VeloModCorners.txt")
-        with open(vel_crns_file) as crns_fp:
-            next(crns_fp)
-            next(crns_fp)
-            for line in crns_fp:
-                lon, lat = map(float, line.split())
-                if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
-                    return False, "VM extents not contained within NZVM DEM"
-    else:
-        return False, "DEM file missing"
+    with open(dem_path) as dem_fp:
+        next(dem_fp)
+        lat = next(dem_fp).split()
+        min_lat = float(lat[0])
+        max_lat = float(lat[-1])
+        lon = next(dem_fp).split()
+        min_lon = float(lon[0])
+        max_lon = float(lon[-1])
+    vel_crns_file = get_VM_file(cybershake_root, fault, "VeloModCorners.txt")
+    with open(vel_crns_file) as crns_fp:
+        next(crns_fp)
+        next(crns_fp)
+        for line in crns_fp:
+            lon, lat = map(float, line.split())
+            if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
+                return False, "VM extents not contained within NZVM DEM"
 
-    return True, "VM seems alright: %s." % (vm_dir)
+    return True, "VM seems alright: {}.".format(vm_dir)
 
 
 if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
-    parser.add_argument("VM_dir", type=str, help="path the VM folder")
+    parser.add_argument(
+        "cybershake_root",
+        type=str,
+        help="The root of the cybershake. Requires the standard cybershake structure.",
+    )
+    parser.add_argument("fault", type=str, help="The name of the fault")
     parser.add_argument(
         "-d",
         "--dem_path",
@@ -166,12 +179,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     try:
-        success, message = validate_vm(args.VM_dir, dem_path=args.dem_path)
+        success, message = validate_vm(
+            args.cybershake_root, args.fault, dem_path=args.dem_path
+        )
         if success:
             rc = 0
         else:
-            sys.stderr.write("%s\n" % message)
+            sys.stderr.write("{}\n".format(message))
     except Exception as e:
-        sys.stderr.write("%s\n" % e)
+        sys.stderr.write("{}\n".format(e))
     finally:
         sys.exit(rc)
