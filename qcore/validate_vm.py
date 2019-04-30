@@ -128,7 +128,7 @@ def validate_vm(cybershake_root, fault, dem_path=DEM_PATH):
     # 6: binary contents
     if numpy:
         mins = []
-        for file_name in vm.values:
+        for file_name in vm.values():
             mins.append(
                 np.min(
                     np.fromfile(
