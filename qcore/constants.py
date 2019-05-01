@@ -33,6 +33,8 @@ EST_MODEL_SVR_PREFIX = "model_SVR_"
 
 SLURM_MGMT_DB_NAME = "slurm_mgmt.db"
 
+VM_PARAMS_FILE_NAME = "vm_params.yaml"
+
 class EstModelType(Enum):
     NN = "NN"
     SVR = "SVR"
@@ -253,3 +255,7 @@ class VMParams(Enum):
     model_coords = "MODEL_COORDS"
     model_params = "MODEL_PARAMS"
     model_bounds = "MODEL_BOUNDS"
+    extent_x = "extent_x"
+    extent_y = "extent_y"
+    extent_zmax = "extent_zmax"
+    extent_zmin = "extent_zmin"
