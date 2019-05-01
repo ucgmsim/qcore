@@ -34,6 +34,12 @@ def get_srf_info_location(realisation):
     return os.path.join(fault, "Srf", realisation + ".info")
 
 
+def get_srf_dir(cybershake_root, realisation):
+    return os.path.join(
+        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Srf"
+    )
+
+
 def get_srf_path(cybershake_root, realisation):
     return os.path.join(
         cybershake_root, "Data", "Sources", get_srf_location(realisation)
@@ -51,6 +57,12 @@ def get_source_params_location(realisation):
     return os.path.join(fault, "Sim_params", realisation + ".yaml")
 
 
+def get_source_dir(cybershake_root, realisation):
+    return os.path.join(
+        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Sim_params"
+    )
+
+
 def get_source_params_path(cybershake_root, realisation):
     return os.path.join(
         cybershake_root, "Data", "Sources", get_source_params_location(realisation)
@@ -61,6 +73,12 @@ def get_source_params_path(cybershake_root, realisation):
 def get_stoch_location(realisation):
     fault = get_fault_from_realisation(realisation)
     return os.path.join(fault, "Stoch", realisation + ".stoch")
+
+
+def get_stoch_dir(cybershake_root, realisation):
+    return os.path.join(
+        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Stoch"
+    )
 
 
 def get_stoch_path(cybershake_root, realisation):
