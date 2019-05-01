@@ -57,7 +57,7 @@ def get_source_params_location(realisation):
     return os.path.join(fault, "Sim_params", realisation + ".yaml")
 
 
-def get_source_dir(cybershake_root, realisation):
+def get_source_params_dir(cybershake_root, realisation):
     return os.path.join(
         cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Sim_params"
     )
