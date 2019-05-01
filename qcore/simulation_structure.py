@@ -76,11 +76,6 @@ def get_runs_dir(cybershake_root):
 
 
 # Cybershake
-def get_cybershake_config(cybershake_root):
-    """Gets the path to the cybershake config json file"""
-    return os.path.join(cybershake_root, "cybershake_config.json")
-
-
 def get_cybershake_list(cybershake_root):
     """Gets the cybershake list, specifying the faults and number of realisation"""
     return os.path.join(cybershake_root, "list.txt")
