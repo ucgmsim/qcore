@@ -35,6 +35,8 @@ SLURM_MGMT_DB_NAME = "slurm_mgmt.db"
 
 VM_PARAMS_FILE_NAME = "vm_params.yaml"
 
+ROOT_DEFAULTS_FILE_NAME = "root_defaults.yaml"
+
 class EstModelType(Enum):
     NN = "NN"
     SVR = "SVR"
