@@ -673,7 +673,7 @@ class BBFlac(BBSeis):
             base64.b64decode(meta["stations"][0]),
             dtype=[('lon', 'f4'),
                    ('lat', 'f4'),
-                   ('name', '|S8'),
+                   ('name', '|S7'),
                    ('x', 'i4'),
                    ('y', 'i4'),
                    ('z', 'i4'),
