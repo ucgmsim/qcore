@@ -45,26 +45,27 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
         return False, 'VM dir is not a directory: %s' % (vm_dir)
 
     # 2: fixed file names exist
-    vm = {'s':'%s' % (vmfile('vs3dfile.s')), \
-            'p':'%s' % (vmfile('vp3dfile.p')), \
-            'd':'%s' % (vmfile('rho3dfile.d'))}
+    vm = {"s": vmfile("vs3dfile.s"),
+          "p": vmfile("vp3dfile.p"),
+          "d": vmfile("rho3dfile.d")}
     for fixed_name in vm.values():
         if not os.path.exists(fixed_name):
-            return False, 'VM file not found: %s' % (fixed_name)
-    if not os.path.exists(vmfile('vm_params.yaml')):
-        return False, 'VM configuration missing: %s' \
-                      % (vmfile('vm_params.yaml'))
+            return False, "VM file not found: {}".format(fixed_name)
+    vm_params_file_path = vmfile(VM_PARAMS_FILE_NAME)
+    if not os.path.exists(vm_params_file_path):
+        return False, "VM configuration missing: {}" \
+                     .format(vm_params_file_path)
 
     # 3: metadata files exist (made by gen_cords.py)
-    vm_conf = load_yaml(vmfile('vm_params.yaml'))
-    meta = {'gridfile':'%s' % (vmfile('gridfile%s' % (vm_conf['sufx']))), \
-            'gridout':'%s' % (vmfile('gridout%s' % (vm_conf['sufx']))), \
-            'bounds':'%s' % (vmfile('model_bounds%s' % (vm_conf['sufx']))), \
-            'coords':'%s' % (vmfile('model_coords%s' % (vm_conf['sufx']))), \
-            'params':'%s' % (vmfile('model_params%s' % (vm_conf['sufx'])))}
+    vm_params_dict = load_yaml(vm_params_file_path)
+    meta = {"gridfile": vmfile("gridfile{}".format(vm_params_dict["sufx"])),
+            "gridout": vmfile("gridout{}".format(vm_params_dict["sufx"])),
+            "bounds": vmfile("model_bounds{}".format(vm_params_dict["sufx"])),
+            "coords": vmfile("model_coords{}".format(vm_params_dict["sufx"])),
+            "params": vmfile("model_params{}".format(vm_params_dict["sufx"]))}
     for meta_file in meta.values():
         if not os.path.exists(meta_file):
-            return False, 'VM metadata not found: %s' % (meta_file)
+            return False, "VM metadata not found: {}".format(meta_file)
 
     # 4: vm_params.yaml consistency
     try:
