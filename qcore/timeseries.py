@@ -203,7 +203,7 @@ def seis2txt(seis, dt, prefix, stat, comp,
     Store timeseries data as standard EMOD3D text file {prefix}{stat}.{comp}.
     seis: timeseries
     dt: timestep
-    prefix: filename excluding station name and extention
+    prefix: filename excluding station name and extention, None to return contents as byte array.
     stat: station name
     comp: same as file extention ('090', '000', 'ver')
     start_hr: start time (hours, generally not used)
@@ -617,6 +617,8 @@ class BBSeis:
     def save_txt(self, station, prefix='./', title='', f='acc'):
         """
         Creates standard EMOD3D text files for the station.
+        Prefix is the name of file before station.component,
+            use None to retun the 3 component files as byte arrays.
         """
         stat_idx = self.stat_idx[station]
         if f == 'vel':
