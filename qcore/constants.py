@@ -35,6 +35,8 @@ SLURM_MGMT_DB_NAME = "slurm_mgmt.db"
 
 VM_PARAMS_FILE_NAME = "vm_params.yaml"
 
+ROOT_DEFAULTS_FILE_NAME = "root_defaults.yaml"
+
 class EstModelType(Enum):
     NN = "NN"
     SVR = "SVR"
@@ -208,6 +210,7 @@ class RootParams(Enum):
     stat_vs_ref = "stat_vs_ref"
     v_mod_1d_name = "v_mod_1d_name"
     mgmt_db_location = "mgmt_db_location"
+    seed = "seed"
 
 
 class FaultParams(Enum):
