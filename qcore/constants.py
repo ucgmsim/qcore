@@ -210,6 +210,7 @@ class RootParams(Enum):
     stat_vs_ref = "stat_vs_ref"
     v_mod_1d_name = "v_mod_1d_name"
     mgmt_db_location = "mgmt_db_location"
+    seed = "seed"
 
 
 class FaultParams(Enum):
