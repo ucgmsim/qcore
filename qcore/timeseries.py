@@ -7,6 +7,7 @@ Shared functions to work on time-series.
 
 import base64
 from glob import glob
+from io import BytesIO
 import math
 import os
 from subprocess import Popen, PIPE
@@ -202,7 +203,7 @@ def seis2txt(seis, dt, prefix, stat, comp,
     Store timeseries data as standard EMOD3D text file {prefix}{stat}.{comp}.
     seis: timeseries
     dt: timestep
-    prefix: filename excluding station name and extention
+    prefix: filename excluding station name and extention, None to return contents as byte array.
     stat: station name
     comp: same as file extention ('090', '000', 'ver')
     start_hr: start time (hours, generally not used)
@@ -215,15 +216,24 @@ def seis2txt(seis, dt, prefix, stat, comp,
     vpl: values per line, more is faster
     """
     nt = seis.shape[0]
-    with open('%s%s.%s' % (prefix, stat, comp), 'w') as txt:
-        # same format strings as fdbin2wcc
-        txt.write('%-10s %3s %s\n' % (stat, comp, title))
-        txt.write('%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n' %
-                 (nt, dt, start_hr, start_min, start_sec, edist, az, baz))
-        # values below header lines, vpl per line
-        divisible = nt - nt % vpl
-        np.savetxt(txt, seis[:divisible].reshape(-1, vpl), fmt='%13.5e')
-        np.savetxt(txt, np.atleast_2d(seis[divisible:]), fmt='%13.5e')
+    if prefix is None:
+        txt = BytesIO()
+    else:
+        txt = open('%s%s.%s' % (prefix, stat, comp), 'wb')
+
+    # same format strings as fdbin2wcc
+    txt.write(('%-10s %3s %s\n' % (stat, comp, title)).encode())
+    txt.write(('%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n' %
+                (nt, dt, start_hr, start_min, start_sec, edist, az, baz)).encode())
+    # values below header lines, vpl per line
+    divisible = nt - nt % vpl
+    np.savetxt(txt, seis[:divisible].reshape(-1, vpl), fmt='%13.5e')
+    np.savetxt(txt, np.atleast_2d(seis[divisible:]), fmt='%13.5e')
+
+    if prefix is None:
+        return txt.getvalue()
+    else:
+        txt.close()
 
 ###
 ### PROCESSING OF LF BINARY CONTAINER
@@ -607,16 +617,21 @@ class BBSeis:
     def save_txt(self, station, prefix='./', title='', f='acc'):
         """
         Creates standard EMOD3D text files for the station.
+        Prefix is the name of file before station.component,
+            use None to retun the 3 component files as byte arrays.
         """
-        i = self.stat_idx[station]
+        stat_idx = self.stat_idx[station]
         if f == 'vel':
             f = self.vel
         else:
             f = self.acc
+        xyz = []
         for i, c in enumerate(f(station).T):
-            seis2txt(c, self.dt, prefix, station, self.COMP_NAME[i],
+            xyz.append(seis2txt(c, self.dt, prefix, station, self.COMP_NAME[i],
                      start_sec=self.start_sec,
-                     edist=self.stations.e_dist[i], title=title)
+                     edist=self.stations.e_dist[stat_idx], title=title))
+        if prefix is None:
+            return xyz
 
     def all2txt(self, prefix='./', f='acc'):
         """
