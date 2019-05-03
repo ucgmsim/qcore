@@ -96,6 +96,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         'srun {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
+        (),
     )
     merge_ts = (
         2,
@@ -103,6 +104,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         False,
         "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
+        (1,),
     )
     winbin_aio = (
         3,
@@ -110,6 +112,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         False,
         "srun python $gmsim/workflow/scripts/winbin-aio-mpi.py {lf_sim_dir}",
+        (2,),
     )
     HF = (
         4,
@@ -118,6 +121,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "srun python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
+        (),
     )
     BB = (
         5,
@@ -126,6 +130,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "srun python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
+        (1, 4),
     )
     IM_calculation = (
         6,
@@ -134,20 +139,22 @@ class ProcessType(ExtendedStrEnum):
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
         "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
+        (5,),
     )
-    IM_plot = 7, None, None, False, None
-    rrup = 8, None, None, False, None
-    Empirical = 9, None, None, False, None
-    Verification = 10, None, None, False, None
-    clean_up = 11, "clean_up", None, None, None
+    IM_plot = 7, None, None, False, None, (6,)
+    rrup = 8, None, None, False, None, ()
+    Empirical = 9, None, None, False, None, (8,)
+    Verification = 10, None, None, False, None, (9,)
+    clean_up = 11, "clean_up", None, None, None, (2, 6)
 
-    def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template):
+    def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies):
         obj = object.__new__(cls)
         obj._value_ = value
         obj.str_value = str_value
         obj.is_hyperth = is_hyperth
         obj.uses_acc = uses_acc
         obj.command_template = command_template
+        obj.dependencies = dependencies
         return obj
 
 
