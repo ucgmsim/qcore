@@ -17,8 +17,10 @@ fi
 import os
 import sys
 import argparse
-from qcore.utils import load_yaml
+from qcore.utils import load_yaml, rmtree
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
+from qcore.srf import get_bounds
+from qcore.gmt import area_contains_points
 
 
 DEM_PATH = "/nesi/project/nesi00213/opt/Velocity-Model/Data/DEM/NZ_DEM_HD.in"
@@ -31,7 +33,7 @@ except ImportError:
     numpy = False
 
 
-def validate_vm(vm_dir, dem_path=DEM_PATH):
+def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
     """
     Go through rules of VM directories. Return False if invalid.
     vm_dir: folder path containing VM files
@@ -156,6 +158,18 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
             lon, lat = map(float, line.split())
             if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
                 return False, "VM extents not contained within NZVM DEM"
+
+    # 9: Check SRF within bounds if given
+    if srf is not None:
+        srf_bounds = get_bounds(srf)
+        temp_file_name = "temp_validate_vm.txt"
+        for bound in srf_bounds:
+            with open(temp_file_name, 'w') as temp_file:
+                temp_file.write(bound)
+            if not area_contains_points("VeloModCorners.txt", temp_file_name):
+                rmtree(temp_file_name)
+                return False, "Srf extents not contained within velocity model corners"
+        rmtree(temp_file_name)
 
     return True, "VM seems alright: {}.".format(vm_dir)
 

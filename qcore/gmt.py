@@ -2207,6 +2207,16 @@ def select(data, line_file=None, line_dist=0, geo=True, wd="."):
     return points
 
 
+def area_contains_points(area_file, points_file, wd="."):
+    cmd = [GMT, points_file, "-N{}+a".format(area_file)]
+    sp = Popen(cmd, cwd=wd, stdout=PIPE)
+    so = sp.communicate()[0].decode("utf-8")
+    sp.wait()
+    if so is not "":
+        return True
+    return False
+
+
 ###
 ### MAIN PLOTTING CLASS
 ###
