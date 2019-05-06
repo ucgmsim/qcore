@@ -161,7 +161,7 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
             if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
                 return False, "VM extents not contained within NZVM DEM"
 
-    # 9: Check SRF within bounds if given
+    # 9: Check SRF is within bounds of the VM if it is given
     if srf is not None:
         srf_bounds = get_bounds(srf)
         polygon.append(polygon[0])
