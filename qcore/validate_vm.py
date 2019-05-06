@@ -17,8 +17,10 @@ fi
 import os
 import sys
 import argparse
+import matplotlib.path as mpltPath
 from qcore.utils import load_yaml
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
+from qcore.srf import get_bounds
 
 
 DEM_PATH = "/nesi/project/nesi00213/opt/Velocity-Model/Data/DEM/NZ_DEM_HD.in"
@@ -31,7 +33,7 @@ except ImportError:
     numpy = False
 
 
-def validate_vm(vm_dir, dem_path=DEM_PATH):
+def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
     """
     Go through rules of VM directories. Return False if invalid.
     vm_dir: folder path containing VM files
@@ -149,14 +151,24 @@ def validate_vm(vm_dir, dem_path=DEM_PATH):
         min_lon = float(lon[0])
         max_lon = float(lon[-1])
     vel_crns_file = vmfile("VeloModCorners.txt")
+    polygon = []
     with open(vel_crns_file) as crns_fp:
         next(crns_fp)
         next(crns_fp)
         for line in crns_fp:
             lon, lat = map(float, line.split())
+            polygon.append((lon, lat))
             if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
                 return False, "VM extents not contained within NZVM DEM"
 
+    # 9: Check SRF is within bounds of the VM if it is given
+    if srf is not None:
+        srf_bounds = get_bounds(srf)
+        polygon.append(polygon[0])
+        path = mpltPath.Path(polygon)
+        for bounds in srf_bounds:
+            if not all(path.contains_points(bounds)):
+                return False, "Srf extents not contained within velocity model corners"
     return True, "VM seems alright: {}.".format(vm_dir)
 
 
@@ -164,11 +176,12 @@ if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
     parser.add_argument("VM_dir", type=str, help="path the VM folder")
-    parser.add_argument("-d", "--dem_path", type=str, help="path to the NZVM dem file, "
+    parser.add_argument("-d", "--dem_path", default=DEM_PATH, type=str, help="path to the NZVM dem file, "
                                                              "validates that the VM is within the bounds of the DEM")
+    parser.add_argument("-s", "--srf", default=None, type=str, help="An srf related to the VM")
     args = parser.parse_args()
     try:
-        success, message = validate_vm(args.VM_dir, dem_path=args.dem_path)
+        success, message = validate_vm(args.VM_dir, dem_path=args.dem_path, srf=args.srf)
         if success:
             rc = 0
         else:
