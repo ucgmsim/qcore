@@ -249,8 +249,7 @@ class SimParams(Enum):
 
 
 class VMParams(Enum):
-    """Keywords for the vm params yaml file.
-    """
+    """Keywords for the vm params yaml file."""
 
     model_lat = "MODEL_LAT"
     model_lon = "MODEL_LON"
@@ -269,3 +268,14 @@ class VMParams(Enum):
     extent_y = "extent_y"
     extent_zmax = "extent_zmax"
     extent_zmin = "extent_zmin"
+
+
+class HazardType(Enum):
+    """The different hazard fault types"""
+
+    emp_a = "emp_a"
+    emp_b = "emp_b"
+    emp_ds = "emp_ds"
+    emp_tot = "emp_tot"
+    cs_a = "cs_a"
+    cs_tot = "cs_tot"
