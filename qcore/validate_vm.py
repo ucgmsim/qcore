@@ -177,13 +177,9 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
         edges = []
         for index, start_point in enumerate(polygon):
             end_point = polygon[(index + 1) % len(polygon)]
-            edges.extend(
-                compute_intermediate_lat(
-                    start_point,
-                    end_point,
-                    np.linspace(start_point[0], end_point[0], 10000),
-                )
-            )
+            lons = np.linspace(start_point[0], end_point[0], 10000)
+            lats = compute_intermediate_lat(start_point, end_point, lons)
+            edges.extend(list(zip(lons, lats)))
 
         path = mpltPath.Path(edges)
         for bounds in srf_bounds:
@@ -192,10 +188,10 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
     return True, "VM seems alright: {}.".format(vm_dir)
 
 
-def compute_intermediate_lat(lat_lon1, lat_lon2, lon_in):
+def compute_intermediate_lat(lon_lat1, lon_lat2, lon_in):
     conversion_factor = np.pi / 180
-    lat1, lon1 = lat_lon1
-    lat2, lon2 = lat_lon2
+    lat1, lon1 = lon_lat1
+    lat2, lon2 = lon_lat2
     lat1 *= conversion_factor
     lon1 *= conversion_factor
     lat2 *= conversion_factor
