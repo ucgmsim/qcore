@@ -18,7 +18,6 @@ import os
 import sys
 import argparse
 import matplotlib.path as mpltPath
-import numpy as np
 from qcore.utils import load_yaml
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
 from qcore.srf import get_bounds
@@ -178,7 +177,7 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
         for index, start_point in enumerate(polygon):
             end_point = polygon[(index + 1) % len(polygon)]
             lons = np.linspace(start_point[0], end_point[0], 10000)
-            lats = compute_intermediate_lat(start_point, end_point, lons)
+            lats = compute_intermediate_latitudes(start_point, end_point, lons)
             edges.extend(list(zip(lons, lats)))
 
         path = mpltPath.Path(edges)
@@ -188,7 +187,17 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
     return True, "VM seems alright: {}.".format(vm_dir)
 
 
-def compute_intermediate_lat(lon_lat1, lon_lat2, lon_in):
+def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
+    """
+    Calculates the latitudes of points along the shortest path between the points lon_lat1 and lon_lat2, taking the
+    shortest path on the sphere, using great circle calculations.
+    Note that this is different from the path obtained by interpolating the latitude and longitude between the two points.
+    Equation taken from http://www.edwilliams.org/avform.htm#Int
+    :param lon_lat1: A tuple containing the longitude and latitude of the start point
+    :param lon_lat2: A tuple containing the longitude and latitude of the end point
+    :param lon_in: A float or iterable of floats compliant with numpy of the longitude(s) to have latitudes calculated for
+    :return: A float or iterable of floats which represent the latitude(s) of the value(s) given in lon_in
+    """
     conversion_factor = np.pi / 180
     lat1, lon1 = lon_lat1
     lat2, lon2 = lon_lat2
