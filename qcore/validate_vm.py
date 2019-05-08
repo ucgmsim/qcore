@@ -52,24 +52,27 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
         return False, "DEM file missing"
 
     # 2: fixed file names exist
-    vm = {"s": vmfile("vs3dfile.s"),
-          "p": vmfile("vp3dfile.p"),
-          "d": vmfile("rho3dfile.d")}
+    vm = {
+        "s": vmfile("vs3dfile.s"),
+        "p": vmfile("vp3dfile.p"),
+        "d": vmfile("rho3dfile.d"),
+    }
     for fixed_name in vm.values():
         if not os.path.exists(fixed_name):
             return False, "VM file not found: {}".format(fixed_name)
     vm_params_file_path = vmfile(VM_PARAMS_FILE_NAME)
     if not os.path.exists(vm_params_file_path):
-        return False, "VM configuration missing: {}" \
-                     .format(vm_params_file_path)
+        return False, "VM configuration missing: {}".format(vm_params_file_path)
 
     # 3: metadata files exist (made by gen_cords.py)
     vm_params_dict = load_yaml(vm_params_file_path)
-    meta = {"gridfile": vmfile("gridfile{}".format(vm_params_dict["sufx"])),
-            "gridout": vmfile("gridout{}".format(vm_params_dict["sufx"])),
-            "bounds": vmfile("model_bounds{}".format(vm_params_dict["sufx"])),
-            "coords": vmfile("model_coords{}".format(vm_params_dict["sufx"])),
-            "params": vmfile("model_params{}".format(vm_params_dict["sufx"]))}
+    meta = {
+        "gridfile": vmfile("gridfile{}".format(vm_params_dict["sufx"])),
+        "gridout": vmfile("gridout{}".format(vm_params_dict["sufx"])),
+        "bounds": vmfile("model_bounds{}".format(vm_params_dict["sufx"])),
+        "coords": vmfile("model_coords{}".format(vm_params_dict["sufx"])),
+        "params": vmfile("model_params{}".format(vm_params_dict["sufx"])),
+    }
     for meta_file in meta.values():
         if not os.path.exists(meta_file):
             return False, "VM metadata not found: {}".format(meta_file)
@@ -77,10 +80,16 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
     # 4: vm_params.yaml consistency
     try:
         assert vm_params_dict[VMParams.nx.value] == int(
-            round(vm_params_dict[VMParams.extent_x.value] / vm_params_dict[VMParams.hh.value])
+            round(
+                vm_params_dict[VMParams.extent_x.value]
+                / vm_params_dict[VMParams.hh.value]
+            )
         )
         assert vm_params_dict[VMParams.ny.value] == int(
-            round(vm_params_dict[VMParams.extent_y.value] / vm_params_dict[VMParams.hh.value])
+            round(
+                vm_params_dict[VMParams.extent_y.value]
+                / vm_params_dict[VMParams.hh.value]
+            )
         )
         assert vm_params_dict[VMParams.nz.value] == int(
             round(
@@ -136,10 +145,10 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
             return False, "VM vs, vp or rho <= 0|nan found: {}".format(vm_dir)
 
     # 7: contents of meta files
-#    if meta_created:
-#        # TODO: check individual file contents
-#        # not as important, can be re-created based on vm_params.py
-#        pass
+    #    if meta_created:
+    #        # TODO: check individual file contents
+    #        # not as important, can be re-created based on vm_params.py
+    #        pass
 
     # 8: Check VM within bounds -If DEM file is not present, fails the VM
     with open(dem_path) as dem_fp:
@@ -164,24 +173,70 @@ def validate_vm(vm_dir, dem_path=DEM_PATH, srf=None):
     # 9: Check SRF is within bounds of the VM if it is given
     if srf is not None:
         srf_bounds = get_bounds(srf)
-        polygon.append(polygon[0])
-        path = mpltPath.Path(polygon)
+        edges = []
+        for index, start_point in enumerate(polygon):
+            end_point = polygon[(index + 1) % len(polygon)]
+            lons = np.linspace(start_point[0], end_point[0], 10000)
+            lats = compute_intermediate_latitudes(start_point, end_point, lons)
+            edges.extend(list(zip(lons, lats)))
+
+        path = mpltPath.Path(edges)
         for bounds in srf_bounds:
             if not all(path.contains_points(bounds)):
                 return False, "Srf extents not contained within velocity model corners"
     return True, "VM seems alright: {}.".format(vm_dir)
 
 
+def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
+    """
+    Calculates the latitudes of points along the shortest path between the points lon_lat1 and lon_lat2, taking the
+    shortest path on the sphere, using great circle calculations.
+    Note that this is different from the path obtained by interpolating the latitude and longitude between the two points.
+    Equation taken from http://www.edwilliams.org/avform.htm#Int
+    :param lon_lat1: A tuple containing the longitude and latitude of the start point
+    :param lon_lat2: A tuple containing the longitude and latitude of the end point
+    :param lon_in: A float or iterable of floats compliant with numpy of the longitude(s) to have latitudes calculated for
+    :return: A float or iterable of floats which represent the latitude(s) of the value(s) given in lon_in
+    """
+    conversion_factor = np.pi / 180
+    lat1, lon1 = lon_lat1
+    lat2, lon2 = lon_lat2
+    lat1 *= conversion_factor
+    lon1 *= conversion_factor
+    lat2 *= conversion_factor
+    lon2 *= conversion_factor
+    lon = lon_in * conversion_factor
+    return (
+        np.arctan(
+            (
+                np.sin(lat1) * np.cos(lat2) * np.sin(lon - lon2)
+                - np.sin(lat2) * np.cos(lat1) * np.sin(lon - lon1)
+            )
+            / (np.cos(lat1) * np.cos(lat2) * np.sin(lon1 - lon2))
+        )
+    ) / conversion_factor
+
+
 if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
     parser.add_argument("VM_dir", type=str, help="path the VM folder")
-    parser.add_argument("-d", "--dem_path", default=DEM_PATH, type=str, help="path to the NZVM dem file, "
-                                                             "validates that the VM is within the bounds of the DEM")
-    parser.add_argument("-s", "--srf", default=None, type=str, help="An srf related to the VM")
+    parser.add_argument(
+        "-d",
+        "--dem_path",
+        default=DEM_PATH,
+        type=str,
+        help="path to the NZVM dem file, "
+        "validates that the VM is within the bounds of the DEM",
+    )
+    parser.add_argument(
+        "-s", "--srf", default=None, type=str, help="An srf related to the VM"
+    )
     args = parser.parse_args()
     try:
-        success, message = validate_vm(args.VM_dir, dem_path=args.dem_path, srf=args.srf)
+        success, message = validate_vm(
+            args.VM_dir, dem_path=args.dem_path, srf=args.srf
+        )
         if success:
             rc = 0
         else:
