@@ -106,14 +106,6 @@ class ProcessType(ExtendedStrEnum):
         "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
         (1,),
     )
-    winbin_aio = (
-        3,
-        "winbin_aio",
-        True,
-        False,
-        "srun python $gmsim/workflow/scripts/winbin-aio-mpi.py {lf_sim_dir}",
-        (2,),
-    )
     HF = (
         4,
         "HF",
