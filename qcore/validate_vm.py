@@ -199,13 +199,15 @@ def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
     :return: A float or iterable of floats which represent the latitude(s) of the value(s) given in lon_in
     """
     conversion_factor = np.pi / 180
-    lat1, lon1 = lon_lat1
-    lat2, lon2 = lon_lat2
+    lon1, lat1 = lon_lat1
+    lon2, lat2 = lon_lat2
     lat1 *= conversion_factor
     lon1 *= conversion_factor
     lat2 *= conversion_factor
     lon2 *= conversion_factor
     lon = lon_in * conversion_factor
+    if lon1 == lon2:
+        return np.linspace(lat1, lat2, len(lon_in))/conversion_factor
     return (
         np.arctan(
             (
