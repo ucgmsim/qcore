@@ -5,4 +5,5 @@ Qcore library
 ## [19.5.1] - 2019-05-13 -- Initial Version
 ### Changed
     - get_bounds now returns the location of point source earthquakes
+    - Validate VM can now validate that srfs for point source realisations are within the VM
     - If incident corners of a VM have the same longitude then the points between them are now correctly interpolated
