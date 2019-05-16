@@ -149,6 +149,13 @@ class ProcessType(ExtendedStrEnum):
         obj.dependencies = dependencies
         return obj
 
+    @classmethod
+    def get_by_name(cls, name):
+        for _, member in cls.__members__.items():
+            if member.str_value == name:
+                return member
+        raise LookupError
+
 
 class MetadataField(ExtendedEnum):
     sim_name = "sim_name"
