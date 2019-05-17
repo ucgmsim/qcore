@@ -106,14 +106,6 @@ class ProcessType(ExtendedStrEnum):
         "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
         (1,),
     )
-    winbin_aio = (
-        3,
-        "winbin_aio",
-        True,
-        False,
-        "srun python $gmsim/workflow/scripts/winbin-aio-mpi.py {lf_sim_dir}",
-        (2,),
-    )
     HF = (
         4,
         "HF",
@@ -156,6 +148,13 @@ class ProcessType(ExtendedStrEnum):
         obj.command_template = command_template
         obj.dependencies = dependencies
         return obj
+
+    @classmethod
+    def get_by_name(cls, name):
+        for _, member in cls.__members__.items():
+            if member.str_value == name:
+                return member
+        raise LookupError
 
 
 class MetadataField(ExtendedEnum):
