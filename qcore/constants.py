@@ -137,7 +137,7 @@ class ProcessType(ExtendedStrEnum):
     rrup = 8, None, None, False, None, ()
     Empirical = 9, None, None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
-    clean_up = 11, "clean_up", None, None, None, (2, 6)
+    clean_up = 11, "clean_up", None, None, None, (6, )
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
 
