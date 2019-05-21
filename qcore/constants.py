@@ -131,13 +131,15 @@ class ProcessType(ExtendedStrEnum):
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
         "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
-        (5,),
+        ((5,), (12,), (13,)),
     )
     IM_plot = 7, None, None, False, None, (6,)
     rrup = 8, None, None, False, None, ()
     Empirical = 9, None, None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
     clean_up = 11, "clean_up", None, None, None, (2, 6)
+    lf2bb = 12, "LF2BB", None, None, None, (1,)
+    hf2bb = 13, "HF2BB", None, None, None, (4,)
 
     def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies):
         obj = object.__new__(cls)
