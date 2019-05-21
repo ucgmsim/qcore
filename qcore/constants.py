@@ -138,8 +138,8 @@ class ProcessType(ExtendedStrEnum):
     Empirical = 9, None, None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
     clean_up = 11, "clean_up", None, None, None, (2, 6)
-    lf2bb = 12, "LF2BB", None, None, None, (1,)
-    hf2bb = 13, "HF2BB", None, None, None, (4,)
+    LF2BB = 12, "LF2BB", None, None, None, (1,)
+    HF2BB = 13, "HF2BB", None, None, None, (4,)
 
     def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies):
         obj = object.__new__(cls)
