@@ -2,6 +2,7 @@ from enum import Enum
 from datetime import datetime
 
 LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
+CHECKPOINT_DURATION = 10.0 # in minutes
 
 HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 HF_DEFAULT_VERSION = "run_hf_mpi"
