@@ -158,6 +158,48 @@ class ProcessType(ExtendedStrEnum):
                 return member
         raise LookupError
 
+    def get_remaining_dependencies(self, completed_dependencies=()):
+        """Determines if the task has any unmet dependencies and returns a list of them if so. Only does single level
+        dependencies, does not recurse
+        :param completed_dependencies: Tasks that have been completed and therefore may contribute to this tasks
+        dependencies
+        :return: A list of integers representing the unmet dependency tasks.
+        """
+        dependencies = self.dependencies
+        if len(self.dependencies) > 0 and not isinstance(self.dependencies[0], int):
+            if any(
+                (
+                    all(
+                        (
+                            ProcessType(dependency) in completed_dependencies
+                            for dependency in multi_dependency
+                        )
+                    )
+                    for multi_dependency in self.dependencies
+                )
+            ):
+                # At least one of the dependency conditions for the task is fulfilled, no need to add any more tasks
+                return []
+            # Otherwise the first dependency list is the default
+            dependencies = self.dependencies[0]
+        return [x for x in dependencies if x not in completed_dependencies]
+
+    @staticmethod
+    def check_mutually_exclusive_tasks(tasks):
+        """If multiple tasks from any of the given groups are specified, then the simulation cannot run
+        :param tasks: The list of tasks to be run
+        :return: A string containing any errors found during the check"""
+        mutually_exclusive_tasks = (
+            (ProcessType.BB, ProcessType.LF2BB, ProcessType.HF2BB),
+        )
+        message = []
+        for task_group in mutually_exclusive_tasks:
+            if len([x for x in task_group if x in tasks]) > 1:
+                message.append("The tasks {} are mutually exclusive and cannot be run at the same time.\n".format(
+                    (x.str_value for x in task_group)
+                ))
+        return "\n".join(message)
+
 
 class MetadataField(ExtendedEnum):
     sim_name = "sim_name"
