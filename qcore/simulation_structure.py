@@ -127,6 +127,8 @@ def get_lf_dir(sim_root):
 def get_lf_outbin_dir(sim_root):
     return os.path.join(get_lf_dir(sim_root), "OutBin")
 
+def get_lf_restart_dir(sim_root):
+    return os.path.join(get_lf_dir(sim_root), "Restart")
 
 # BB
 def get_bb_dir(sim_root):
