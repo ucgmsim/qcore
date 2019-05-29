@@ -1,5 +1,6 @@
 from enum import Enum
 from datetime import datetime
+from typing import List
 
 LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
 CHECKPOINT_DURATION = 10.0 # in minutes
@@ -159,7 +160,7 @@ class ProcessType(ExtendedStrEnum):
                 return member
         raise LookupError
 
-    def get_remaining_dependencies(self, completed_dependencies=()):
+    def get_remaining_dependencies(self, completed_dependencies: List['ProcessType'] = ()) -> List[int]:
         """Determines if the task has any unmet dependencies and returns a list of them if so. Only does single level
         dependencies, does not recurse
         :param completed_dependencies: Tasks that have been completed and therefore may contribute to this tasks
@@ -183,7 +184,7 @@ class ProcessType(ExtendedStrEnum):
                 return []
             # Otherwise the first dependency list is the default
             dependencies = self.dependencies[0]
-        return [x for x in dependencies if x not in completed_dependencies]
+        return [x for x in dependencies if ProcessType(x) not in completed_dependencies]
 
     @staticmethod
     def check_mutually_exclusive_tasks(tasks):
