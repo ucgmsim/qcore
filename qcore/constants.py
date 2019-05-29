@@ -39,6 +39,7 @@ VM_PARAMS_FILE_NAME = "vm_params.yaml"
 
 ROOT_DEFAULTS_FILE_NAME = "root_defaults.yaml"
 
+
 class EstModelType(Enum):
     NN = "NN"
     SVR = "SVR"
@@ -143,7 +144,9 @@ class ProcessType(ExtendedStrEnum):
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
 
-    def __new__(cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies):
+    def __new__(
+        cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
+    ):
         obj = object.__new__(cls)
         obj._value_ = value
         obj.str_value = str_value
@@ -249,6 +252,7 @@ class Status(ExtendedStrEnum):
         obj.str_value = str_value
         return obj
 
+
 class RootParams(Enum):
     """Keywords for the root yaml file.
     Note: These are not complete!
@@ -325,3 +329,25 @@ class HazardType(Enum):
     emp_tot = "emp_tot"
     cs_a = "cs_a"
     cs_tot = "cs_tot"
+
+
+class SourceToSiteDist(ExtendedStrEnum):
+    R_rup = 0, "r_rup"
+    R_jb = 1, "r_jb"
+    R_x = 2, "r_x"
+
+    def __new__(cls, value, str_value):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.str_value = str_value
+        return obj
+
+
+class ERFFileType(Enum):
+    nhm = 0, "nhm"
+
+    def __new__(cls, value, str_value):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.str_value = str_value
+        return obj

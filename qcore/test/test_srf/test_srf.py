@@ -174,6 +174,17 @@ def test_read_latlondepth(
     points = srf.read_latlondepth(test_srf)
     assert points[9] == expected_latlondepth  # 10th point in the srf file
 
+@pytest.mark.parametrize(
+    "test_srf, expected_result",
+    [
+        (SRF_1_PATH, np.array([176.2414, -38.3354, 0.0431])),
+        (SRF_2_PATH, np.array([176.7958, -37.1105, 0.0381]))
+    ],
+)
+def test_read_srf_points(test_srf, expected_result):
+    result = srf.read_srf_points(test_srf)
+    assert np.all(np.isclose(result[9, :], expected_result))
+
 
 @pytest.mark.parametrize(
     "test_srf,seg,depth,expected_bounds",

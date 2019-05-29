@@ -325,7 +325,6 @@ def read_latlondepth(srf):
     Return a list of lat,long,depth values extracted from file specified by
     srfFile
     """
-
     with open(srf, 'r') as sf:
         sf.readline()
         n_seg = int(sf.readline().split()[1])
@@ -341,6 +340,39 @@ def read_latlondepth(srf):
             point['lon'] = values[0]
             point['depth'] = values[2]
             points.append(point)
+
+    return points
+
+
+def read_srf_points(srf: str):
+    """Reads the points from the srf files and returns them
+    as a numpy array
+
+    Note: This is pretty much the same as read_latlondepth, but returns it
+    as an array.
+
+    Parameters
+    ----------
+    srf : str
+        Path to the srf file
+
+    Returns
+    -------
+    np.ndarray
+        Shape [n_points, 3], with the columns in the order lon, lat, depth
+    """
+    with open(srf, 'r') as sf:
+        # Skip over planes
+        sf.readline()
+        n_seg = int(sf.readline().split()[1])
+        for _ in range(n_seg):
+            sf.readline()
+            sf.readline()
+
+        # Read the points
+        n_point = int(sf.readline().split()[1])
+        data = [get_lonlat(sf, value="depth") for _ in range(n_point)]
+        points = np.asarray(data)
 
     return points
 
