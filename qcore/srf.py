@@ -319,6 +319,31 @@ def get_lonlat(sf, value=None, depth=False):
         return lon, lat, depth_v, value
     return lon, lat, value
 
+
+def read_latlondepth(srf):
+    """
+    Return a list of lat,long,depth values extracted from file specified by
+    srfFile
+    """
+    with open(srf, 'r') as sf:
+        sf.readline()
+        n_seg = int(sf.readline().split()[1])
+        for _ in range(n_seg):
+            sf.readline()
+            sf.readline()
+        n_point = int(sf.readline().split()[1])
+        points = []
+        for _ in range(n_point):
+            values = get_lonlat(sf, "depth")
+            point = {}
+            point['lat'] = values[1]
+            point['lon'] = values[0]
+            point['depth'] = values[2]
+            points.append(point)
+
+    return points
+
+
 def read_srf_points(srf: str):
     """Reads the points from the srf files and returns them
     as a numpy array
