@@ -353,12 +353,3 @@ class ERFFileType(ExtendedStrEnum):
         return obj
 
 
-class GMType(ExtendedStrEnum):
-    simulated = 0, "simulated"
-    empirical = 1, "empirical"
-
-    def __new__(cls, value, str_value):
-        obj = object.__new__(cls)
-        obj._value_ = value
-        obj.str_value = str_value
-        return obj
