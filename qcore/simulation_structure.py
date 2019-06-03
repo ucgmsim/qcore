@@ -157,6 +157,10 @@ def get_hf_bin_path(sim_root):
 
 
 # IM_calc
+def get_im_calc_dir(sim_root):
+    return os.path.join(sim_root, "IM_Calc")
+
+
 def get_IM_csv(sim_root):
     return os.path.join(
         sim_root,
