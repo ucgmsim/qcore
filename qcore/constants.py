@@ -7,6 +7,7 @@ CHECKPOINT_DURATION = 10.0 # in minutes
 
 HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 HF_DEFAULT_VERSION = "run_hf_mpi"
+HF_DEFAULT_SEED = 0
 
 BB_DEFAULT_VERSION = "run_bb_mpi"
 BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
@@ -351,5 +352,3 @@ class ERFFileType(ExtendedStrEnum):
         obj._value_ = value
         obj.str_value = str_value
         return obj
-
-
