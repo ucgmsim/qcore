@@ -158,13 +158,12 @@ def get_hf_bin_path(sim_root):
 
 # IM_calc
 def get_im_calc_dir(sim_root):
-    return os.path.join(sim_root, "IM_Calc")
+    return os.path.join(sim_root, "IM_calc")
 
 
 def get_IM_csv(sim_root):
     return os.path.join(
-        sim_root,
-        "IM_calc",
+        get_im_calc_dir(sim_root),
         "{}.{}".format(os.path.basename(sim_root).split(".")[0], "csv"),
     )
 
