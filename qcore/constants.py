@@ -7,7 +7,7 @@ CHECKPOINT_DURATION = 10.0 # in minutes
 
 HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 HF_DEFAULT_VERSION = "run_hf_mpi"
-HF_DEFAULT_SEED = 0
+HF_DEFAULT_SEED = 0 # Causes a random seed to be chosen, unless a previous seed file already exists
 
 BB_DEFAULT_VERSION = "run_bb_mpi"
 BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
