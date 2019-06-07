@@ -59,3 +59,19 @@ def load_station_file(station_file: str):
         sep="\s+",
         engine="c",
     )
+
+
+def load_rrup_file(rrup_file: str):
+    """Reads the rrup file into a pandas dataframe
+
+    Parameters
+    ----------
+    rrup_file: str
+        Path to the rrup file to load
+
+    Returns
+    -------
+    pd.DataFrame
+        station as index with columns rrup, rjb and optional rx
+    """
+    return pd.read_csv(rrup_file, header=0, index_col=0, engine="c")
