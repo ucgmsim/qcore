@@ -24,6 +24,8 @@ HEADER_TEMPLATE = "slurm_header.cfg"
 DEFAULT_ACCOUNT = "nesi00213"
 DEFAULT_MEMORY = "16G"
 
+QUEUE_DATE_FORMAT = "%Y%m%d%H%M%S_%f"
+
 # Why do we have to different time formats?
 METADATA_TIMESTAMP_FMT = "%Y-%m-%d_%H:%M:%S"
 METADATA_LOG_FILENAME = "metadata_log.json"
