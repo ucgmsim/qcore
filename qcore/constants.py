@@ -144,7 +144,7 @@ class ProcessType(ExtendedStrEnum):
         "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
         ((5,), (12,), (13,)),
     )
-    IM_plot = 7, None, None, False, None, (6,)
+    IM_plot = 7, "IM_plot", None, False, None, (6,)
     rrup = 8, "rrup", None, False, None, ()
     Empirical = 9, None, None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
