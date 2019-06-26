@@ -153,6 +153,7 @@ class ProcessType(ExtendedStrEnum):
     clean_up = 11, "clean_up", None, None, None, (6, )
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
+    plot_srf = 14, "plot_srf", None, False, None, ()    
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
