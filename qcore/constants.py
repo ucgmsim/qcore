@@ -20,9 +20,6 @@ IM_SIM_SL_SCRIPT_NAME = "sim_im_calc_{}.sl"
 
 MERGE_TS_DEFAULT_NCORES = 4
 
-#persudo
-PLOT_TS_DEFAULT_NCORE = 36
-
 HEADER_TEMPLATE = "slurm_header.cfg"
 DEFAULT_ACCOUNT = "nesi00213"
 DEFAULT_MEMORY = "16G"
@@ -116,7 +113,6 @@ class ProcessType(ExtendedStrEnum):
         (1,),
     )
 
-    #persudo
     plot_ts = (3, "plot_ts", True, None, None, (2,))
 
     HF = (
