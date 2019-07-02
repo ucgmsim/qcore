@@ -189,6 +189,6 @@ def get_root_yaml_path(sim_root):
 # plot
 def get_verification_dir(sim_root):
     """
-    Gets the verificatin folder for storing im plots, srf plots etc.
+    Gets the verification folder for storing im plots, srf plots etc.
     """
     return os.path.join(sim_root, 'Verification')
