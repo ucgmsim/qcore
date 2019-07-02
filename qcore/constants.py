@@ -303,6 +303,9 @@ class SimParams(Enum):
     sim_duration = "sim_duration"
     slip = "slip"
     stat_file = "stat_file"
+    hf = "hf"
+    emod3d = "emod3d"
+    bb = "bb"
 
 
 class VMParams(Enum):

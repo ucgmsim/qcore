@@ -23,6 +23,10 @@ def get_VM_dir(cybershake_root):
     return os.path.join(cybershake_root, "Data", "VMs")
 
 
+def get_VM_params_path(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), "vm_params.yaml")
+
+
 # SRF
 def get_srf_location(realisation):
     fault = get_fault_from_realisation(realisation)
@@ -169,6 +173,16 @@ def get_IM_csv(sim_root):
 
 
 # yaml
+def get_sim_yaml_path(sim_root, realisation):
+    """
+    Gets the fault_params.yaml for the specified simulation.
+    Note: For the manual workflow set fault_name to None as the
+    fault params are stored directly in the simulation directory.
+    """
+    fault_name = get_fault_from_realisation(realisation)
+    return os.path.join(sim_root, fault_name, realisation, "sim_params.yaml")
+
+
 def get_fault_yaml_path(sim_root, fault_name=None):
     """
     Gets the fault_params.yaml for the specified simulation. 
