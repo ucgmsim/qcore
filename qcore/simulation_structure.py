@@ -180,7 +180,7 @@ def get_sim_yaml_path(sim_root, realisation):
     fault params are stored directly in the simulation directory.
     """
     fault_name = get_fault_from_realisation(realisation)
-    return os.path.join(sim_root, fault_name, realisation, "sim_params.yaml")
+    return os.path.join(get_runs_dir(sim_root), fault_name, realisation, "sim_params.yaml")
 
 
 def get_fault_yaml_path(sim_root, fault_name=None):
