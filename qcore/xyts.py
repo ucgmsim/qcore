@@ -126,9 +126,14 @@ class XYTSFile:
             ]
         )
         amat = geo.gen_mat(self.mrot, self.mlon, self.mlat)[0]
-        ll_cnrs = geo.xy2ll(
+        ll_cnrs_unshifted = geo.xy2ll(
             geo.gp2xy(gp_cnrs, self.nx_sim, self.ny_sim, self.hh), amat
-        ).tolist()
+        )
+        unshifted_lon = ll_cnrs_unshifted[:, 0]
+        unshifted_lat = ll_cnrs_unshifted[:, 1]
+        shifted_lon = np.array(unshifted_lon < 0) * 360 + unshifted_lon # Adds 360 to any point in negative longitude
+        ll_cnrs = list(zip(shifted_lon, unshifted_lat))
+
         if not gmt_format:
             return ll_cnrs
 
