@@ -196,3 +196,11 @@ def get_root_yaml_path(sim_root):
     Gets the root_params.yaml for the specified simulation.
     """
     return os.path.join(sim_root, "root_params.yaml")
+
+
+# plot
+def get_verification_dir(sim_root):
+    """
+    Gets the verification folder for storing im plots, srf plots etc.
+    """
+    return os.path.join(sim_root, 'Verification')
