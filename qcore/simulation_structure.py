@@ -199,7 +199,7 @@ def get_plot_dir(cybershake_root, realisation):
     Gets the folder for storing plots that can be generated 
     before installing a cybershake. eg. srf square & map plots.
     """
-    return return os.path.join(
+    return os.path.join(
         cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Plots"
     )
 
