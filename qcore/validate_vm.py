@@ -46,8 +46,6 @@ def validate_vm(vm_dir, srf=None):
     # 1: has to exist
     if not os.path.isdir(vm_dir):
         return False, "VM dir is not a directory: {}".format(vm_dir)
-    if not os.path.exists(dem_path):
-        return False, "DEM file missing"
 
     # 2: fixed file names exist
     vm = {
