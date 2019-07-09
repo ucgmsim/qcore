@@ -218,7 +218,8 @@ def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
 if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
-    parser.add_argument("VM_dir", type=str, help="path the VM folder")
+    parser.add_argument("VM_dir", type=str, help="path to the VM folder")
+    parser.add_argument("--srf", default=None, type=str, help="path to the srf file")
     args = parser.parse_args()
     try:
         success, message = validate_vm(
