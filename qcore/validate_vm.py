@@ -170,8 +170,7 @@ def validate_vm(vm_dir, srf=None):
         srf_bounds = get_bounds(srf)
         edges = []
         for index, start_point in enumerate(polygon):
-            start_point = start_point % 360
-            end_point = polygon[(index + 1) % len(polygon)] % 360
+            end_point = polygon[(index + 1) % len(polygon)]
             lons = np.linspace(start_point[0], end_point[0], 10000) % 360
             lats = compute_intermediate_latitudes(start_point, end_point, lons)
             edges.extend(list(zip(lons, lats)))
