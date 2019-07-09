@@ -24,6 +24,8 @@ HEADER_TEMPLATE = "slurm_header.cfg"
 DEFAULT_ACCOUNT = "nesi00213"
 DEFAULT_MEMORY = "16G"
 
+QUEUE_DATE_FORMAT = "%Y%m%d%H%M%S_%f"
+
 # Why do we have to different time formats?
 METADATA_TIMESTAMP_FMT = "%Y-%m-%d_%H:%M:%S"
 METADATA_LOG_FILENAME = "metadata_log.json"
@@ -110,6 +112,9 @@ class ProcessType(ExtendedStrEnum):
         "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
         (1,),
     )
+
+    plot_ts = (3, "plot_ts", True, None, None, (2,))
+
     HF = (
         4,
         "HF",
@@ -137,13 +142,14 @@ class ProcessType(ExtendedStrEnum):
         "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
         ((5,), (12,), (13,)),
     )
-    IM_plot = 7, None, None, False, None, (6,)
+    IM_plot = 7, "IM_plot", None, False, None, (6,)
     rrup = 8, "rrup", None, False, None, ()
     Empirical = 9, None, None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
     clean_up = 11, "clean_up", None, None, None, (6, )
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
+    plot_srf = 14, "plot_srf", None, False, None, ()    
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies

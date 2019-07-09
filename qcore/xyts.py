@@ -126,9 +126,11 @@ class XYTSFile:
             ]
         )
         amat = geo.gen_mat(self.mrot, self.mlon, self.mlat)[0]
-        ll_cnrs = geo.xy2ll(
-            geo.gp2xy(gp_cnrs, self.nx_sim, self.ny_sim, self.hh), amat
-        ).tolist()
+        ll_cnrs = geo.xy2ll(geo.gp2xy(gp_cnrs, self.nx_sim, self.ny_sim, self.hh), amat)
+        # assume negative longitude is an extention east (from positive longitude)
+        ll_cnrs[:, 0] += (ll_cnrs[:, 0] < 0) * 360
+        ll_cnrs = ll_cnrs.tolist()
+
         if not gmt_format:
             return ll_cnrs
 

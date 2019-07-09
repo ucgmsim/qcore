@@ -48,7 +48,7 @@ def get_corners(model_params, gmt_format=False):
         for corner in ["c1=", "c2=", "c3=", "c4="]:
             for line in lines:
                 if corner in line:
-                    corners.append(map(float, line.split()[1:3]))
+                    corners.append(list(map(float, line.split()[1:3])))
                     break
     if not gmt_format:
         return corners
