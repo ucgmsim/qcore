@@ -171,9 +171,9 @@ def read_nhm_file(nhm_file: str):
         rows = f.readlines()[15:]
 
     cur_rows, result = [], []
-    for row in rows:
+    for ix, row in enumerate(rows):
         # Empty row, i.e. separates faults
-        if len(row.strip()) == 0:
+        if len(row.strip()) == 0 or (ix + 1) == len(rows):
             result.append(NHMInfo.from_nhm_section(cur_rows))
             cur_rows = []
         else:
