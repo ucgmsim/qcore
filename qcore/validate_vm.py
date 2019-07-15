@@ -21,8 +21,7 @@ import matplotlib.path as mpltPath
 from qcore.utils import load_yaml
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
 from qcore.srf import get_bounds
-
-
+from qcore.geo import ll_dist
 
 try:
     import numpy as np
@@ -170,7 +169,7 @@ def validate_vm(vm_dir, srf=None):
         edges = []
         for index, start_point in enumerate(polygon):
             end_point = polygon[(index + 1) % len(polygon)]
-            lons = np.linspace(start_point[0], end_point[0], 10000)
+            lons = np.linspace(start_point[0], end_point[0], int(ll_dist(*start_point, *end_point)))
             lats = compute_intermediate_latitudes(start_point, end_point, lons)
             edges.extend(list(zip(lons, lats)))
 
