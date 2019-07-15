@@ -216,6 +216,7 @@ if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
     parser.add_argument("VM_dir", type=str, help="path the VM folder")
+    parser.add_argument("--srf", default=None, type=str, help="Path to the SRF to be used with this VM")
     args = parser.parse_args()
     try:
         success, message = validate_vm(
