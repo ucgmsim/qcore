@@ -100,7 +100,7 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None):
         if err:
             print(err, file=sys.stderr)
 
-    return out, err
+    return out.decode('utf-8'), err.decode('utf-8')
 
 
 def is_virtual_station(station_name):
