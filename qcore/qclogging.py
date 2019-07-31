@@ -1,6 +1,8 @@
 import logging
 import sys
 
+from qcore.constants import ProcessType
+
 VERYVERBOSE = logging.DEBUG // 2
 
 logging.addLevelName(VERYVERBOSE, "VERY_VERBOSE")
