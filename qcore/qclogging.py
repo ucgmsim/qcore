@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import MemoryHandler
 import sys
 
 from qcore.constants import ProcessType
@@ -88,6 +89,7 @@ def add_general_file_handler(
 ):
     """
     Adds a file handler to the logger using the given file_path
+    If there are any Memory handler attached to the logger they are automatically drained in to the new file handler
     :param logger: The logger object
     :param file_path: The path to the file to be used. Will be appended to if it already exists
     """
@@ -98,6 +100,31 @@ def add_general_file_handler(
         file_out_handler.setFormatter(general_formatter)
 
     logger.addHandler(file_out_handler)
+
+    for handler in logger.handlers[:]:
+        if isinstance(handler, MemoryHandler):
+            handler.setTarget(file_out_handler)
+            handler.close()
+            logger.handlers.remove(handler)
+
+
+def add_buffer_handler(logger: logging.Logger, buffer_size: int = 100, flush_level: int = 1000):
+    """
+        Adds a buffer handler to the logger.
+        Useful for log files that are written to the output directory if that directory does not exist yet
+        :param logger: The logger object
+        :param buffer_size: The number of messages to buffer before a flush is forced
+        :param flush_level: The minimum level of a message to cause the handler to be flushed early.
+        Defaults to a value that won't be reached by normal log levels to prevent premature flushing
+        """
+    # Flush level should be high enough that flush is not called for regular messages
+    buffer_handler = MemoryHandler(buffer_size, flushLevel=flush_level)
+    if logger.name.startswith(THREADED):
+        buffer_handler.setFormatter(general_threaded_formatter)
+    else:
+        buffer_handler.setFormatter(general_formatter)
+
+    logger.addHandler(buffer_handler)
 
 
 def get_realisation_logger(
