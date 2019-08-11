@@ -66,6 +66,8 @@ def get_logger(name: str = DEFAULT_LOGGER_NAME, threaded=False, stdout_printer=T
     if name is not None and threaded:
         name = "{}_{}".format(THREADED, name)
     logger = logging.getLogger(name)
+    if logger.hasHandlers():
+        return logger
     logger.setLevel(logging.DEBUG)
 
     if stdout_printer:
