@@ -17,6 +17,7 @@ IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
 
 IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
 IM_SIM_SL_SCRIPT_NAME = "sim_im_calc_{}.sl"
+IM_SIM_CALC_INFO_SUFFIX = "_imcalc.info"
 
 MERGE_TS_DEFAULT_NCORES = 4
 
