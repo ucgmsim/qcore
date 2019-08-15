@@ -61,6 +61,32 @@ def load_station_file(station_file: str):
     )
 
 
+def load_vs30_file(vs30_file: str):
+    """Reads the vs30 file into a pandas dataframe
+
+    :param vs30_file: Path to the vs30 file
+    :return: pd.DataFrame
+        station as index and columns vs30
+    """
+    return pd.read_csv(
+        vs30_file, sep="\s+", index_col=0, header=None, names=["vs30"]
+    )
+
+def load_station_ll_vs30(station_file: str, vs30_file: str):
+    """ Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
+
+    :param station_file: Path to the station file
+    :param vs30_file: Path to the vs30 file
+    :return: pd.DataFrame
+        station as index and columns lon, lat, vs30
+    """
+
+    vs30_df = load_vs30_file(vs30_file)
+    station_df = load_station_file(station_file)
+
+    return vs30_df.merge(station_df, left_index=True, right_index=True)
+
+
 def load_rrup_file(rrup_file: str):
     """Reads the rrup file into a pandas dataframe
 
