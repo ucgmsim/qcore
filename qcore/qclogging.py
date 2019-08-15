@@ -1,6 +1,7 @@
 import logging
 from logging.handlers import MemoryHandler
 import sys
+from typing import Union
 
 from qcore.constants import ProcessType
 
@@ -55,7 +56,7 @@ def get_basic_logger():
 
 
 def get_logger(
-    name: str = DEFAULT_LOGGER_NAME, threaded=False, stdout_printer=True
+    name: Union[str, None] = DEFAULT_LOGGER_NAME, threaded=False, stdout_printer=True
 ) -> logging.Logger:
     """
     Creates a logger and an associated handler to print messages over level INFO to stdout.
@@ -68,7 +69,7 @@ def get_logger(
     if name is not None and threaded:
         name = "{}_{}".format(THREADED, name)
     logger = logging.getLogger(name)
-    if logger.hasHandlers():
+    if len(logger.handlers) > 0:
         return logger
     logger.setLevel(logging.DEBUG)
 
@@ -89,7 +90,7 @@ def get_realisation_logger(
     :return: The new logger object
     """
     new_logger = logging.getLogger(realisation)
-    if new_logger.hasHandlers():
+    if len(new_logger.handlers) > 0:
         return new_logger
     new_logger.setLevel(logging.DEBUG)
 
@@ -124,6 +125,8 @@ def get_task_logger(
     process_name = ProcessType(process_type).str_value
 
     new_logger = logging.getLogger("{}.{}".format(realisation, process_name))
+    if len(new_logger.handlers) > 0:
+        return new_logger
     new_logger.setLevel(logging.DEBUG)
 
     if old_logger.name.startswith(THREADED):
@@ -237,7 +240,7 @@ def duplicate_handlers(old_handlers, formatter):
                 continue
             log_files.append(log_name)
 
-            task_file_out_handler = logging.FileHandler(log_name)
+            task_file_out_handler = logging.FileHandler(log_name, delay=True)
             task_file_out_handler.setFormatter(formatter)
             task_file_out_handler.setLevel(handler.level)
 
