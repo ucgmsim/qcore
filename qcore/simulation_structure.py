@@ -168,6 +168,15 @@ def get_IM_csv(sim_root):
     )
 
 
+def get_IM_info(sim_root):
+    return os.path.join(
+        get_im_calc_dir(sim_root),
+        "{}{}".format(
+            os.path.basename(sim_root).split(".")[0], const.IM_SIM_CALC_INFO_SUFFIX
+        ),
+    )
+
+
 # yaml
 def get_fault_yaml_path(sim_root, fault_name=None):
     """
