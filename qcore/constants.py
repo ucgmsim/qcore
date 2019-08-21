@@ -230,6 +230,7 @@ class MetadataField(ExtendedEnum):
     start_time = "start_time"
     end_time = "end_time"
     submit_time = "submit_time"
+    status = "status"    
 
     im_pSA_count = "pSA_count"
     im_comp = "im_components"
