@@ -355,15 +355,21 @@ def ll_bearing(lon1, lat1, lon2, lat2, midpoint=False):
             % 360
 
 
-def ll_cross_track_dist(lon1, lat1, lon2, lat2, lon3, lat3, b12=None, b13=None, d13=None):
-    """Returns the distance of point 3 to the great circle line that passes through point 1 and point 2"""
-    if b12 is None:
-        b12 = radians(ll_bearing(lon1, lat1, lon2, lat2))
-    if b13 is None:
-        b13 = radians(ll_bearing(lon1, lat1, lon3, lat3))
+def ll_cross_track_dist(lon1, lat1, lon2, lat2, lon3, lat3, a12=None, a13=None, d13=None):
+    """
+    Returns the distance of point 3 to the nearest point on the great circle line that passes through point 1 and point 2
+    If any of a12, a13, d13 are given the calculations for them are skipped
+    :param a12: The angle between point 1 (lon1, lat1) and point 2 (lon2, lat2) in radians
+    :param a13: The angle between point 1 (lon1, lat1) and point 3 (lon3, lat3) in radians
+    :param d13: The distance between point 1 (lon1, lat1) and point 3 (lon3, lat3)
+    """
+    if a12 is None:
+        a12 = radians(ll_bearing(lon1, lat1, lon2, lat2))
+    if a13 is None:
+        a13 = radians(ll_bearing(lon1, lat1, lon3, lat3))
     if d13 is None:
         d13 = ll_dist(lon1, lat1, lon3, lat3)
-    return asin(sin(d13/R_EARTH)*sin(b13-b12))*R_EARTH
+    return asin(sin(d13/R_EARTH) * sin(a13 - a12)) * R_EARTH
 
 
 def angle_diff(b1, b2):
