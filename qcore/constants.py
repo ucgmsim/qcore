@@ -60,6 +60,10 @@ class ExtendedEnum(Enum):
     def has_value(cls, value):
         return any(value == item.value for item in cls)
 
+    @classmethod
+    def is_substring(cls, string):
+        return any(item.value in string for item in cls)
+
 
 class ExtendedStrEnum(ExtendedEnum):
     @classmethod
@@ -254,6 +258,7 @@ class Status(ExtendedStrEnum):
     completed = 4, "completed"
     failed = 5, "failed"
     unknown = 6, "unknown"
+    cancelled = 7, "cancelled"
 
     def __new__(cls, value, str_value):
         obj = object.__new__(cls)
