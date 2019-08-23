@@ -61,8 +61,9 @@ class ExtendedEnum(Enum):
         return any(value == item.value for item in cls)
 
     @classmethod
-    def is_substring(cls, string):
-        return any(item.value in string for item in cls)
+    def is_substring(cls, parent_string):
+        """Check if an enum's string value is contained in the given string"""
+        return any(item.value in parent_string for item in cls)
 
 
 class ExtendedStrEnum(ExtendedEnum):
