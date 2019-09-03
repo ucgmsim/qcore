@@ -1135,10 +1135,11 @@ def table2grd(
                 for _ in range(header):
                     tf.readline()
                 # assert added to catch eg: first line = '\n'
-                assert len(map(float, tf.readline().split()[:2])) == 2
+                assert len(list(map(float, tf.readline().split()[:2]))) == 2
         except (ValueError, AssertionError):
             cmd.append("-bi3f")
         # run command
+        print(" ".join(cmd))
         p = Popen(cmd, stderr=PIPE, cwd=wd)
         e = p.communicate()[1].decode("utf-8")
         p.wait()
@@ -1700,6 +1701,11 @@ def region_fit_oblique(points, azimuth, wd="."):
     points: lon, lat pairs
     azimuth: right direction angle
     """
+
+    points = np.array(points)
+    if np.min(points[:, 0]) < -90:
+        # assume crossing over 180 -> -180, extend past 180
+        points[points[:, 0] < 0, 0] += 360
 
     # determine centre
     lon_min, lat_min = np.min(points, axis=0)[:2]
@@ -2421,6 +2427,8 @@ class GMTPlot:
             cmd = [GMT, "psclip", "-J", "-R", "-K", "-O", self.z]
             if invert:
                 cmd.append("-N")
+            if self.p:
+                cmd.append("-p")
             if is_file:
                 if type(path).__name__ == "list":
                     cmd.extend(map(os.path.abspath, path))
