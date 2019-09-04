@@ -1139,7 +1139,6 @@ def table2grd(
         except (ValueError, AssertionError):
             cmd.append("-bi3f")
         # run command
-        print(" ".join(cmd))
         p = Popen(cmd, stderr=PIPE, cwd=wd)
         e = p.communicate()[1].decode("utf-8")
         p.wait()
