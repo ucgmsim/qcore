@@ -349,6 +349,7 @@ class SourceToSiteDist(ExtendedStrEnum):
     R_rup = 0, "r_rup"
     R_jb = 1, "r_jb"
     R_x = 2, "r_x"
+    R_y = 3, "r_y"
 
     def __new__(cls, value, str_value):
         obj = object.__new__(cls)
