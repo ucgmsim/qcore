@@ -60,6 +60,11 @@ class ExtendedEnum(Enum):
     def has_value(cls, value):
         return any(value == item.value for item in cls)
 
+    @classmethod
+    def is_substring(cls, parent_string):
+        """Check if an enum's string value is contained in the given string"""
+        return any(item.value in parent_string for item in cls)
+
 
 class ExtendedStrEnum(ExtendedEnum):
     @classmethod
@@ -230,6 +235,7 @@ class MetadataField(ExtendedEnum):
     start_time = "start_time"
     end_time = "end_time"
     submit_time = "submit_time"
+    status = "status"    
 
     im_pSA_count = "pSA_count"
     im_comp = "im_components"
@@ -343,6 +349,7 @@ class SourceToSiteDist(ExtendedStrEnum):
     R_rup = 0, "r_rup"
     R_jb = 1, "r_jb"
     R_x = 2, "r_x"
+    R_y = 3, "r_y"
 
     def __new__(cls, value, str_value):
         obj = object.__new__(cls)
