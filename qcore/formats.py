@@ -113,7 +113,10 @@ def load_fault_selection_file(fault_selection_file):
         for lineno, line in enumerate(fault_file.readlines()):
             try:
                 fault, count = line.split()
-                count = int(count[:-1])
+                if count.endswith('r'):
+                    count = int(count[:-1])
+                else:
+                    counr = int(count)
             except ValueError:
                 raise ValueError(
                     "Error encountered on line {lineno} when loading fault selection file {fault_selection_file}. "
