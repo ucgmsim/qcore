@@ -68,9 +68,8 @@ def load_vs30_file(vs30_file: str):
     :return: pd.DataFrame
         station as index and columns vs30
     """
-    return pd.read_csv(
-        vs30_file, sep="\s+", index_col=0, header=None, names=["vs30"]
-    )
+    return pd.read_csv(vs30_file, sep="\s+", index_col=0, header=None, names=["vs30"])
+
 
 def load_station_ll_vs30(station_file: str, vs30_file: str):
     """ Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
@@ -101,3 +100,38 @@ def load_rrup_file(rrup_file: str):
         station as index with columns rrup, rjb and optional rx
     """
     return pd.read_csv(rrup_file, header=0, index_col=0, engine="c")
+
+
+def load_fault_selection_file(fault_selection_file):
+    """
+    Loads a fault selection file, returning a dictionary of fault:count pairs
+    :param fault_selection_file: The relative or absolute path to the fault selection file
+    :return: A dictionary of fault:count pairs for all faults found in the file
+    """
+    faults = {}
+    with open(fault_selection_file) as fault_file:
+        for lineno, line in enumerate(fault_file.readlines()):
+            try:
+                fault, count = line.split()
+                if count.endswith('r'):
+                    count = int(count[:-1])
+                else:
+                    counr = int(count)
+            except ValueError:
+                raise ValueError(
+                    "Error encountered on line {lineno} when loading fault selection file {fault_selection_file}. "
+                    "Line content: {line}".format(
+                        lineno=lineno,
+                        fault_selection_file=fault_selection_file,
+                        line=line,
+                    )
+                )
+            if fault in faults.keys():
+                raise ValueError(
+                    "Fault {} has been found twice in the fault selection file, please check the file".format(
+                        fault
+                    )
+                )
+            faults.update({fault: count})
+
+    return faults
