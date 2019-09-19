@@ -3531,7 +3531,7 @@ class GMTPlot:
         Draw contour map.
         interval: numeric interval, taken from cpt file, or description file
         """
-        cmd = [GMT, "grdcontour", "-J", "-K", "-O", xyv_file]
+        cmd = [GMT, "grdcontour", "-J", "-R", "-K", "-O", xyv_file]
 
         # annotations at specific values
         if type(annotations) == list:
