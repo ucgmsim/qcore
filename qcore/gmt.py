@@ -51,6 +51,12 @@ STATUS_INVALID = 1
 GMT52_POS = {"map": "g", "plot": "x", "norm": "n", "rel": "j", "rel_out": "J"}
 
 GMT_DATA = qconfig["GMT_DATA"]
+if not os.path.isdir(GMT_DATA):
+    try:
+        GMT_DATA = os.environ["GMT_DATA"]
+    except KeyError:
+        # GMT_DATA files unavailable, only needed if using GMT_DATA
+        pass
 # LINZ DATA
 LINZ_COAST = {
     "150k": os.path.join(GMT_DATA, "Paths/lds-nz-coastlines-and-islands/150k.gmt")
@@ -721,7 +727,8 @@ def srf2map(
         "%s/%s.cpt" % (out_dir, prefix),
         0,
         cpt_max,
-        max(1, cpt_max / 100, continuing=True),
+        max(1, cpt_max / 100),
+        continuing=True,
     )
     # each plane will use a region which just fits
     # these are needed for efficient plotting
@@ -3531,7 +3538,7 @@ class GMTPlot:
         Draw contour map.
         interval: numeric interval, taken from cpt file, or description file
         """
-        cmd = [GMT, "grdcontour", "-J", "-K", "-O", xyv_file]
+        cmd = [GMT, "grdcontour", "-J", "-R", "-K", "-O", xyv_file]
 
         # annotations at specific values
         if type(annotations) == list:
