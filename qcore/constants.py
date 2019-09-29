@@ -75,7 +75,7 @@ class ExtendedStrEnum(ExtendedEnum):
     def from_str(cls, str_value):
         if not cls.has_str_value(str_value):
             raise ValueError(
-                "{} is not a valid {}".format(str_value, ProcessType.__name__)
+                "{} is not a valid {}".format(str_value, cls.__name__)
             )
         else:
             for item in cls:
@@ -350,16 +350,6 @@ class SourceToSiteDist(ExtendedStrEnum):
     R_jb = 1, "r_jb"
     R_x = 2, "r_x"
     R_y = 3, "r_y"
-
-    def __new__(cls, value, str_value):
-        obj = object.__new__(cls)
-        obj._value_ = value
-        obj.str_value = str_value
-        return obj
-
-
-class ERFFileType(ExtendedStrEnum):
-    nhm = 0, "nhm"
 
     def __new__(cls, value, str_value):
         obj = object.__new__(cls)
