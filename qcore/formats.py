@@ -12,7 +12,7 @@ def load_im_file(csv_file, all_psa=False, comp=None):
     use_cols = []
     col_names = []
     with open(csv_file, "r") as f:
-        raw_cols = map(str.strip, f.readline().split(","))
+        raw_cols = list(map(str.strip, f.readline().split(",")))
     for i, c in enumerate(raw_cols):
         # filter out pSA that aren't round numbers, duplicates
         if c not in col_names and (
@@ -24,8 +24,8 @@ def load_im_file(csv_file, all_psa=False, comp=None):
     # create numpy datatype
     dtype = [(n, np.float32) for n in col_names]
     # first 2 columns are actually strings
-    dtype[0] = ("station", "|S7")
-    dtype[1] = ("component", "|S4")
+    dtype[0] = ("station", "|U7")
+    dtype[1] = ("component", "|U4")
 
     # load all at once
     imdb = np.rec.array(
