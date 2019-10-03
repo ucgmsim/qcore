@@ -12,7 +12,7 @@ def load_im_file(csv_file, all_psa=False, comp=None):
     use_cols = []
     col_names = []
     with open(csv_file, "r") as f:
-        raw_cols = map(str.strip, f.readline().split(","))
+        raw_cols = list(map(str.strip, f.readline().split(",")))
     for i, c in enumerate(raw_cols):
         # filter out pSA that aren't round numbers, duplicates
         if c not in col_names and (
