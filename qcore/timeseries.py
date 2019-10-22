@@ -11,9 +11,9 @@ from io import BytesIO
 import math
 import os
 from subprocess import Popen, PIPE
-from distutils import version
 
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
+from qcore.utils import compare_versions
 
 try:
     # only used in BBFlac
@@ -329,25 +329,22 @@ class LFSeis:
             self.duration = self.nt * self.dt
 
         self.flo = None
-        self.emod_3d_version = None
+        self.emod3d_version = None
         with open(self.e3dpar) as e3d:
             for line in e3d.readlines():
                 key, value = line.split("=")
                 if key == "flo":
                     self.flo = float(value)
                 elif key == "version":
-                    self.emod_3d_version = value
+                    self.emod3d_version = value
 
-        if self.flo is None or self.emod_3d_version is None:
+        if self.flo is None or self.emod3d_version is None:
             raise ValueError(
                 "The e3d.par file in the OutBin directory did not contain at least one of flo and version, "
                 "please add the correct values and run again."
             )
         self.start_sec = -1 / self.flo
-        if (
-            version.LooseVersion(self.emod_3d_version)
-            > MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
-        ):
+        if compare_versions(self.emod3d_version, MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION) > 0:
             self.start_sec *= 3
 
         # rotation matrix for converting to 090, 000, ver is inverted (* -1)
