@@ -45,6 +45,8 @@ VM_PARAMS_FILE_NAME = "vm_params.yaml"
 
 ROOT_DEFAULTS_FILE_NAME = "root_defaults.yaml"
 
+MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION = "3.0.4"
+
 
 class EstModelType(Enum):
     NN = "NN"

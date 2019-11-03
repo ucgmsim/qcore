@@ -213,3 +213,33 @@ def load_py_cfg(f_path):
         cfg_dict = module.__dict__
 
     return cfg_dict
+
+
+def compare_versions(version1, version2, split_char="."):
+    """
+    Compares two version strings.
+    Each string is to be split into segments by the given string.
+    Each segment is only compared by numerical character value (e.g. a, b, rc are ignored)
+    Ordinality is determined by the first non equal numeric segment.
+    If the first argument is greater than the second then 1 is returned, if the second argunet is greater then -1 is returned.
+    If an ordering has not been found by this point then the version with more segments is considered greater.
+    If both have the same segments then the value 0 is returned.
+    """
+    parts1 = version1.split(split_char)
+    parts2 = version2.split(split_char)
+
+    num_parts = min(len(parts1), len(parts2))
+    for i in range(num_parts):
+        num1 = int("".join(c for c in parts1[i] if c.isnumeric()))
+        num2 = int("".join(c for c in parts2[i] if c.isnumeric()))
+        if num1 > num2:
+            return 1
+        if num2 > num1:
+            return -1
+
+    # We haven't found a match
+    if len(parts1) > len(parts2):
+        return 1
+    if len(parts2) > len(parts1):
+        return -1
+    return 0

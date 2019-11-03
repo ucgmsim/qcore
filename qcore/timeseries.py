@@ -12,6 +12,9 @@ import math
 import os
 from subprocess import Popen, PIPE
 
+from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
+from qcore.utils import compare_versions
+
 try:
     # only used in BBFlac
     import mutagen
@@ -278,7 +281,6 @@ class LFSeis:
     # format constants
     HEAD_STAT = 0x30
     N_COMP = 9
-    T_START = -1
     # indexing constants
     X = 0
     Y = 1
@@ -291,6 +293,12 @@ class LFSeis:
         outbin: path to OutBin folder containing seis files
         """
         self.seis = sorted(glob(os.path.join(outbin, "*seis-*.e3d")))
+        self.e3dpar = os.path.join(outbin, "e3d.par")
+        if not os.path.isfile(self.e3dpar):
+            raise ValueError(
+                "The given directory does not contain an e3d.par file. "
+                "Either move or create a symlink to the correct file please."
+            )
 
         # determine endianness by checking file size
         lfs = os.stat(self.seis[0]).st_size
@@ -319,6 +327,25 @@ class LFSeis:
             # load rest of common metadata from first station in first file
             self.dt, self.hh, self.rot = np.fromfile(lf0, dtype=self.f4, count=3)
             self.duration = self.nt * self.dt
+
+        self.flo = None
+        self.emod3d_version = None
+        with open(self.e3dpar) as e3d:
+            for line in e3d.readlines():
+                key, value = line.split("=")
+                if key == "flo":
+                    self.flo = float(value)
+                elif key == "version":
+                    self.emod3d_version = value
+
+        if self.flo is None or self.emod3d_version is None:
+            raise ValueError(
+                "The e3d.par file in the OutBin directory did not contain at least one of flo and version, "
+                "please add the correct values and run again."
+            )
+        self.start_sec = -1 / self.flo
+        if compare_versions(self.emod3d_version, MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION) > 0:
+            self.start_sec *= 3
 
         # rotation matrix for converting to 090, 000, ver is inverted (* -1)
         theta = math.radians(self.rot)
@@ -456,7 +483,7 @@ class LFSeis:
                 prefix,
                 station,
                 self.COMP_NAME[i],
-                start_sec=self.T_START,
+                start_sec=self.start_sec,
                 title=title,
             )
 
