@@ -23,6 +23,10 @@ def get_VM_dir(cybershake_root):
     return os.path.join(cybershake_root, "Data", "VMs")
 
 
+def get_realisation_VM_dir(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), realisation)
+
+
 # SRF
 def get_srf_location(realisation):
     fault = get_fault_from_realisation(realisation)
