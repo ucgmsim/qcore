@@ -293,12 +293,16 @@ class LFSeis:
         outbin: path to OutBin folder containing seis files
         """
         self.seis = sorted(glob(os.path.join(outbin, "*seis-*.e3d")))
+        #try load e3d.par at the same directory first
+        #otherwise try look for one folder above
         self.e3dpar = os.path.join(outbin, "e3d.par")
         if not os.path.isfile(self.e3dpar):
-            raise ValueError(
-                "The given directory does not contain an e3d.par file. "
-                "Either move or create a symlink to the correct file please."
-            )
+            self.e3dpar = os.path.join(outbin, "../e3d.par")
+            if not os.path.isfile(self.e3dpar):
+                raise ValueError(
+                    "Cannot find e3d.par in the given directory or a folder above. "
+                    "Either move or create a symlink to the correct file please."
+                )
 
         # determine endianness by checking file size
         lfs = os.stat(self.seis[0]).st_size
