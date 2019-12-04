@@ -147,7 +147,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
-        "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple} {advanced_IM}",
+        "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM}",
         ((5,), (12,), (13,)),
     )
     IM_plot = 7, "IM_plot", None, False, None, (6,)
