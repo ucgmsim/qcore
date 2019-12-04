@@ -3,11 +3,13 @@ from datetime import datetime
 from typing import List
 
 LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
-CHECKPOINT_DURATION = 10.0 # in minutes
+CHECKPOINT_DURATION = 10.0  # in minutes
 
 HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 HF_DEFAULT_VERSION = "run_hf_mpi"
-HF_DEFAULT_SEED = 0 # Causes a random seed to be chosen, unless a previous seed file already exists
+HF_DEFAULT_SEED = (
+    0
+)  # Causes a random seed to be chosen, unless a previous seed file already exists
 
 BB_DEFAULT_VERSION = "run_bb_mpi"
 BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
@@ -76,9 +78,7 @@ class ExtendedStrEnum(ExtendedEnum):
     @classmethod
     def from_str(cls, str_value):
         if not cls.has_str_value(str_value):
-            raise ValueError(
-                "{} is not a valid {}".format(str_value, cls.__name__)
-            )
+            raise ValueError("{} is not a valid {}".format(str_value, cls.__name__))
         else:
             for item in cls:
                 if item.str_value == str_value:
@@ -147,7 +147,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
-        "{sim_name} -r {fault_name} {component} -t s {extended} {simple} {advanced_IM}",
+        "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple} {advanced_IM}",
         ((5,), (12,), (13,)),
     )
     IM_plot = 7, "IM_plot", None, False, None, (6,)
@@ -158,12 +158,9 @@ class ProcessType(ExtendedStrEnum):
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
     plot_srf = 14, "plot_srf", None, False, None, ()
-    
-    #adv_im uses the same base code as IM_calc
-    advanced_IM = (
-        15,
-        "advanced_IM",
-    ) + IM_calculation[2:]
+
+    # adv_im uses the same base code as IM_calc
+    advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
@@ -184,7 +181,9 @@ class ProcessType(ExtendedStrEnum):
                 return member
         raise LookupError
 
-    def get_remaining_dependencies(self, completed_dependencies: List['ProcessType'] = ()) -> List[int]:
+    def get_remaining_dependencies(
+        self, completed_dependencies: List["ProcessType"] = ()
+    ) -> List[int]:
         """Determines if the task has any unmet dependencies and returns a list of them if so. Only does single level
         dependencies, does not recurse
         :param completed_dependencies: Tasks that have been completed and therefore may contribute to this tasks
@@ -221,9 +220,11 @@ class ProcessType(ExtendedStrEnum):
         message = []
         for task_group in mutually_exclusive_tasks:
             if len([x for x in task_group if x in tasks]) > 1:
-                message.append("The tasks {} are mutually exclusive and cannot be run at the same time.\n".format(
-                    (x.str_value for x in task_group)
-                ))
+                message.append(
+                    "The tasks {} are mutually exclusive and cannot be run at the same time.\n".format(
+                        (x.str_value for x in task_group)
+                    )
+                )
         return "\n".join(message)
 
 
