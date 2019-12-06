@@ -200,11 +200,15 @@ def get_root_yaml_path(sim_root):
 
 
 # verification
+def get_realisation_verification_dir(cybershake_root, realisation):
+    return get_verification_dir(get_sim_dir(cybershake_root, realisation))
+
+
 def get_verification_dir(sim_root):
     """
     Gets the folder for data used for verification etc.
     """
-    return os.path.join(sim_root, "Verification")
+    return os.path.join(sim_root, "verification")
 
 
 def get_sources_plot_dir(cybershake_root, realisation):
@@ -213,6 +217,6 @@ def get_sources_plot_dir(cybershake_root, realisation):
     before installing a cybershake. eg. srf square & map plots.
     """
     return os.path.join(
-        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Verification"
+        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "verification"
     )
 
