@@ -303,6 +303,9 @@ class LFSeis:
                     "Cannot find e3d.par in the given directory or a folder above. "
                     "Either move or create a symlink to the correct file please."
                 )
+            else:
+                print("e3d.par was not found under the same folder but found in one level above")
+                print("e3d.par path: {}".format(self.e3dpar))
 
         # determine endianness by checking file size
         lfs = os.stat(self.seis[0]).st_size
