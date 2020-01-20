@@ -2,6 +2,12 @@ Qcore library
 # Changelog
 (Based on https://wiki.canterbury.ac.nz/download/attachments/58458136/CodeVersioning_v18p2.pdf?version=1&modificationDate=1519269238437&api=v2 )
 
+## [19.5.5] - 2019-12-18 -- Added Advanced_IM to constants
+### Added
+    - Added a new step in ProcessType
+### Changed
+    - LFSeis will try to find e3d.par at one folder above if failed to find one in the same folder
+
 ## [19.5.4] - 2019-11-01 -- Added EMOD3D version content
 ### Added
     - Added a constant for the last version of EMOD3D with a one second time increment
