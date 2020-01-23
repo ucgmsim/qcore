@@ -293,12 +293,21 @@ class LFSeis:
         outbin: path to OutBin folder containing seis files
         """
         self.seis = sorted(glob(os.path.join(outbin, "*seis-*.e3d")))
+        # try load e3d.par at the same directory first
+        # otherwise try look for one folder above
         self.e3dpar = os.path.join(outbin, "e3d.par")
         if not os.path.isfile(self.e3dpar):
-            raise ValueError(
-                "The given directory does not contain an e3d.par file. "
-                "Either move or create a symlink to the correct file please."
-            )
+            self.e3dpar = os.path.join(outbin, "../e3d.par")
+            if not os.path.isfile(self.e3dpar):
+                raise ValueError(
+                    "Cannot find e3d.par in the given directory or a folder above. "
+                    "Either move or create a symlink to the correct file please."
+                )
+            else:
+                print(
+                    "e3d.par was not found under the same folder but found in one level above"
+                )
+                print("e3d.par path: {}".format(self.e3dpar))
 
         # determine endianness by checking file size
         lfs = os.stat(self.seis[0]).st_size
@@ -344,7 +353,10 @@ class LFSeis:
                 "please add the correct values and run again."
             )
         self.start_sec = -1 / self.flo
-        if compare_versions(self.emod3d_version, MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION) > 0:
+        if (
+            compare_versions(self.emod3d_version, MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION)
+            > 0
+        ):
             self.start_sec *= 3
 
         # rotation matrix for converting to 090, 000, ver is inverted (* -1)

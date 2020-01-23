@@ -152,7 +152,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
-        "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
+        "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM}",
         ((5,), (12,), (13,)),
     )
     IM_plot = 7, "IM_plot", None, False, None, (6,)
@@ -163,6 +163,9 @@ class ProcessType(ExtendedStrEnum):
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
     plot_srf = 14, "plot_srf", None, False, None, ()
+
+    # adv_im uses the same base code as IM_calc
+    advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
