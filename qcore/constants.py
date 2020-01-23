@@ -15,7 +15,6 @@ BB_DEFAULT_VERSION = "run_bb_mpi"
 BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
 
 IM_CALC_DEFAULT_N_CORES = 40  # 1 node, no hyperthreading
-IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
 
 IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
 IM_SIM_SL_SCRIPT_NAME = "sim_im_calc_{}.sl"
@@ -71,6 +70,12 @@ class ExtendedEnum(Enum):
 
 
 class ExtendedStrEnum(ExtendedEnum):
+    def __new__(cls, value, str_value):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.str_value = str_value
+        return obj
+
     @classmethod
     def has_str_value(cls, str_value):
         return any(str_value == item.str_value for item in cls)
@@ -174,13 +179,6 @@ class ProcessType(ExtendedStrEnum):
         obj.dependencies = dependencies
         return obj
 
-    @classmethod
-    def get_by_name(cls, name):
-        for _, member in cls.__members__.items():
-            if member.str_value == name:
-                return member
-        raise LookupError
-
     def get_remaining_dependencies(
         self, completed_dependencies: List["ProcessType"] = ()
     ) -> List[int]:
@@ -251,14 +249,6 @@ class MetadataField(ExtendedEnum):
     im_comp_count = "im_components_count"
 
 
-class Components(ExtendedEnum):
-    geom = "geom"
-    c000 = "000"
-    c090 = "090"
-    ver = "ver"
-    ellipsis = "ellipsis"
-
-
 class Status(ExtendedStrEnum):
     """Job status on the HPC"""
 
@@ -268,12 +258,6 @@ class Status(ExtendedStrEnum):
     completed = 4, "completed"
     failed = 5, "failed"
     unknown = 6, "unknown"
-
-    def __new__(cls, value, str_value):
-        obj = object.__new__(cls)
-        obj._value_ = value
-        obj.str_value = str_value
-        return obj
 
 
 class RootParams(Enum):
@@ -360,8 +344,45 @@ class SourceToSiteDist(ExtendedStrEnum):
     R_x = 2, "r_x"
     R_y = 3, "r_y"
 
-    def __new__(cls, value, str_value):
-        obj = object.__new__(cls)
-        obj._value_ = value
-        obj.str_value = str_value
-        return obj
+
+class Components(ExtendedStrEnum):
+    c090 = 0, "090"
+    c000 = 1, "000"
+    cver = 2, "ver"
+    cgeom = 3, "geom"
+    crotd50 = 4, "rotd50"
+    crotd100 = 5, "rotd100"
+    crotd100_50 = 6, "rotd100_50"
+
+    @staticmethod
+    def get_comps_to_calc_and_store(arg_comps: List[str]):
+        """
+        convert arg comps to str_comps for integer_conversion in read_waveform & str comps for writing result
+        :param arg_comps: user input a list of comp(s)
+        :return: two lists of str comps
+        """
+
+        def component_sorter(x):
+            return x.value
+
+        components_to_store = [Components.from_str(c) for c in arg_comps]
+        components_to_store.sort(key=component_sorter)
+
+        horizontal_components = set(list(Components)[:2])
+        basic_components = set(list(Components)[:3])
+        advanced_components = set(list(Components)[3:])
+        advanced_components_to_get = list(
+            advanced_components.intersection(set(components_to_store))
+        )
+
+        if advanced_components_to_get:
+            components_to_get = list(
+                basic_components.intersection(
+                    set(components_to_store) | horizontal_components
+                )
+            )
+            components_to_get.sort(key=component_sorter)
+        else:
+            components_to_get = components_to_store[:]
+
+        return components_to_get, components_to_store
