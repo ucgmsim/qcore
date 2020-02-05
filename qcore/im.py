@@ -1,13 +1,13 @@
 """
 Correct IM column order
-station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*
+station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*, FAS_*
 """
 
 import pandas as pd
 import numpy as np
 
 default_pattern_order = ("station", "component", "PGA", "PGV", "CAV", "AI",
-                         "Ds575", "Ds595", "Ds2080", "MMI", "pSA")
+                         "Ds575", "Ds595", "Ds2080", "MMI", "pSA", "FAS")
 
 
 def order_im_cols_file(filename):
