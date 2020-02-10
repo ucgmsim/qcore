@@ -1,13 +1,26 @@
 """
 Correct IM column order
-station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*
+station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*, FAS_*, IESDR_*
 """
 
 import pandas as pd
 import numpy as np
 
-default_pattern_order = ("station", "component", "PGA", "PGV", "CAV", "AI",
-                         "Ds575", "Ds595", "Ds2080", "MMI", "pSA")
+default_pattern_order = (
+    "station",
+    "component",
+    "PGA",
+    "PGV",
+    "CAV",
+    "AI",
+    "Ds575",
+    "Ds595",
+    "Ds2080",
+    "MMI",
+    "pSA",
+    "FAS",
+    "IESDR",
+)
 
 
 def order_im_cols_file(filename):
@@ -41,19 +54,24 @@ def order_im_cols_df(df, pattern_order=default_pattern_order):
         else:
             # Check if column name contains a valid float value,
             # e.g. pSA_0.5_epsilon.
-            contains_float, value_ix = False, None
+            float_cols = []
             for ix, split in enumerate(cur_cols[0].split("_")):
                 try:
                     float(split.replace("p", "."))
-                    contains_float, value_ix = True, ix
-                    break
+                    float_cols.append(ix)
                 except ValueError:
                     continue
 
-            if contains_float:
+            if len(float_cols) > 0:
                 # Get the values (as the list is sorted on those)
-                values = [float(col.split("_")[value_ix].replace("p", "."))
-                          for col in cur_cols]
+                values = []
+                for col in cur_cols:
+                    values.append(
+                        (
+                            float(col.split("_")[value_ix].replace("p", "."))
+                            for value_ix in float_cols
+                        )
+                    )
 
                 sorted_indices = np.argsort(values)
 
@@ -62,8 +80,7 @@ def order_im_cols_df(df, pattern_order=default_pattern_order):
                 sorted_indices = np.argsort([len(col) for col in cur_cols])
 
             # Sort the columns names
-            adj_cols = adj_cols \
-                + list(np.asarray(cur_cols)[sorted_indices])
+            adj_cols = adj_cols + list(np.asarray(cur_cols)[sorted_indices])
 
     # Deal with columns that aren't handled by the pattern.
     # These are just added to the end, in the original order
@@ -71,8 +88,3 @@ def order_im_cols_df(df, pattern_order=default_pattern_order):
         [adj_cols.append(col) for col in orig_cols if col not in adj_cols]
 
     return df[adj_cols]
-
-
-
-
-
