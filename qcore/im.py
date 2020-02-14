@@ -66,13 +66,13 @@ def order_im_cols_df(df, pattern_order=default_pattern_order):
                 # Get the values (as the list is sorted on those)
                 values = []
                 for col in cur_cols:
-                    values.append(
+                    values.extend(
                         (
-                            float(col.split("_")[value_ix].replace("p", "."))
-                            for value_ix in float_cols
+                            list(float(col.split("_")[value_ix].replace("p", "."))
+                            for value_ix in float_cols)
                         )
                     )
-
+                
                 sorted_indices = np.argsort(values)
 
             # Otherwise just sort by length of the column name
