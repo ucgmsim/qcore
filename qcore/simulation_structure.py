@@ -7,6 +7,7 @@ import qcore.constants as const
 
 
 def get_fault_from_realisation(realisation):
+    realisation = os.path.basename(realisation) #if realisation is a fullpath
     return realisation.split("_")[0]
 
 
@@ -257,7 +258,7 @@ def get_rrup_path(cybershake_root, realisation):
 
 
 def get_rrup_location(cybershake_root, realisation):
-    return get_im_calc_dir(get_sim_dir(cybershake_root, realisation))
+    return get_realisation_verification_dir(cybershake_root, realisation)
 
 
 # empiricals
