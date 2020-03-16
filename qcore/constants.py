@@ -157,7 +157,7 @@ class ProcessType(ExtendedStrEnum):
     )
     IM_plot = 7, "IM_plot", None, False, None, (6,)
     rrup = 8, "rrup", None, False, None, ()
-    Empirical = 9, None, None, False, None, (8,)
+    Empirical = 9, "Empirical", None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
     clean_up = 11, "clean_up", None, None, None, (6,)
     LF2BB = 12, "LF2BB", None, None, None, (1,)
