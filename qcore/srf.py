@@ -560,20 +560,21 @@ def get_hypo(srf, lonlat=True, depth=False, join_minor=False):
         return hlon, hlat, depth_km
 
 
-def srf2corners(srf, cnrs="cnrs.txt"):
+def srf2corners(srf, cnrs="cnrs.txt", depth=False):
     """
     Creates a corners file used for srf plotting.
     Contains the hypocentre and corners for each segment.
     srf: srf (source) path
     cnrs: corners (output) path
+    depth: additional column for depth
     """
     # required information
-    hypo = get_hypo(srf)
-    bounds = get_bounds(srf)
+    hypo = get_hypo(srf, depth=depth)
+    bounds = get_bounds(srf, depth=depth)
 
     with open(cnrs, "w") as cf:
         cf.write("> hypocentre:\n")
-        cf.write("%s %s\n" % hypo)
+        cf.write(" ".join(map(str, hypo)) + "\n")
 
         if bounds is None:
             return
@@ -581,7 +582,7 @@ def srf2corners(srf, cnrs="cnrs.txt"):
         for i, plane in enumerate(bounds):
             cf.write("> plane %s:\n" % (i))
             for corner in plane:
-                cf.write("%s %s\n" % corner)
+                cf.write(" ".join(map(str, corner)) + "\n")
 
 
 def srf2llv(srf, seg=-1, value="slip", lonlatdep=True, depth=False):
