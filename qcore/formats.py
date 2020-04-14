@@ -38,6 +38,25 @@ def load_im_file(csv_file, all_psa=False, comp=None):
     return imdb[imdb.component == comp]
 
 
+def load_im_file_pd(imcsv, all_ims=False, comp=None):
+    """
+    Loads an IM file using pandas and returns a datafram
+    :param imcsv: FFP to im_csv
+    :param all_ims: returns all_ims. Defaultly returns only short IM names (standard pSA periods etc)
+    :param comp: component to return. Default is to return all
+    :return:
+    """
+    df = pd.read_csv(imcsv, index_col=[0, 1])
+
+    if not all_ims:
+        df = df[[im for im in df.columns if (len(im) < 12)]]
+
+    if comp is not None:
+        df = df[df.index.get_level_values(1) == "geom"]
+
+    return df
+
+
 def load_station_file(station_file: str):
     """Reads the station file into a pandas dataframe
 
@@ -113,7 +132,7 @@ def load_fault_selection_file(fault_selection_file):
         for lineno, line in enumerate(fault_file.readlines()):
             try:
                 fault, count = line.split()
-                if count.endswith('r'):
+                if count.endswith("r"):
                     count = int(count[:-1])
                 else:
                     count = int(count)
