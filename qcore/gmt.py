@@ -51,6 +51,12 @@ STATUS_INVALID = 1
 GMT52_POS = {"map": "g", "plot": "x", "norm": "n", "rel": "j", "rel_out": "J"}
 
 GMT_DATA = qconfig["GMT_DATA"]
+if not os.path.isdir(GMT_DATA):
+    try:
+        GMT_DATA = os.environ["GMT_DATA"]
+    except KeyError:
+        # GMT_DATA files unavailable, only needed if using GMT_DATA
+        pass
 # LINZ DATA
 LINZ_COAST = {
     "150k": os.path.join(GMT_DATA, "Paths/lds-nz-coastlines-and-islands/150k.gmt")
@@ -721,7 +727,8 @@ def srf2map(
         "%s/%s.cpt" % (out_dir, prefix),
         0,
         cpt_max,
-        max(1, cpt_max / 100, continuing=True),
+        max(1, cpt_max / 100),
+        continuing=True,
     )
     # each plane will use a region which just fits
     # these are needed for efficient plotting
@@ -1135,7 +1142,7 @@ def table2grd(
                 for _ in range(header):
                     tf.readline()
                 # assert added to catch eg: first line = '\n'
-                assert len(map(float, tf.readline().split()[:2])) == 2
+                assert len(list(map(float, tf.readline().split()[:2]))) == 2
         except (ValueError, AssertionError):
             cmd.append("-bi3f")
         # run command
@@ -1700,6 +1707,11 @@ def region_fit_oblique(points, azimuth, wd="."):
     points: lon, lat pairs
     azimuth: right direction angle
     """
+
+    points = np.array(points)
+    if np.min(points[:, 0]) < -90 and np.max(points[:, 0]) > 90:
+        # assume crossing over 180 -> -180, extend past 180
+        points[points[:, 0] < 0, 0] += 360
 
     # determine centre
     lon_min, lat_min = np.min(points, axis=0)[:2]
@@ -2421,6 +2433,8 @@ class GMTPlot:
             cmd = [GMT, "psclip", "-J", "-R", "-K", "-O", self.z]
             if invert:
                 cmd.append("-N")
+            if self.p:
+                cmd.append("-p")
             if is_file:
                 if type(path).__name__ == "list":
                     cmd.extend(map(os.path.abspath, path))
@@ -2673,7 +2687,7 @@ class GMTPlot:
                     cmd.append("-p")
                 Popen(cmd, stdout=self.psf, cwd=self.wd).wait()
                 # finish crop
-                cmd = [GMT, "psclip", "-C", "-J", "-K", "-O"]
+                cmd = [GMT, "psclip", "-C1", "-J", "-K", "-O"]
                 if self.p:
                     cmd.append("-p")
                 Popen(cmd, stdout=self.psf, cwd=self.wd).wait()
@@ -2842,6 +2856,7 @@ class GMTPlot:
         road_colour="white",
         waternet=None,
         waternet_colour="darkblue",
+        scale=1,
     ):
         """
         Adds land/water/features to map.
@@ -2871,7 +2886,7 @@ class GMTPlot:
             else:
                 raise
         inch = math.sqrt(sum(np.power(size, 2)))
-        refs = inch / (km * 0.618)
+        refs = scale * inch / (km * 0.618)
 
         if land is not None:
             if res is None:
@@ -3257,7 +3272,7 @@ class GMTPlot:
         """
 
         if slat is None:
-            region = map(float, self.history("R").split("/"))
+            region = list(map(float, self.history("R").split("/")))
             # TODO: fix geographic midpoint calculation (make a function)
             slat = (region[3] + region[2]) / 2.0
 
@@ -3524,7 +3539,7 @@ class GMTPlot:
         Draw contour map.
         interval: numeric interval, taken from cpt file, or description file
         """
-        cmd = [GMT, "grdcontour", "-J", "-K", "-O", xyv_file]
+        cmd = [GMT, "grdcontour", "-J", "-R", "-K", "-O", xyv_file]
 
         # annotations at specific values
         if type(annotations) == list:
@@ -3821,6 +3836,7 @@ class GMTPlot:
         hyp_width="1p",
         hyp_colour="black",
         plane_fill=None,
+        depth=False,
     ):
         """
         Plot SRF fault plane onto map.
@@ -3838,16 +3854,16 @@ class GMTPlot:
         """
         if is_srf:
             # use SRF library to retrieve info
-            bounds = srf.get_bounds(in_path)
-            hypocentre = srf.get_hypo(in_path)
+            bounds = srf.get_bounds(in_path, depth=depth)
+            hypocentre = srf.get_hypo(in_path, depth=depth)
 
             # process for input into GMT
             gmt_bounds = [
-                ["%s %s" % tuple(corner) for corner in plane] for plane in bounds
+                [" ".join(map(str, corner)) for corner in plane] for plane in bounds
             ]
             top_edges = "\n>\n".join(["\n".join(corners[:2]) for corners in gmt_bounds])
             all_edges = "\n>\n".join(["\n".join(corners) for corners in gmt_bounds])
-            hypocentre = "%s %s" % tuple(hypocentre)
+            hypocentre = " ".join(map(str, hypocentre))
         else:
             # standard corners file
             # XXX: don't think this works
@@ -3869,53 +3885,62 @@ class GMTPlot:
             top_edges = ">\n".join(["".join(c[:2]) for c in bounds[1:]])
             all_edges = ">\n".join(["".join(c) for c in bounds[1:]])
 
+        if depth:
+            module = "psxyz"
+        else:
+            module = "psxy"
+
         # plot planes
         if not (plane_colour is None and plane_fill is None):
-            cmd = [GMT, "psxy", "-J", "-R", "-L", "-K", "-O", self.z]
+            cmd = [GMT, module, "-J", "-R", "-L", "-K", "-O"]
+            if depth:
+                cmd.append(self.z)
             if plane_colour is not None:
                 cmd.append("-W%s,%s,-" % (plane_width, plane_colour))
             if plane_fill is not None:
                 cmd.append("-G%s" % (plane_fill))
+            if self.p:
+                cmd.append("-p")
             planep = Popen(cmd, stdin=PIPE, stdout=self.psf, cwd=self.wd)
             planep.communicate(all_edges.encode("utf-8"))
             planep.wait()
         # plot top edges
         if top_colour is not None:
-            topp = Popen(
-                [
-                    GMT,
-                    "psxy",
-                    "-J",
-                    "-R",
-                    "-K",
-                    "-O",
-                    self.z,
-                    "-W%s,%s" % (top_width, top_colour),
-                ],
-                stdin=PIPE,
-                stdout=self.psf,
-                cwd=self.wd,
-            )
+            cmd = [
+                GMT,
+                module,
+                "-J",
+                "-R",
+                "-K",
+                "-O",
+                "-W%s,%s" % (top_width, top_colour),
+            ]
+            if depth:
+                cmd.append(self.z)
+            if self.p:
+                cmd.append("-p")
+            topp = Popen(cmd, stdin=PIPE, stdout=self.psf, cwd=self.wd)
             topp.communicate(top_edges.encode("utf-8"))
             topp.wait()
         # hypocentre
         if hyp_size > 0 and hyp_colour is not None:
-            hypp = Popen(
-                [
-                    GMT,
-                    "psxy",
-                    "-J",
-                    "-R",
-                    "-K",
-                    "-O",
-                    self.z,
-                    "-W%s,%s" % (hyp_width, hyp_colour),
-                    "-S%s%s" % (hyp_shape, hyp_size),
-                ],
-                stdin=PIPE,
-                stdout=self.psf,
-                cwd=self.wd,
-            )
+            cmd = [
+                GMT,
+                module,
+                "-J",
+                "-R",
+                "-K",
+                "-O",
+                "-W%s,%s" % (hyp_width, hyp_colour),
+                "-S%s%s" % (hyp_shape, hyp_size),
+            ]
+            if depth:
+                cmd.append(self.z)
+                # would have to set z range in region
+                cmd.append("-N")
+            if self.p:
+                cmd.append("-p")
+            hypp = Popen(cmd, stdin=PIPE, stdout=self.psf, cwd=self.wd)
             hypp.communicate(hypocentre.encode("utf-8"))
             hypp.wait()
 
@@ -3963,7 +3988,7 @@ class GMTPlot:
 
         if is_file:
             cmd.append(os.path.abspath(data))
-            Popen(cmd, stdout=self.psf, cwd=self.wd)
+            Popen(cmd, stdout=self.psf, cwd=self.wd).wait()
         else:
             meca = Popen(cmd, stdin=PIPE, stdout=self.psf, cwd=self.wd)
             meca.communicate(data.encode("utf-8"))

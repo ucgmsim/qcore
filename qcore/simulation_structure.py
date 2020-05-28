@@ -5,7 +5,9 @@ import os
 
 import qcore.constants as const
 
+
 def get_fault_from_realisation(realisation):
+    realisation = os.path.basename(realisation) #if realisation is a fullpath
     return realisation.split("_")[0]
 
 
@@ -23,6 +25,10 @@ def get_VM_dir(cybershake_root):
     return os.path.join(cybershake_root, "Data", "VMs")
 
 
+def get_realisation_VM_dir(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), realisation)
+
+
 # SRF
 def get_srf_location(realisation):
     fault = get_fault_from_realisation(realisation)
@@ -36,7 +42,11 @@ def get_srf_info_location(realisation):
 
 def get_srf_dir(cybershake_root, realisation):
     return os.path.join(
-        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Srf"
+        cybershake_root,
+        "Data",
+        "Sources",
+        get_fault_from_realisation(realisation),
+        "Srf",
     )
 
 
@@ -59,7 +69,11 @@ def get_source_params_location(realisation):
 
 def get_source_params_dir(cybershake_root, realisation):
     return os.path.join(
-        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Sim_params"
+        cybershake_root,
+        "Data",
+        "Sources",
+        get_fault_from_realisation(realisation),
+        "Sim_params",
     )
 
 
@@ -77,7 +91,11 @@ def get_stoch_location(realisation):
 
 def get_stoch_dir(cybershake_root, realisation):
     return os.path.join(
-        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Stoch"
+        cybershake_root,
+        "Data",
+        "Sources",
+        get_fault_from_realisation(realisation),
+        "Stoch",
     )
 
 
@@ -127,8 +145,10 @@ def get_lf_dir(sim_root):
 def get_lf_outbin_dir(sim_root):
     return os.path.join(get_lf_dir(sim_root), "OutBin")
 
+
 def get_lf_restart_dir(sim_root):
     return os.path.join(get_lf_dir(sim_root), "Restart")
+
 
 # BB
 def get_bb_dir(sim_root):
@@ -157,8 +177,11 @@ def get_hf_bin_path(sim_root):
 
 
 # IM_calc
-def get_im_calc_dir(sim_root):
-    return os.path.join(sim_root, "IM_calc")
+def get_im_calc_dir(sim_root, realisation=None):
+    if realisation is None:
+        return os.path.join(sim_root, "IM_calc")
+    else:
+        return get_im_calc_dir(get_sim_dir(sim_root, realisation))
 
 
 def get_IM_csv(sim_root):
@@ -168,7 +191,20 @@ def get_IM_csv(sim_root):
     )
 
 
+def get_IM_info(sim_root):
+    return os.path.join(
+        get_im_calc_dir(sim_root),
+        "{}{}".format(
+            os.path.basename(sim_root).split(".")[0], const.IM_SIM_CALC_INFO_SUFFIX
+        ),
+    )
+
+
 # yaml
+def get_sim_params_yaml_path(sim_root):
+    return os.path.join(sim_root, "sim_params.yaml")
+
+
 def get_fault_yaml_path(sim_root, fault_name=None):
     """
     Gets the fault_params.yaml for the specified simulation. 
@@ -187,11 +223,15 @@ def get_root_yaml_path(sim_root):
 
 
 # verification
+def get_realisation_verification_dir(cybershake_root, realisation):
+    return get_verification_dir(get_sim_dir(cybershake_root, realisation))
+
+
 def get_verification_dir(sim_root):
     """
     Gets the folder for data used for verification etc.
     """
-    return os.path.join(sim_root, "Verification")
+    return os.path.join(sim_root, "verification")
 
 
 def get_sources_plot_dir(cybershake_root, realisation):
@@ -200,6 +240,27 @@ def get_sources_plot_dir(cybershake_root, realisation):
     before installing a cybershake. eg. srf square & map plots.
     """
     return os.path.join(
-        cybershake_root, "Data", "Sources", get_fault_from_realisation(realisation), "Verification"
+        cybershake_root,
+        "Data",
+        "Sources",
+        get_fault_from_realisation(realisation),
+        "verification",
     )
 
+
+# rrups
+def get_rrup_path(cybershake_root, realisation):
+    fault = get_fault_from_realisation(realisation)
+    return os.path.join(
+        get_rrup_location(cybershake_root, realisation),
+        f"rrup_{fault}.csv",
+    )
+
+
+def get_rrup_location(cybershake_root, realisation):
+    return get_realisation_verification_dir(cybershake_root, realisation)
+
+
+# empiricals
+def get_empirical_dir(cybershake_root, realisation):
+    return os.path.join(get_sim_dir(cybershake_root, realisation), "empirical")
