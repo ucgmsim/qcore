@@ -57,7 +57,7 @@ def get_corners(model_params, gmt_format=False):
     return corners, cnr_str
 
 
-def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None):
+def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, non_blocking=False):
     """
     cmd: command as list starting with executable, followed by arguments.
          Strings will be split by whitespace even if this splits a parameter.
@@ -91,6 +91,10 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None):
         stderr = subprocess.PIPE
 
     p = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
+
+    if non_blocking:
+        return p
+
     out, err = p.communicate(stdin)
     rc = p.wait()
 
