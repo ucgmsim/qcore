@@ -57,7 +57,9 @@ def get_corners(model_params, gmt_format=False):
     return corners, cnr_str
 
 
-def non_blocking_exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kwargs):
+def non_blocking_exe(
+    cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kwargs
+):
     # always split for consistency
     if type(cmd) == str:
         cmd = cmd.split(" ")
@@ -98,7 +100,9 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kw
     :return: the communication object or out/err strings
     """
 
-    p = non_blocking_exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kwargs)
+    p = non_blocking_exe(
+        cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kwargs
+    )
 
     out, err = p.communicate(stdin)
     rc = p.wait()
@@ -110,7 +114,7 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kw
             print(err, file=sys.stderr)
 
     try:
-        return out.decode('utf-8'), err.decode('utf-8')
+        return out.decode("utf-8"), err.decode("utf-8")
     except:
         return out, err
 

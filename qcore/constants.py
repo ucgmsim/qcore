@@ -4,29 +4,7 @@ from typing import List
 
 import numpy as np
 
-LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
-CHECKPOINT_DURATION = 10.0  # in minutes
-
-HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
-HF_DEFAULT_VERSION = "run_hf_mpi"
-HF_DEFAULT_SEED = (
-    0
-)  # Causes a random seed to be chosen, unless a previous seed file already exists
-
-BB_DEFAULT_VERSION = "run_bb_mpi"
-BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
-
-IM_CALC_DEFAULT_N_CORES = 40  # 1 node, no hyperthreading
-
-IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
-IM_SIM_SL_SCRIPT_NAME = "sim_im_calc_{}.sl"
-IM_SIM_CALC_INFO_SUFFIX = "_imcalc.info"
-
-MERGE_TS_DEFAULT_NCORES = 4
-
-HEADER_TEMPLATE = "slurm_header.cfg"
-DEFAULT_ACCOUNT = "nesi00213"
-DEFAULT_MEMORY = "16G"
+CHECKPOINT_DURATION = 10.0
 
 QUEUE_DATE_FORMAT = "%Y%m%d%H%M%S_%f"
 
@@ -66,6 +44,7 @@ DEFAULT_PSA_PERIODS = [
     10.0,
 ]
 EXT_PERIOD = np.logspace(start=np.log10(0.01), stop=np.log10(10.0), num=100, base=10)
+
 
 class EstModelType(Enum):
     NN = "NN"
@@ -408,3 +387,22 @@ class Components(ExtendedStrEnum):
             components_to_get = components_to_store[:]
 
         return components_to_get, components_to_store
+
+
+class PLATFORM_CONFIG(Enum):
+    LF_DEFAULT_NCORES = "LF_DEFAULT_NCORES"
+    HF_DEFAULT_NCORES = "HF_DEFAULT_NCORES"
+    HF_DEFAULT_VERSION = "HF_DEFAULT_VERSION"
+    HF_DEFAULT_SEED = "HF_DEFAULT_SEED"
+    BB_DEFAULT_VERSION = "BB_DEFAULT_VERSION"
+    BB_DEFAULT_NCORES = "BB_DEFAULT_NCORES"
+    IM_CALC_DEFAULT_N_CORES = "IM_CALC_DEFAULT_N_CORES"
+    IM_SIM_CALC_TEMPLATE_NAME = "IM_SIM_CALC_TEMPLATE_NAME"
+    IM_SIM_SL_SCRIPT_NAME = "IM_SIM_SL_SCRIPT_NAME"
+    IM_SIM_CALC_INFO_SUFFIX = "IM_SIM_CALC_INFO_SUFFIX"
+    MERGE_TS_DEFAULT_NCORES = "MERGE_TS_DEFAULT_NCORES"
+    HEADER_TEMPLATE = "HEADER_TEMPLATE"
+    DEFAULT_ACCOUNT = "DEFAULT_ACCOUNT"
+    DEFAULT_MEMORY = "DEFAULT_MEMORY"
+    MACHINE_TASKS = "MACHINE_TASKS"
+    DEFAULT_N_RUNS = "DEFAULT_N_RUNS"

@@ -11,6 +11,7 @@ import sys
 OUT_C = "out_array_srf2llv.bin"
 OUT_PY = "out_array_srf2llv_py.bin"
 
+
 def srf2bin(srf_file, out_file, py_method=False):
     """srffile: path to input srf file
        islist: srffile function return a numpy array or a list(of numpy array(s))
@@ -31,6 +32,7 @@ def srf2bin(srf_file, out_file, py_method=False):
         out_array.astype(np.float32).tofile(out_file)
     except Exception as e:
         sys.exit(e)
+
 
 # retrieve input srf from command line
 try:
