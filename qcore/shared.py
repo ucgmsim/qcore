@@ -101,7 +101,7 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kw
     """
 
     p = non_blocking_exe(
-        cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kwargs
+        cmd, debug=debug, shell=shell, stdout=stdout, stderr=stderr, stdin=stdin, **kwargs
     )
 
     out, err = p.communicate(stdin)
