@@ -13,6 +13,8 @@
   "HEADER_TEMPLATE" : "slurm_header.cfg",
   "DEFAULT_ACCOUNT" : "nesi00213",
   "DEFAULT_MEMORY" : "16G",
+  "SCHEDULER": "slurm",
+  "AVAILABLE_MACHINES":  ["maui", "mahuika"],
   "DEFAULT_N_RUNS": {
     "maui": 12,
     "mahuika": 12
@@ -33,5 +35,9 @@
     "HF2BB": "mahuika",
     "plot_srf": "mahuika",
     "advanced_IM": "mahuika"
-  }
+  },
+  "VELOCITY_MODEL_DIR": "/nesi/project/nesi00213/VelocityModel",
+  "STATION_INFO": "/nesi/project/nesi00213/StationInfo",
+  "ESTIMATION_MODELS_DIR": "$gmsim/workflow/estimation/models",
+  "TEMPLATES_DIR": "$gmsim/workflow/templates",
 }

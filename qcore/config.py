@@ -1,3 +1,4 @@
+from enum import Enum
 from json import load
 from os.path import join, abspath, dirname
 from platform import node
@@ -59,7 +60,7 @@ def determine_platform_config(hostname=determine_machine_config()[0]):
 
     elif hostname == "default":
         hpc_platform = "local"
-        basename = "config_local.json"
+        basename = "config_bash.json"
 
     else:
         raise ValueError("Unexpected host given")
@@ -99,3 +100,6 @@ if errors:
     if extra_keys:
         message += f" Additional keys found: {', '.join(extra_keys)}."
     raise ValueError(message)
+
+# Dynamically generate the HPC enum
+HPC = Enum("HPC", platform_config[PLATFORM_CONFIG.AVAILABLE_MACHINES.name], module=__name__)

@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 from datetime import datetime
 from typing import List
 
@@ -50,11 +50,6 @@ class EstModelType(Enum):
     NN = "NN"
     SVR = "SVR"
     NN_SVR = "NN_SVR"
-
-
-class HPC(Enum):
-    maui = "maui"
-    mahuika = "mahuika"
 
 
 class ExtendedEnum(Enum):
@@ -390,19 +385,24 @@ class Components(ExtendedStrEnum):
 
 
 class PLATFORM_CONFIG(Enum):
-    LF_DEFAULT_NCORES = "LF_DEFAULT_NCORES"
-    HF_DEFAULT_NCORES = "HF_DEFAULT_NCORES"
-    HF_DEFAULT_VERSION = "HF_DEFAULT_VERSION"
-    HF_DEFAULT_SEED = "HF_DEFAULT_SEED"
-    BB_DEFAULT_VERSION = "BB_DEFAULT_VERSION"
-    BB_DEFAULT_NCORES = "BB_DEFAULT_NCORES"
-    IM_CALC_DEFAULT_N_CORES = "IM_CALC_DEFAULT_N_CORES"
-    IM_SIM_CALC_TEMPLATE_NAME = "IM_SIM_CALC_TEMPLATE_NAME"
-    IM_SIM_SL_SCRIPT_NAME = "IM_SIM_SL_SCRIPT_NAME"
-    IM_SIM_CALC_INFO_SUFFIX = "IM_SIM_CALC_INFO_SUFFIX"
-    MERGE_TS_DEFAULT_NCORES = "MERGE_TS_DEFAULT_NCORES"
-    HEADER_TEMPLATE = "HEADER_TEMPLATE"
-    DEFAULT_ACCOUNT = "DEFAULT_ACCOUNT"
-    DEFAULT_MEMORY = "DEFAULT_MEMORY"
-    MACHINE_TASKS = "MACHINE_TASKS"
-    DEFAULT_N_RUNS = "DEFAULT_N_RUNS"
+    LF_DEFAULT_NCORES = auto()
+    HF_DEFAULT_NCORES = auto()
+    HF_DEFAULT_VERSION = auto()
+    HF_DEFAULT_SEED = auto()
+    BB_DEFAULT_VERSION = auto()
+    BB_DEFAULT_NCORES = auto()
+    IM_CALC_DEFAULT_N_CORES = auto()
+    IM_SIM_CALC_TEMPLATE_NAME = auto()
+    IM_SIM_SL_SCRIPT_NAME = auto()
+    IM_SIM_CALC_INFO_SUFFIX = auto()
+    MERGE_TS_DEFAULT_NCORES = auto()
+    HEADER_TEMPLATE = auto()
+    DEFAULT_ACCOUNT = auto()
+    DEFAULT_MEMORY = auto()
+    MACHINE_TASKS = auto()
+    DEFAULT_N_RUNS = auto()
+    SCHEDULER = auto()
+    AVAILABLE_MACHINES = auto()
+    ESTIMATION_MODELS_DIR = auto()
+    TEMPLATES_DIR = auto()
+    VELOCITY_MODEL_DIR = auto()

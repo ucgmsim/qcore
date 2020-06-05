@@ -197,7 +197,7 @@ def get_IM_info(sim_root):
         get_im_calc_dir(sim_root),
         "{}{}".format(
             os.path.basename(sim_root).split(".")[0],
-            platform_config[const.PLATFORM_CONFIG.IM_SIM_CALC_INFO_SUFFIX.value],
+            platform_config[const.PLATFORM_CONFIG.IM_SIM_CALC_INFO_SUFFIX.name],
         ),
     )
 
