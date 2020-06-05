@@ -3,7 +3,6 @@ Gives access to the folder structure of the cybershake directory
 """
 import os
 
-from qcore.config import platform_config
 import qcore.constants as const
 
 
@@ -197,7 +196,7 @@ def get_IM_info(sim_root):
         get_im_calc_dir(sim_root),
         "{}{}".format(
             os.path.basename(sim_root).split(".")[0],
-            platform_config[const.PLATFORM_CONFIG.IM_SIM_CALC_INFO_SUFFIX.name],
+            const.IM_SIM_CALC_INFO_SUFFIX,
         ),
     )
 

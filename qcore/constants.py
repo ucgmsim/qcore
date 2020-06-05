@@ -22,7 +22,11 @@ SLURM_MGMT_DB_NAME = "slurm_mgmt.db"
 
 VM_PARAMS_FILE_NAME = "vm_params.yaml"
 
+IM_SIM_CALC_INFO_SUFFIX = "_imcalc.info"
+
 ROOT_DEFAULTS_FILE_NAME = "root_defaults.yaml"
+
+HF_DEFAULT_SEED = 0
 
 MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION = "3.0.4"
 
@@ -388,15 +392,12 @@ class PLATFORM_CONFIG(Enum):
     LF_DEFAULT_NCORES = auto()
     HF_DEFAULT_NCORES = auto()
     HF_DEFAULT_VERSION = auto()
-    HF_DEFAULT_SEED = auto()
     BB_DEFAULT_VERSION = auto()
     BB_DEFAULT_NCORES = auto()
     IM_CALC_DEFAULT_N_CORES = auto()
     IM_SIM_CALC_TEMPLATE_NAME = auto()
     IM_SIM_SL_SCRIPT_NAME = auto()
-    IM_SIM_CALC_INFO_SUFFIX = auto()
     MERGE_TS_DEFAULT_NCORES = auto()
-    HEADER_TEMPLATE = auto()
     DEFAULT_ACCOUNT = auto()
     DEFAULT_MEMORY = auto()
     MACHINE_TASKS = auto()
@@ -406,3 +407,4 @@ class PLATFORM_CONFIG(Enum):
     ESTIMATION_MODELS_DIR = auto()
     TEMPLATES_DIR = auto()
     VELOCITY_MODEL_DIR = auto()
+    HEADER_TEMPLATE = auto()
