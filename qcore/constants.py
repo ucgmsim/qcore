@@ -407,4 +407,3 @@ class PLATFORM_CONFIG(Enum):
     ESTIMATION_MODELS_DIR = auto()
     TEMPLATES_DIR = auto()
     VELOCITY_MODEL_DIR = auto()
-    HEADER_TEMPLATE = auto()
