@@ -114,7 +114,7 @@ class ProcessType(ExtendedStrEnum):
         "EMOD3D",
         False,
         False,
-        'srun {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
+        '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
         (),
     )
     merge_ts = (
@@ -122,7 +122,7 @@ class ProcessType(ExtendedStrEnum):
         "merge_ts",
         True,
         False,
-        "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
+        "time {run_command} {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
         (1,),
     )
 
@@ -133,7 +133,7 @@ class ProcessType(ExtendedStrEnum):
         "HF",
         True,
         True,
-        "srun python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
+        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         (),
     )
@@ -142,7 +142,7 @@ class ProcessType(ExtendedStrEnum):
         "BB",
         True,
         True,
-        "srun python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
+        "{run_command} python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
         (1, 4),
     )
@@ -407,3 +407,4 @@ class PLATFORM_CONFIG(Enum):
     ESTIMATION_MODELS_DIR = auto()
     TEMPLATES_DIR = auto()
     VELOCITY_MODEL_DIR = auto()
+    RUN_COMMAND = auto()
