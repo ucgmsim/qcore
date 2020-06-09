@@ -58,7 +58,7 @@ def get_corners(model_params, gmt_format=False):
 
 
 def non_blocking_exe(
-    cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kwargs
+    cmd, debug=True, shell=False, stdout=True, stderr=True, **kwargs
 ):
     # always split for consistency
     if type(cmd) == str:
@@ -101,7 +101,7 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kw
     """
 
     p = non_blocking_exe(
-        cmd, debug=debug, shell=shell, stdout=stdout, stderr=stderr, stdin=stdin, **kwargs
+        cmd, debug=debug, shell=shell, stdout=stdout, stderr=stderr, **kwargs
     )
 
     out, err = p.communicate(stdin)

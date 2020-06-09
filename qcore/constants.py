@@ -106,7 +106,7 @@ class ProcessType(ExtendedStrEnum):
 
     The string value of the enum can be accessed with Process.EMOD3D.str_value
 
-    # ProcessID, ProcessName, ?Hyperthreading, ?, command, dependancies (tuple),
+    # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
     EMOD3D = (
