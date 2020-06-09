@@ -408,3 +408,4 @@ class PLATFORM_CONFIG(Enum):
     TEMPLATES_DIR = auto()
     VELOCITY_MODEL_DIR = auto()
     RUN_COMMAND = auto()
+    HEADER_FILE = auto()
