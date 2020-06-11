@@ -12,6 +12,8 @@ cb_amp (version = "2008"):
     Based on Campbell and Bozorgnia 2008 - added 24 June 2016
 cb_amp (version = "2014"):
     Based on Campbell and Bozorgnia 2014 - added 22 September 2016
+ba18_amp (version 2018):
+    Based on Bayless Fourier Amplitude Spectra Empirical Model - added 11 June 2020
 
 Usage
 ==============================
@@ -21,9 +23,15 @@ cb_amp(variables, ...)
 
 # math functions faster than numpy for non-vector data
 from math import ceil, exp, log
+import os
 
 import numpy as np
+import pandas as pd
 
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+ba18_coefs_file = os.path.join(__location__, "siteamp_coefs_files", 'Bayless_ModelCoefs.csv')
+ba18_coefs_df = pd.read_csv(ba18_coefs_file, index_col=0)
 
 def nt2n(nt):
     """
@@ -39,6 +47,8 @@ def cb_amp(dt, n, vref, vsite, vpga, pga, version='2014',
     # cb constants
     scon_c = 1.88
     scon_n = 1.18
+
+    # fmt: off
     freqs = 1.0 / np.array([0.001,0.01, 0.02, 0.03, 0.05, 0.075, 0.10,
                             0.15, 0.20, 0.25, 0.30, 0.40, 0.50,  0.75,
                             1.00, 1.50, 2.00, 3.00, 4.00, 5.00,  7.50, 10.0])
@@ -60,6 +70,7 @@ def cb_amp(dt, n, vref, vsite, vpga, pga, version='2014',
     k2 = np.array([-1.186, -1.186, -1.219, -1.273, -1.346, -1.471, -1.624,
                    -1.931, -2.188, -2.381, -2.518, -2.657, -2.669, -2.401,
                    -1.955, -1.025, -0.299,  0.0,    0.0,    0.0,    0.0, 0.0])
+    # fmt: on
 
     # f_site function domains
     def fs_low(T, vs30, a1100):
@@ -241,3 +252,66 @@ def cb_amp_old(dt, n, vref, vsite, vpga, pga, version='2008',
                     * (1.0 - ampv) / log(fmax / fhightop)
 
     return ampf
+
+#dt, n, vref, vsite, vpga, pga, version='2014', flowcap=0.0, fmin=0.2, fmidbot=0.5, fmid=1.0, fhigh=10 / 3., fhightop=10.0, fmax=15.0
+def ba18_amp(vref, vs, mag, rrup, ztor, fnorm=1):
+    """
+
+    :return:
+    """
+    if vs < 1000:
+        vs = 999
+
+    ref = ba_18_siteamp(fnorm, mag, rrup, vref, ztor)
+    amp = ba_18_siteamp(fnorm, mag, rrup, vs, ztor)
+    return  amp / ref
+
+
+def ba_18_siteamp(fnorm, mag, rrup, vs, ztor):
+    b4a = -0.5
+    vsref = 1000
+    mbreak = 6.0
+    coefs = type('coefs', (object,), {})  # creates a custom object for coefs
+    coefs.freq = ba18_coefs_df.index.values
+    coefs.b1 = ba18_coefs_df.c1.values
+    coefs.b2 = ba18_coefs_df.c2.values
+    coefs.b3quantity = ba18_coefs_df['(c2-c3)/cn'].values
+    coefs.bn = ba18_coefs_df.cn.values
+    coefs.bm = ba18_coefs_df.cM.values
+    coefs.b4 = ba18_coefs_df.c4.values
+    coefs.b5 = ba18_coefs_df.c5.values
+    coefs.b6 = ba18_coefs_df.c6.values
+    coefs.bhm = ba18_coefs_df.chm.values
+    coefs.b7 = ba18_coefs_df.c7.values
+    coefs.b8 = ba18_coefs_df.c8.values
+    coefs.b9 = ba18_coefs_df.c9.values
+    coefs.b10 = ba18_coefs_df.c10.values
+    # Non-linear site parameters
+    coefs.f3 = ba18_coefs_df.f3.values
+    coefs.f4 = ba18_coefs_df.f4.values
+    coefs.f5 = ba18_coefs_df.f5.values
+    fsl = coefs.b8 * np.log(min(vs, 1000) / vsref)
+    # Compute non-linear site response
+    # get the EAS_rock at 5 Hz (no c8, c11 terms)
+    vref = 760
+
+    # row = df.iloc[df.index == 5.011872]
+    i5 = np.where(coefs.freq == 5.011872)
+    lnfasrock5Hz = coefs.b1[i5]
+    lnfasrock5Hz += coefs.b2[i5] * (mag - mbreak)
+    lnfasrock5Hz += coefs.b3quantity[i5] * np.log(1 + np.exp(coefs.bn[i5] * (coefs.bm[i5] - mag)))
+    lnfasrock5Hz += coefs.b4[i5] * np.log(rrup + coefs.b5[i5] * np.cosh(coefs.b6[i5] * max(mag - coefs.bhm[i5], 0)))
+    lnfasrock5Hz += (b4a - coefs.b4[i5]) * np.log(np.sqrt(rrup ** 2 + 50 ** 2))
+    lnfasrock5Hz += coefs.b7[i5] * rrup
+    lnfasrock5Hz += coefs.b9[i5] * min(ztor, 20)
+    lnfasrock5Hz += coefs.b10[i5] * fnorm
+
+    # Compute PGA_rock extimate from 5 Hz FAS
+    IR = np.exp(1.238 + 0.846 * lnfasrock5Hz)
+
+    # apply the modified Hashash model
+    coefs.f2 = coefs.f4 * (np.exp(coefs.f5 * (min(vs, vref) - 360)) - np.exp(coefs.f5 * (vref - 360)))
+    fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
+
+    fnl0[np.where(fnl0 == min(fnl0))[0][0]:] = min(fnl0)
+    return fnl0 + fsl
