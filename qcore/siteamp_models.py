@@ -33,9 +33,7 @@ ba18_coefs_df = None
 
 def init_ba18():
     global ba18_coefs_df
-    __location__ = os.path.realpath(
-        os.path.join(os.getcwd(), os.path.dirname(__file__))
-    )
+    __location__ = os.path.realpath(os.path.dirname(__file__))
     ba18_coefs_file = os.path.join(
         __location__, "siteamp_coefs_files", "Bayless_ModelCoefs.csv"
     )
@@ -326,7 +324,9 @@ def ba18_amp(
     fmax=15.0,
 ):
     if vs > 1000:
-        vs = 999  # maximum vs30 supported by the model is 999, so caps the vsite to that value
+        vs = (
+            999
+        )  # maximum vs30 supported by the model is 999, so caps the vsite to that value
 
     ref, __ = ba_18_site_response_factor(vref, pga)
     vsite, freqs = ba_18_site_response_factor(vs, pga)
@@ -382,7 +382,7 @@ def ba_18_site_response_factor(vs, pga):
     )
     fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
 
-    fnl0[np.where(fnl0 == min(fnl0))[0][0]:] = min(fnl0)
+    fnl0[np.where(fnl0 == min(fnl0))[0][0] :] = min(fnl0)
     return fnl0 + lnfas, coefs.freq
 
 
@@ -408,7 +408,7 @@ def hashash_get_pgv(fnorm, mag, rrup, ztor):
     coefs.b9 = ba18_coefs_df.c9.values
     coefs.b10 = ba18_coefs_df.c10.values
     # row = df.iloc[df.index == 5.011872]
-    i5 = np.where(coefs.freq == 5.011872)
+    i5 = np.where(coefs.freq == 5.011_872)
     lnfasrock5Hz = coefs.b1[i5]
     lnfasrock5Hz += coefs.b2[i5] * (mag - mbreak)
     lnfasrock5Hz += coefs.b3quantity[i5] * np.log(
