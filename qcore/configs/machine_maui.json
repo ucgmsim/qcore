@@ -1,4 +1,7 @@
 {
     "GMT_DATA" : "/nesi/project/nesi00213/PlottingData",
-    "tools_dir" : "/nesi/project/nesi00213/opt/maui/hybrid_sim_tools/"
+    "tools_dir" : "/nesi/project/nesi00213/opt/maui/hybrid_sim_tools/",
+    "cores_per_node" : 40,
+    "MAX_NODES_PER_JOB" : 66,
+    "MAX_JOB_WCT" : 24
 }

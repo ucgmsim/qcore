@@ -1,3 +1,4 @@
+from enum import Enum, auto
 from json import load
 from os.path import join, abspath, dirname
 from platform import node
@@ -40,6 +41,14 @@ def get_machine_config(hostname=node(), config_path=None):
         _, config_path = determine_machine_config(hostname)
     with open(config_path, "r") as machine_config_file:
         return load(machine_config_file)
+
+
+class ConfigKeys(Enum):
+    GMT_DATA = auto()
+    tools_dir = auto()
+    cores_per_node = auto()
+    MAX_JOB_WCT = auto()
+    MAX_NODES_PER_JOB = auto()
 
 
 host, host_config_path = determine_machine_config()
