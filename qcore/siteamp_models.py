@@ -57,6 +57,7 @@ def cb_amp(
     vsite,
     vpga,
     pga,
+    stat_name,
     version="2014",
     flowcap=0.0,
     fmin=0.2,
@@ -125,34 +126,17 @@ def cb_amp(
     except IndexError:
         pass
 
-    ampf, ampv, ftfreq = interpolate_frequency(freqs, ampf0, dt, n)
-
-    # amplification factors applied differently at different bands
-    ampf[1:] += (
-        np.where(
-            (ftfreq >= fhightop) & (ftfreq < fmax),
-            -1 + ampv + np.log(ftfreq / fhightop) * (1.0 - ampv) / log(fmax / fhightop),
-            0,
-        )
-        + np.where((ftfreq >= fmidbot) & (ftfreq < fhightop), -1 + ampv, 0)
-        + np.where(
-            (ftfreq >= fmin) & (ftfreq < fmidbot),
-            np.log(ftfreq / fmin) * (ampv - 1.0) / log(fmidbot / fmin),
-            0,
-        )
-    )
+    ampv, ftfreq = interpolate_frequency(freqs, ampf0, dt, n)
+    ampf = amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq)
 
     return ampf
 
 
 def interpolate_frequency(freqs, ampf0, dt, n):
-
     # frequencies of fourier transform
     ftfreq = np.arange(1, n / 2) * (1.0 / (n * dt))
     # transition indexes
     digi = np.digitize(freqs, ftfreq)[::-1]
-    # default amplification is 1.0 (keeping values the same)
-    ampf = np.ones(ftfreq.size + 1, dtype=np.float)
     # only go down to 2nd frequency
     ampf0[0] = ampf0[1]
     freqs[0] = freqs[1]
@@ -181,7 +165,27 @@ def interpolate_frequency(freqs, ampf0, dt, n):
         start = max(end, digi[i + 1])
         start_dadf = end_dadf
     ampv = a0 + dadf * np.log(ftfreq / f0)
-    return ampf, ampv, ftfreq
+    return ampv, ftfreq
+
+
+def amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq):
+    # default amplification is 1.0 (keeping values the same)
+    ampf = np.ones(ftfreq.size + 1, dtype=np.float)
+    # amplification factors applied differently at different bands
+    ampf[1:] += (
+        np.where(
+            (ftfreq >= fhightop) & (ftfreq < fmax),
+            -1 + ampv + np.log(ftfreq / fhightop) * (1.0 - ampv) / log(fmax / fhightop),
+            0,
+        )
+        + np.where((ftfreq >= fmidbot) & (ftfreq < fhightop), -1 + ampv, 0)
+        + np.where(
+            (ftfreq >= fmin) & (ftfreq < fmidbot),
+            np.log(ftfreq / fmin) * (ampv - 1.0) / log(fmidbot / fmin),
+            0,
+        )
+    )
+    return ampf
 
 
 def cb_amp_old(
@@ -304,7 +308,6 @@ def cb_amp_old(
     return ampf
 
 
-# dt, n, vref, vsite, vpga, pga, version='2014', flowcap=0.0, fmin=0.2, fmidbot=0.5, fmid=1.0, fhigh=10 / 3., fhightop=10.0, fmax=15.0
 def ba18_amp(
     dt,
     n,
@@ -312,31 +315,32 @@ def ba18_amp(
     vs,
     vpga,
     pga,
+    stat_name,
     version=None,
-    flowcap=None,
-    fmin=None,
-    fmidbot=None,
-    fmid=None,
-    fhigh=None,
-    fhightop=None,
-    fmax=None,
+    flowcap=0.0,
+    fmin=0.2,
+    fmidbot=0.5,
+    fmid=1.0,
+    fhigh=10 / 3.0,
+    fhightop=10.0,
+    fmax=15.0,
 ):
-    """
+    if vs > 1000:
+        vs = 999  # maximum vs30 supported by the model is 999, so caps the vsite to that value
 
-    :return:
-    """
-    if vs < 1000:
-        vs = 999
+    ref, __ = ba_18_site_response_factor(vref, pga)
+    vsite, freqs = ba_18_site_response_factor(vs, pga)
 
-    ref, __ = ba_18_siteamp(vref, pga)
-    amp, freqs = ba_18_siteamp(vs, pga)
+    amp = np.exp(vsite - ref)
+    # interpolation function expects frequencies in descending order
+    ampv, ftfreq = interpolate_frequency(freqs[::-1], amp[::-1], dt, n)
 
-    ampf, ampv, ftfreq = interpolate_frequency(freqs, amp / ref, dt, n)
+    ampf = amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq)
 
     return ampf
 
 
-def ba_18_siteamp(vs, pga):
+def ba_18_site_response_factor(vs, pga):
     vsref = 1000
 
     if ba18_coefs_df is None:
@@ -355,7 +359,7 @@ def ba_18_siteamp(vs, pga):
 
     lnfas = coefs.b8 * np.log(min(vs, 1000) / vsref)
 
-    maxfreq = 23.988321
+    maxfreq = 23.988_321
     imax = np.where(coefs.freq == maxfreq)[0][0]
     fas_lin = np.exp(lnfas)
 
@@ -370,9 +374,7 @@ def ba_18_siteamp(vs, pga):
     lnfas = np.log(fas_lin)
 
     # Compute non-linear site response
-    # get the EAS_rock at 5 Hz (no c8, c11 terms)
     vref = 760
-
     IR = pga
 
     coefs.f2 = coefs.f4 * (
@@ -380,11 +382,12 @@ def ba_18_siteamp(vs, pga):
     )
     fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
 
-    fnl0[np.where(fnl0 == min(fnl0))[0][0] :] = min(fnl0)
+    fnl0[np.where(fnl0 == min(fnl0))[0][0]:] = min(fnl0)
     return fnl0 + lnfas, coefs.freq
 
 
 def hashash_get_pgv(fnorm, mag, rrup, ztor):
+    # get the EAS_rock at 5 Hz (no c8, c11 terms)
     b4a = -0.5
     mbreak = 6.0
 
