@@ -243,3 +243,16 @@ def compare_versions(version1, version2, split_char="."):
     if len(parts2) > len(parts1):
         return -1
     return 0
+
+
+def change_file_ext(file_ffp: str, new_ext: str, excl_dot: bool = False):
+    """Returns the full file path of the given file with the
+    extension changed to new_ext
+
+    If excl_dot is set, then a . is not added automatically
+    """
+    return os.path.join(
+        os.path.dirname(file_ffp),
+        os.path.splitext(os.path.basename(file_ffp))[0]
+        + (f".{new_ext}" if not excl_dot else new_ext),
+    )
