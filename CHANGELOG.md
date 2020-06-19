@@ -5,6 +5,7 @@ Qcore library
 ## [19.5.5] - 2019-12-18 -- Added Advanced_IM to constants
 ### Added
     - Added a new step in ProcessType
+    - New siteamp model (BA18)
 ### Changed
     - LFSeis will try to find e3d.par at one folder above if failed to find one in the same folder
 
