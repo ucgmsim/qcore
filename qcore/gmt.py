@@ -152,7 +152,7 @@ def get_region(lon, lat):
     return rcode[geo.closest_location(rloc, lon, lat)[0]]
 
 
-def region_topo(region=None):
+def region_topo(region):
     """
     Returns topo file closest to given region name.
     """
