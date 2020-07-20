@@ -1,0 +1,5 @@
+{
+  "cores_per_node": 64,
+  "MAX_NODES_PER_JOB" : 256,
+  "MAX_JOB_WCT" : 48
+}

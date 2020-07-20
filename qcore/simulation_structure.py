@@ -195,7 +195,8 @@ def get_IM_info(sim_root):
     return os.path.join(
         get_im_calc_dir(sim_root),
         "{}{}".format(
-            os.path.basename(sim_root).split(".")[0], const.IM_SIM_CALC_INFO_SUFFIX
+            os.path.basename(sim_root).split(".")[0],
+            const.IM_SIM_CALC_INFO_SUFFIX,
         ),
     )
 
