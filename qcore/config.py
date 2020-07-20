@@ -4,6 +4,16 @@ from os.path import join, abspath, dirname
 from platform import node
 
 
+class __KnownMachines(Enum):
+    # Enum intended for local use only
+    # The platform config in slurm gm workflow creates a dynamic machines enum
+    local = auto()
+    maui = auto()
+    mahuika = auto()
+    stampede2 = auto()
+    nurion = auto()
+
+
 def determine_machine_config(hostname=node()):
     """
     Manages multiple configurations for different machines.
@@ -12,23 +22,23 @@ def determine_machine_config(hostname=node()):
     """
 
     if (hostname.startswith("ni") and len(hostname) == 8) or hostname.startswith(
-        "maui"
+        __KnownMachines.maui.name
     ):
-        machine = "maui"
+        machine = __KnownMachines.maui.name
     elif (hostname.startswith("wb") and len(hostname) == 6) or hostname.startswith(
-        "mahuika"
+        __KnownMachines.mahuika.name
     ):
-        machine = "mahuika"
+        machine = __KnownMachines.mahuika.name
     elif hostname.find("stampede") > -1:
-        machine = "stampede2"
+        machine = __KnownMachines.stampede2.name
     elif (
         hostname.startswith("login")
         or hostname.startswith("node")
-        or hostname.startswith("nurion")
+        or hostname.startswith(__KnownMachines.nurion.name)
     ):
-        machine = "nurion"
+        machine = __KnownMachines.nurion.name
     else:
-        machine = "local"
+        machine = __KnownMachines.local.name
 
     basename = f"machine_{machine}.json"
 
