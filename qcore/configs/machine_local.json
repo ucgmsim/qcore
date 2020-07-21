@@ -1,4 +1,7 @@
 {
     "GMT_DATA" : "/nesi/project/nesi00213/PlottingData",
-    "tools_dir" : "/nesi/project/nesi00213/tools"
+    "tools_dir" : "/nesi/project/nesi00213/tools",
+    "cores_per_node" : 1,
+    "MAX_NODES_PER_JOB" : 1,
+    "MAX_JOB_WCT" : 1000
 }
