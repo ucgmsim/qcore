@@ -131,7 +131,7 @@ def cb_amp(
 
 def interpolate_frequency(freqs, ampf0, dt, n):
     # frequencies of fourier transform
-    ftfreq = np.arange(1, n / 2) * (1.0 / (n * dt))
+    ftfreq = get_ft_freq(dt, n)
     # transition indexes
     digi = np.digitize(freqs, ftfreq)[::-1]
     # only go down to 2nd frequency
@@ -163,6 +163,10 @@ def interpolate_frequency(freqs, ampf0, dt, n):
         start_dadf = end_dadf
     ampv = a0 + dadf * np.log(ftfreq / f0)
     return ampv, ftfreq
+
+
+def get_ft_freq(dt, n):
+    return np.arange(1, n / 2) * (1.0 / (n * dt))
 
 
 def amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq):
@@ -330,12 +334,12 @@ def ba18_amp(
     vsite, freqs = ba_18_site_response_factor(vs, pga)
 
     amp = np.exp(vsite - ref)
-    # interpolation function expects frequencies in descending order
-    ampv, ftfreq = interpolate_frequency(freqs[::-1], amp[::-1], dt, n)
+    ftfreq = get_ft_freq(dt, n)
 
-    ampf = amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq)
+    ampi = np.interp(ftfreq, freqs, amp)
+    ampfi = amp_bandpass(ampi, fhightop, fmax, fmidbot, fmin, ftfreq)
 
-    return ampf
+    return ampfi
 
 
 def ba_18_site_response_factor(vs, pga):
@@ -406,7 +410,7 @@ def hashash_get_pgv(fnorm, mag, rrup, ztor):
     coefs.b9 = ba18_coefs_df.c9.values
     coefs.b10 = ba18_coefs_df.c10.values
     # row = df.iloc[df.index == 5.011872]
-    i5 = np.where(coefs.freq == 5.011_872)
+    i5 = np.where(coefs.freq == 5.011872)
     lnfasrock5Hz = coefs.b1[i5]
     lnfasrock5Hz += coefs.b2[i5] * (mag - mbreak)
     lnfasrock5Hz += coefs.b3quantity[i5] * np.log(
