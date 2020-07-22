@@ -83,7 +83,7 @@ def cb_amp(
                         1.447, 0.330, -0.514, -0.848, -0.793, -0.748, -0.664,
                         -0.576])
     else:
-        raise Exception('BAD CB AMP version specified.')
+        raise Exception(f"BAD CB AMP version specified: {version}")
     k1 = np.array([865.0, 865.0, 865.0, 908.0, 1054.0, 1086.0, 1032.0,
                    878.0, 748.0, 654.0, 587.0,  503.0,  457.0,  410.0,
                    400.0, 400.0, 400.0, 400.0,  400.0,  400.0,  400.0, 400.0])
