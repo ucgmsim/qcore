@@ -133,7 +133,7 @@ class ProcessType(ExtendedStrEnum):
         "HF",
         True,
         True,
-        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
+        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {hf_vel_mod_1d} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         (),
     )
