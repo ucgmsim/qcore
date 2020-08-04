@@ -70,7 +70,7 @@ LINZ_RIVER = {"150k": os.path.join(GMT_DATA, "Paths/lds-nz-river-polygons/150k.g
 LINZ_ROAD = os.path.join(GMT_DATA, "Paths/lds-nz-road-centre-line/wgs84.gmt")
 LINZ_HWY = os.path.join(GMT_DATA, "Paths/shwy/wgs84.gmt")
 # OTHER GEO DATA
-TOPO_HIGH = os.path.join(GMT_DATA, "Topo/srtm_all_filt_nz.grd")
+TOPO_HIGH = os.path.join(GMT_DATA, "Topo/srtm_NZ.grd")
 TOPO_LOW = os.path.join(GMT_DATA, "Topo/nztopo.grd")
 CHCH_WATER = os.path.join(GMT_DATA, "Paths/water_network/water.gmt")
 # CPT DATA
@@ -141,6 +141,23 @@ def update_gmt_path(gmt_bin, wd=None):
 
 
 update_gmt_path(GMT)
+
+
+def get_region(lon, lat):
+    """
+    Returns closest region.
+    """
+    rcode = np.loadtxt(os.path.join(GMT_DATA, "Topo/srtm.ll"), usecols=0, dtype="U2")
+    rloc = np.loadtxt(os.path.join(GMT_DATA, "Topo/srtm.ll"), usecols=(1,2))
+    return rcode[geo.closest_location(rloc, lon, lat)[0]]
+
+
+def region_topo(region):
+    """
+    Returns topo file closest to given region name.
+    """
+    return os.path.join(GMT_DATA, "Topo/srtm_{}.grd".format(region))
+
 
 ###
 ### COMMON RESOURCES
@@ -472,80 +489,6 @@ def auto_tick(x_min, x_max, width):
     minor_tick = major_tick / 10.0 * (1 + ((i + 2) % 3 == 0))
 
     return major_tick, minor_tick
-
-
-def get_region(region_name, as_components=False):
-    """
-    Returns region as tuple (x_min, x_max, y_min, y_max).
-    Also returns list of sites which fit in region without crowding.
-    as_components: True will return x_min, x_max etc. as individual values
-    region_name: predefined region name to get parameters for
-    """
-    if region_name == "CANTERBURY":
-        x_min, x_max, y_min, y_max = 171.75, 173.00, -44.00, -43.20
-        region_sites = [
-            "Rolleston",
-            "Darfield",
-            "Lyttelton",
-            "Akaroa",
-            "Kaiapoi",
-            "Rakaia",
-            "Oxford",
-        ]
-    elif region_name == "WIDERCANT":
-        x_min, x_max, y_min, y_max = 170.52, 173.67, -44.4, -42.53
-        region_sites = [
-            "Rolleston",
-            "Darfield",
-            "Lyttelton",
-            "Akaroa",
-            "Kaiapoi",
-            "Rakaia",
-            "Oxford",
-        ]
-    elif region_name == "SOUTHISLAND":
-        x_min, x_max, y_min, y_max = 166.0, 174.5, -47.50, -40.00
-        region_sites = [
-            "Queenstown",
-            "Dunedin",
-            "Tekapo",
-            "Christchurch",
-            "Haast",
-            "Greymouth",
-            "Westport",
-            "Kaikoura",
-            "Nelson",
-            "Blenheim",
-            "Timaru",
-        ]
-    elif region_name == "MIDNZ":
-        x_min, x_max, y_min, y_max = 168.2, 177.9, -45.7, -37.85
-        region_sites = [
-            "Queenstown",
-            "Tekapo",
-            "Timaru",
-            "Christchurch",
-            "Haast",
-            "Greymouth",
-            "Westport",
-            "Kaikoura",
-            "Nelson",
-            "Blenheim",
-            "Wellington",
-            "Masterton",
-            "Napier",
-            "New Plymouth",
-            "Taupo",
-            "Rotorua",
-        ]
-    else:
-        # calling this in a Try block, except TypeError
-        # would be one way of handling this if expanded to 2 vars
-        return None
-
-    if as_components:
-        return x_min, x_max, y_min, y_max, region_sites
-    return (x_min, x_max, y_min, y_max), region_sites
 
 
 def is_native_xyv(xyv_file, x_min, x_max, y_min, y_max, v_min=None):
@@ -2687,7 +2630,7 @@ class GMTPlot:
                     cmd.append("-p")
                 Popen(cmd, stdout=self.psf, cwd=self.wd).wait()
                 # finish crop
-                cmd = [GMT, "psclip", "-C", "-J", "-K", "-O"]
+                cmd = [GMT, "psclip", "-C1", "-J", "-K", "-O"]
                 if self.p:
                     cmd.append("-p")
                 Popen(cmd, stdout=self.psf, cwd=self.wd).wait()
@@ -3836,6 +3779,7 @@ class GMTPlot:
         hyp_width="1p",
         hyp_colour="black",
         plane_fill=None,
+        depth=False,
     ):
         """
         Plot SRF fault plane onto map.
@@ -3853,16 +3797,16 @@ class GMTPlot:
         """
         if is_srf:
             # use SRF library to retrieve info
-            bounds = srf.get_bounds(in_path)
-            hypocentre = srf.get_hypo(in_path)
+            bounds = srf.get_bounds(in_path, depth=depth)
+            hypocentre = srf.get_hypo(in_path, depth=depth)
 
             # process for input into GMT
             gmt_bounds = [
-                ["%s %s" % tuple(corner) for corner in plane] for plane in bounds
+                [" ".join(map(str, corner)) for corner in plane] for plane in bounds
             ]
             top_edges = "\n>\n".join(["\n".join(corners[:2]) for corners in gmt_bounds])
             all_edges = "\n>\n".join(["\n".join(corners) for corners in gmt_bounds])
-            hypocentre = "%s %s" % tuple(hypocentre)
+            hypocentre = " ".join(map(str, hypocentre))
         else:
             # standard corners file
             # XXX: don't think this works
@@ -3884,53 +3828,62 @@ class GMTPlot:
             top_edges = ">\n".join(["".join(c[:2]) for c in bounds[1:]])
             all_edges = ">\n".join(["".join(c) for c in bounds[1:]])
 
+        if depth:
+            module = "psxyz"
+        else:
+            module = "psxy"
+
         # plot planes
         if not (plane_colour is None and plane_fill is None):
-            cmd = [GMT, "psxy", "-J", "-R", "-L", "-K", "-O", self.z]
+            cmd = [GMT, module, "-J", "-R", "-L", "-K", "-O"]
+            if depth:
+                cmd.append(self.z)
             if plane_colour is not None:
                 cmd.append("-W%s,%s,-" % (plane_width, plane_colour))
             if plane_fill is not None:
                 cmd.append("-G%s" % (plane_fill))
+            if self.p:
+                cmd.append("-p")
             planep = Popen(cmd, stdin=PIPE, stdout=self.psf, cwd=self.wd)
             planep.communicate(all_edges.encode("utf-8"))
             planep.wait()
         # plot top edges
         if top_colour is not None:
-            topp = Popen(
-                [
-                    GMT,
-                    "psxy",
-                    "-J",
-                    "-R",
-                    "-K",
-                    "-O",
-                    self.z,
-                    "-W%s,%s" % (top_width, top_colour),
-                ],
-                stdin=PIPE,
-                stdout=self.psf,
-                cwd=self.wd,
-            )
+            cmd = [
+                GMT,
+                module,
+                "-J",
+                "-R",
+                "-K",
+                "-O",
+                "-W%s,%s" % (top_width, top_colour),
+            ]
+            if depth:
+                cmd.append(self.z)
+            if self.p:
+                cmd.append("-p")
+            topp = Popen(cmd, stdin=PIPE, stdout=self.psf, cwd=self.wd)
             topp.communicate(top_edges.encode("utf-8"))
             topp.wait()
         # hypocentre
         if hyp_size > 0 and hyp_colour is not None:
-            hypp = Popen(
-                [
-                    GMT,
-                    "psxy",
-                    "-J",
-                    "-R",
-                    "-K",
-                    "-O",
-                    self.z,
-                    "-W%s,%s" % (hyp_width, hyp_colour),
-                    "-S%s%s" % (hyp_shape, hyp_size),
-                ],
-                stdin=PIPE,
-                stdout=self.psf,
-                cwd=self.wd,
-            )
+            cmd = [
+                GMT,
+                module,
+                "-J",
+                "-R",
+                "-K",
+                "-O",
+                "-W%s,%s" % (hyp_width, hyp_colour),
+                "-S%s%s" % (hyp_shape, hyp_size),
+            ]
+            if depth:
+                cmd.append(self.z)
+                # would have to set z range in region
+                cmd.append("-N")
+            if self.p:
+                cmd.append("-p")
+            hypp = Popen(cmd, stdin=PIPE, stdout=self.psf, cwd=self.wd)
             hypp.communicate(hypocentre.encode("utf-8"))
             hypp.wait()
 

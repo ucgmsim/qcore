@@ -57,18 +57,9 @@ def get_corners(model_params, gmt_format=False):
     return corners, cnr_str
 
 
-def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None):
-    """
-    cmd: command as list starting with executable, followed by arguments.
-         Strings will be split by whitespace even if this splits a parameter.
-         This will cause issues when shell == False. List input is ideal.
-    debug: print equivalent shell command, display output
-    shell: execute command in shell environment (not recommended)
-    stdout: True: return output | file: open file object
-    stderr: True: return error | file: open file object
-    stdin: None for no input or command input string
-    """
-
+def non_blocking_exe(
+    cmd, debug=True, shell=False, stdout=True, stderr=True, **kwargs
+):
     # always split for consistency
     if type(cmd) == str:
         cmd = cmd.split(" ")
@@ -80,7 +71,6 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None):
         if isinstance(stdout, IOBase):
             virtual_cmd = "%s 1>%s" % (virtual_cmd, stdout.name)
         if isinstance(stderr, IOBase):
-
             virtual_cmd = "%s 2>%s" % (virtual_cmd, stderr.name)
         print(virtual_cmd, file=sys.stderr)
 
@@ -90,7 +80,30 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None):
     if stderr == True:
         stderr = subprocess.PIPE
 
-    p = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
+    p = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr, **kwargs)
+    return p
+
+
+def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None, **kwargs):
+    """
+    Runs a command in the shell using the provided parameters
+    :param cmd: command as list starting with executable, followed by arguments.
+         Strings will be split by whitespace even if this splits a parameter.
+         This will cause issues when shell == False. List input is ideal.
+    :param debug: print equivalent shell command, display output
+    :param shell: execute command in shell environment (not recommended)
+    :param stdout: True: return output | file: open file object
+    :param stderr: True: return error | file: open file object
+    :param stdin: None for no input or command input string
+    :param non_blocking: True: returns the popen object | False: returns (out, err)
+    :param kwargs: Additional arguments to be passed directly to Popen
+    :return: the communication object or out/err strings
+    """
+
+    p = non_blocking_exe(
+        cmd, debug=debug, shell=shell, stdout=stdout, stderr=stderr, **kwargs
+    )
+
     out, err = p.communicate(stdin)
     rc = p.wait()
 
@@ -100,7 +113,10 @@ def exe(cmd, debug=True, shell=False, stdout=True, stderr=True, stdin=None):
         if err:
             print(err, file=sys.stderr)
 
-    return out.decode('utf-8'), err.decode('utf-8')
+    try:
+        return out.decode("utf-8"), err.decode("utf-8")
+    except:
+        return out, err
 
 
 def is_virtual_station(station_name):

@@ -1,30 +1,10 @@
-from enum import Enum
+from enum import Enum, auto
 from datetime import datetime
 from typing import List
 
-LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
-CHECKPOINT_DURATION = 10.0  # in minutes
+import numpy as np
 
-HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
-HF_DEFAULT_VERSION = "run_hf_mpi"
-HF_DEFAULT_SEED = (
-    0
-)  # Causes a random seed to be chosen, unless a previous seed file already exists
-
-BB_DEFAULT_VERSION = "run_bb_mpi"
-BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
-
-IM_CALC_DEFAULT_N_CORES = 40  # 1 node, no hyperthreading
-
-IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
-IM_SIM_SL_SCRIPT_NAME = "sim_im_calc_{}.sl"
-IM_SIM_CALC_INFO_SUFFIX = "_imcalc.info"
-
-MERGE_TS_DEFAULT_NCORES = 4
-
-HEADER_TEMPLATE = "slurm_header.cfg"
-DEFAULT_ACCOUNT = "nesi00213"
-DEFAULT_MEMORY = "16G"
+CHECKPOINT_DURATION = 10.0
 
 QUEUE_DATE_FORMAT = "%Y%m%d%H%M%S_%f"
 
@@ -42,20 +22,38 @@ SLURM_MGMT_DB_NAME = "slurm_mgmt.db"
 
 VM_PARAMS_FILE_NAME = "vm_params.yaml"
 
+IM_SIM_CALC_INFO_SUFFIX = "_imcalc.info"
+
 ROOT_DEFAULTS_FILE_NAME = "root_defaults.yaml"
 
+HF_DEFAULT_SEED = 0
+
 MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION = "3.0.4"
+
+DEFAULT_PSA_PERIODS = [
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.75,
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.5,
+    10.0,
+]
+EXT_PERIOD = np.logspace(start=np.log10(0.01), stop=np.log10(10.0), num=100, base=10)
 
 
 class EstModelType(Enum):
     NN = "NN"
     SVR = "SVR"
     NN_SVR = "NN_SVR"
-
-
-class HPC(Enum):
-    maui = "maui"
-    mahuika = "mahuika"
 
 
 class ExtendedEnum(Enum):
@@ -107,6 +105,8 @@ class ProcessType(ExtendedStrEnum):
     in the estimator configs)
 
     The string value of the enum can be accessed with Process.EMOD3D.str_value
+
+    # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
     EMOD3D = (
@@ -114,7 +114,7 @@ class ProcessType(ExtendedStrEnum):
         "EMOD3D",
         False,
         False,
-        'srun {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
+        '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
         (),
     )
     merge_ts = (
@@ -122,7 +122,7 @@ class ProcessType(ExtendedStrEnum):
         "merge_ts",
         True,
         False,
-        "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
+        "time {run_command} {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
         (1,),
     )
 
@@ -133,7 +133,7 @@ class ProcessType(ExtendedStrEnum):
         "HF",
         True,
         True,
-        "srun python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
+        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {hf_vel_mod_1d} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         (),
     )
@@ -142,7 +142,7 @@ class ProcessType(ExtendedStrEnum):
         "BB",
         True,
         True,
-        "srun python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
+        "{run_command} python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
         (1, 4),
     )
@@ -152,12 +152,12 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
-        "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM}",
+        "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM} {pSA_periods}",
         ((5,), (12,), (13,)),
     )
     IM_plot = 7, "IM_plot", None, False, None, (6,)
     rrup = 8, "rrup", None, False, None, ()
-    Empirical = 9, None, None, False, None, (8,)
+    Empirical = 9, "Empirical", None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
     clean_up = 11, "clean_up", None, None, None, (6,)
     LF2BB = 12, "LF2BB", None, None, None, (1,)
@@ -386,3 +386,26 @@ class Components(ExtendedStrEnum):
             components_to_get = components_to_store[:]
 
         return components_to_get, components_to_store
+
+
+class PLATFORM_CONFIG(Enum):
+    LF_DEFAULT_NCORES = auto()
+    HF_DEFAULT_NCORES = auto()
+    HF_DEFAULT_VERSION = auto()
+    BB_DEFAULT_VERSION = auto()
+    BB_DEFAULT_NCORES = auto()
+    IM_CALC_DEFAULT_N_CORES = auto()
+    IM_SIM_CALC_TEMPLATE_NAME = auto()
+    IM_SIM_SL_SCRIPT_NAME = auto()
+    MERGE_TS_DEFAULT_NCORES = auto()
+    DEFAULT_ACCOUNT = auto()
+    DEFAULT_MEMORY = auto()
+    MACHINE_TASKS = auto()
+    DEFAULT_N_RUNS = auto()
+    SCHEDULER = auto()
+    AVAILABLE_MACHINES = auto()
+    ESTIMATION_MODELS_DIR = auto()
+    TEMPLATES_DIR = auto()
+    VELOCITY_MODEL_DIR = auto()
+    RUN_COMMAND = auto()
+    HEADER_FILE = auto()
