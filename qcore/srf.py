@@ -824,7 +824,10 @@ def get_perimeter(srf_file, depth=True, plot=False):
             # alpha=600 worked fine with SRF, roughness 0.1
             # 1000 was cutting into the plane and missing points entirely
             # 800 was zigzagging a bit too much along the edge
-            ashape = alphashape.alphashape(points, 600.0)
+            try:
+                ashape = alphashape.alphashape(points, 600.0)
+            except NameError:
+                raise ImportError("install alphashape")
             perimeters.append(np.dstack(ashape.exterior.coords.xy)[0])
             if plot:
                 fig, ax = plt.subplots()
