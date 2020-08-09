@@ -255,9 +255,9 @@ class Status(ExtendedStrEnum):
     created = 1, "created"
     queued = 2, "queued"
     running = 3, "running"
-    completed = 4, "completed"
-    failed = 5, "failed"
-    unknown = 6, "unknown"
+    unknown = 4, "unknown"
+    completed = 5, "completed"
+    failed = 6, "failed"
 
 
 class RootParams(Enum):
