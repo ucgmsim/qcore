@@ -21,11 +21,18 @@ def load_im_file(csv_file, all_psa=False, comp=None):
             use_cols.append(i)
             col_names.append(c)
 
+
     # create numpy datatype
     dtype = [(n, np.float32) for n in col_names]
     # first 2 columns are actually strings
     dtype[0] = ("station", "|U7")
     dtype[1] = ("component", "|U4")
+
+    print('dtype')
+    print(dtype)
+
+    print('use_cols')
+    print(use_cols)
 
     # load all at once
     imdb = np.rec.array(
