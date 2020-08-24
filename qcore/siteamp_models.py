@@ -318,7 +318,7 @@ def ba18_amp(
     fmidbot=0.5,
     fmid=1.0,
     fhigh=10 / 3.0,
-    fhightop=10.0,
+    fhightop=100.0,
     fmax=15.0,
 ):
     if vs > 1000:
