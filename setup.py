@@ -1,4 +1,5 @@
-from setuptools import setup, find_packages
+from os.path import join
+from setuptools import setup
 
 setup(
     name='qcore',
@@ -6,7 +7,7 @@ setup(
     packages=['qcore'],
     url='https://github.com/ucgmsim/qcore',
     description='QuakeCoRE Library',
-    package_data={'qcore': ['*.json']},
+    package_data={'qcore': [join('configs', '*.json')]},
     install_requires=['numpy', 'scipy>=0.16'],
     include_package_data=True,
 )

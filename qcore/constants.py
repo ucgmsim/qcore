@@ -1,28 +1,10 @@
-from enum import Enum
+from enum import Enum, auto
 from datetime import datetime
 from typing import List
 
-LF_DEFAULT_NCORES = 160  # 4 nodes, no hyperthreading
-CHECKPOINT_DURATION = 10.0 # in minutes
+import numpy as np
 
-HF_DEFAULT_NCORES = 80  # 1 node, hyperthreading
-HF_DEFAULT_VERSION = "run_hf_mpi"
-HF_DEFAULT_SEED = 0 # Causes a random seed to be chosen, unless a previous seed file already exists
-
-BB_DEFAULT_VERSION = "run_bb_mpi"
-BB_DEFAULT_NCORES = 80  # 1 node, hyperthreading
-
-IM_CALC_DEFAULT_N_CORES = 40  # 1 node, no hyperthreading
-IM_CALC_COMPONENTS = ["geom", "000", "090", "ver", "ellipsis"]
-
-IM_SIM_CALC_TEMPLATE_NAME = "sim_im_calc.sl.template"
-IM_SIM_SL_SCRIPT_NAME = "sim_im_calc_{}.sl"
-
-MERGE_TS_DEFAULT_NCORES = 4
-
-HEADER_TEMPLATE = "slurm_header.cfg"
-DEFAULT_ACCOUNT = "nesi00213"
-DEFAULT_MEMORY = "16G"
+CHECKPOINT_DURATION = 10.0
 
 QUEUE_DATE_FORMAT = "%Y%m%d%H%M%S_%f"
 
@@ -40,7 +22,32 @@ SLURM_MGMT_DB_NAME = "slurm_mgmt.db"
 
 VM_PARAMS_FILE_NAME = "vm_params.yaml"
 
+IM_SIM_CALC_INFO_SUFFIX = "_imcalc.info"
+
 ROOT_DEFAULTS_FILE_NAME = "root_defaults.yaml"
+
+HF_DEFAULT_SEED = 0
+
+MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION = "3.0.4"
+
+DEFAULT_PSA_PERIODS = [
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.75,
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    7.5,
+    10.0,
+]
+EXT_PERIOD = np.logspace(start=np.log10(0.01), stop=np.log10(10.0), num=100, base=10)
 
 
 class EstModelType(Enum):
@@ -49,18 +56,24 @@ class EstModelType(Enum):
     NN_SVR = "NN_SVR"
 
 
-class HPC(Enum):
-    maui = "maui"
-    mahuika = "mahuika"
-
-
 class ExtendedEnum(Enum):
     @classmethod
     def has_value(cls, value):
         return any(value == item.value for item in cls)
 
+    @classmethod
+    def is_substring(cls, parent_string):
+        """Check if an enum's string value is contained in the given string"""
+        return any(item.value in parent_string for item in cls)
+
 
 class ExtendedStrEnum(ExtendedEnum):
+    def __new__(cls, value, str_value):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.str_value = str_value
+        return obj
+
     @classmethod
     def has_str_value(cls, str_value):
         return any(str_value == item.str_value for item in cls)
@@ -68,9 +81,7 @@ class ExtendedStrEnum(ExtendedEnum):
     @classmethod
     def from_str(cls, str_value):
         if not cls.has_str_value(str_value):
-            raise ValueError(
-                "{} is not a valid {}".format(str_value, ProcessType.__name__)
-            )
+            raise ValueError("{} is not a valid {}".format(str_value, cls.__name__))
         else:
             for item in cls:
                 if item.str_value == str_value:
@@ -94,6 +105,8 @@ class ProcessType(ExtendedStrEnum):
     in the estimator configs)
 
     The string value of the enum can be accessed with Process.EMOD3D.str_value
+
+    # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
     EMOD3D = (
@@ -101,7 +114,7 @@ class ProcessType(ExtendedStrEnum):
         "EMOD3D",
         False,
         False,
-        'srun {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
+        '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
         (),
     )
     merge_ts = (
@@ -109,7 +122,7 @@ class ProcessType(ExtendedStrEnum):
         "merge_ts",
         True,
         False,
-        "time srun {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
+        "time {run_command} {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
         (1,),
     )
 
@@ -120,7 +133,7 @@ class ProcessType(ExtendedStrEnum):
         "HF",
         True,
         True,
-        "srun python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
+        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {hf_vel_mod_1d} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         (),
     )
@@ -129,7 +142,7 @@ class ProcessType(ExtendedStrEnum):
         "BB",
         True,
         True,
-        "srun python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
+        "{run_command} python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
         (1, 4),
     )
@@ -139,17 +152,20 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
-        "{sim_name} -r {fault_name} -c {component} -t s {extended} {simple}",
+        "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM} {pSA_periods}",
         ((5,), (12,), (13,)),
     )
     IM_plot = 7, "IM_plot", None, False, None, (6,)
     rrup = 8, "rrup", None, False, None, ()
-    Empirical = 9, None, None, False, None, (8,)
+    Empirical = 9, "Empirical", None, False, None, (8,)
     Verification = 10, None, None, False, None, (9,)
-    clean_up = 11, "clean_up", None, None, None, (6, )
+    clean_up = 11, "clean_up", None, None, None, (6,)
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
-    plot_srf = 14, "plot_srf", None, False, None, ()    
+    plot_srf = 14, "plot_srf", None, False, None, ()
+
+    # adv_im uses the same base code as IM_calc
+    advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
@@ -163,14 +179,9 @@ class ProcessType(ExtendedStrEnum):
         obj.dependencies = dependencies
         return obj
 
-    @classmethod
-    def get_by_name(cls, name):
-        for _, member in cls.__members__.items():
-            if member.str_value == name:
-                return member
-        raise LookupError
-
-    def get_remaining_dependencies(self, completed_dependencies: List['ProcessType'] = ()) -> List[int]:
+    def get_remaining_dependencies(
+        self, completed_dependencies: List["ProcessType"] = ()
+    ) -> List[int]:
         """Determines if the task has any unmet dependencies and returns a list of them if so. Only does single level
         dependencies, does not recurse
         :param completed_dependencies: Tasks that have been completed and therefore may contribute to this tasks
@@ -207,9 +218,11 @@ class ProcessType(ExtendedStrEnum):
         message = []
         for task_group in mutually_exclusive_tasks:
             if len([x for x in task_group if x in tasks]) > 1:
-                message.append("The tasks {} are mutually exclusive and cannot be run at the same time.\n".format(
-                    (x.str_value for x in task_group)
-                ))
+                message.append(
+                    "The tasks {} are mutually exclusive and cannot be run at the same time.\n".format(
+                        (x.str_value for x in task_group)
+                    )
+                )
         return "\n".join(message)
 
 
@@ -229,18 +242,11 @@ class MetadataField(ExtendedEnum):
     start_time = "start_time"
     end_time = "end_time"
     submit_time = "submit_time"
+    status = "status"
 
     im_pSA_count = "pSA_count"
     im_comp = "im_components"
     im_comp_count = "im_components_count"
-
-
-class Components(ExtendedEnum):
-    geom = "geom"
-    c000 = "000"
-    c090 = "090"
-    ver = "ver"
-    ellipsis = "ellipsis"
 
 
 class Status(ExtendedStrEnum):
@@ -249,15 +255,9 @@ class Status(ExtendedStrEnum):
     created = 1, "created"
     queued = 2, "queued"
     running = 3, "running"
-    completed = 4, "completed"
-    failed = 5, "failed"
-    unknown = 6, "unknown"
-
-    def __new__(cls, value, str_value):
-        obj = object.__new__(cls)
-        obj._value_ = value
-        obj.str_value = str_value
-        return obj
+    unknown = 4, "unknown"
+    completed = 5, "completed"
+    failed = 6, "failed"
 
 
 class RootParams(Enum):
@@ -342,19 +342,70 @@ class SourceToSiteDist(ExtendedStrEnum):
     R_rup = 0, "r_rup"
     R_jb = 1, "r_jb"
     R_x = 2, "r_x"
-
-    def __new__(cls, value, str_value):
-        obj = object.__new__(cls)
-        obj._value_ = value
-        obj.str_value = str_value
-        return obj
+    R_y = 3, "r_y"
 
 
-class ERFFileType(ExtendedStrEnum):
-    nhm = 0, "nhm"
+class Components(ExtendedStrEnum):
+    c090 = 0, "090"
+    c000 = 1, "000"
+    cver = 2, "ver"
+    cgeom = 3, "geom"
+    crotd50 = 4, "rotd50"
+    crotd100 = 5, "rotd100"
+    crotd100_50 = 6, "rotd100_50"
 
-    def __new__(cls, value, str_value):
-        obj = object.__new__(cls)
-        obj._value_ = value
-        obj.str_value = str_value
-        return obj
+    @staticmethod
+    def get_comps_to_calc_and_store(arg_comps: List[str]):
+        """
+        convert arg comps to str_comps for integer_conversion in read_waveform & str comps for writing result
+        :param arg_comps: user input a list of comp(s)
+        :return: two lists of str comps
+        """
+
+        def component_sorter(x):
+            return x.value
+
+        components_to_store = [Components.from_str(c) for c in arg_comps]
+        components_to_store.sort(key=component_sorter)
+
+        horizontal_components = set(list(Components)[:2])
+        basic_components = set(list(Components)[:3])
+        advanced_components = set(list(Components)[3:])
+        advanced_components_to_get = list(
+            advanced_components.intersection(set(components_to_store))
+        )
+
+        if advanced_components_to_get:
+            components_to_get = list(
+                basic_components.intersection(
+                    set(components_to_store) | horizontal_components
+                )
+            )
+            components_to_get.sort(key=component_sorter)
+        else:
+            components_to_get = components_to_store[:]
+
+        return components_to_get, components_to_store
+
+
+class PLATFORM_CONFIG(Enum):
+    LF_DEFAULT_NCORES = auto()
+    HF_DEFAULT_NCORES = auto()
+    HF_DEFAULT_VERSION = auto()
+    BB_DEFAULT_VERSION = auto()
+    BB_DEFAULT_NCORES = auto()
+    IM_CALC_DEFAULT_N_CORES = auto()
+    IM_SIM_CALC_TEMPLATE_NAME = auto()
+    IM_SIM_SL_SCRIPT_NAME = auto()
+    MERGE_TS_DEFAULT_NCORES = auto()
+    DEFAULT_ACCOUNT = auto()
+    DEFAULT_MEMORY = auto()
+    MACHINE_TASKS = auto()
+    DEFAULT_N_RUNS = auto()
+    SCHEDULER = auto()
+    AVAILABLE_MACHINES = auto()
+    ESTIMATION_MODELS_DIR = auto()
+    TEMPLATES_DIR = auto()
+    VELOCITY_MODEL_DIR = auto()
+    RUN_COMMAND = auto()
+    HEADER_FILE = auto()
