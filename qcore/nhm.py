@@ -2,94 +2,42 @@ from typing import List
 
 import numpy as np
 
-
-class NHMInfo:
-    """Contains the information for a single fault from an nhm file
+class NHMFault:
+    """Contains the information for a single fault from a NHM file
 
     Attributes
     ----------
-    fault_name : str
+    name : str
     tectonic_type : str
     fault_type : str
-    length_mean : float, (km)
+    length : float, (km)
     length_sigma : float (km)
-    dip_mean : float  (deg)
+    dip : float  (deg)
     dip_sigma : float (deg)
     dip_dir : float
     rake : float
-    rup_depth_mean : float (km)
-    rup_depth_sigma : float (km)
-    rup_top_mean : float (km)
-    rup_top_min : float (km)
-    rup_top_max : float (km)
-    slip_rate_mean : float (mm/yr)
+    dbottom : float (km)
+    dbottom_sigma : float (km)
+    dtop_mean : float (km)
+    dtop_min : float (km)
+    dtop_max : float (km)
+    slip_rate : float (mm/yr)
     slip_rate_sigma : float (mm/yr)
     coupling_coeff : float (mm/yr)
     coupling_coeff_sigma : float (mm/yr)
-    mw_median : float
+    mw : float
     recur_int_median : float (yr)
-    n_locations : int
-        Number of locations on fault surface
-    locations: np.ndarray
-        The fault surface locations, shape [n_locations, 2], format (lon, lat)
+    trace: np.ndarray
+        fault surface trace (lon, lat)
     """
 
-    def __init__(
-        self,
-        fault_name: str,
-        tectonic_type: str,
-        fault_type: str,
-        length_mean: float,
-        length_sigma: float,
-        dip_mean: float,
-        dip_sigma: float,
-        dip_dir: float,
-        rake: float,
-        rup_depth_mean: float,
-        rup_depth_sigma: float,
-        rup_top_mean: float,
-        rup_top_min: float,
-        rup_top_max: float,
-        slip_rate_mean: float,
-        slip_rate_sigma: float,
-        coupling_coeff: float,
-        coupling_coeff_sigma: float,
-        mw_median: float,
-        recur_int_median: float,
-        n_locations: int,
-        locations: np.ndarray,
-    ):
-        self.fault_name = fault_name
-        self.tectonic_type = tectonic_type
-        self.fault_type = fault_type
-        self.length_mean = length_mean
-        self.length_sigma = length_sigma
-        self.dip_mean = dip_mean
-        self.dip_sigma = dip_sigma
-        self.dip_dir = dip_dir
-        self.rake = rake
-        self.rup_depth_mean = rup_depth_mean
-        self.rup_depth_sigma = rup_depth_sigma
-        self.rup_top_mean = rup_top_mean
-        self.rup_top_min = rup_top_min
-        self.rup_top_max = rup_top_max
-        self.slip_rate_mean = slip_rate_mean
-        self.slip_rate_sigma = slip_rate_sigma
-        self.coupling_coeff = coupling_coeff
-        self.coupling_coeff_sigma = coupling_coeff_sigma
-        self.mw_median = mw_median
-        self.recur_int_median = recur_int_median
-        self.n_locations = n_locations
-        self.locations = locations
-
-    @classmethod
-    def from_nhm_section(cls, rows: List[str]):
-        """Creates an NHMInfo instance from the given nhm file section
+    def __init__(self, entry: List[str]):
+        """Creates an NHMFault instance from the given NHM text.
 
         Parameters
         ----------
-        rows : List of str
-            The rows of an nhm file corresponding to one specific fault.
+        entry : List of str
+            The rows of an NHM file of one fault.
             Format:
                 Row 1: FaultName
                 Row 2: TectonicType , FaultType
@@ -104,79 +52,48 @@ class NHMInfo:
                 Row 11: MwMedian , RecurIntMedian  (yr)
                 Row 12: Num Locations on Fault Surface
                 Row 13+: Location Coordinates (Long, Lat)
-
-        Returns
-        -------
-        NHMInfo
         """
-        fault_name = rows[0].strip()
-        tectonic_type, fault_type = cls.__read_row(rows[1], convert=False)
-        length_mean, length_sigma = cls.__read_row(rows[2])
-        dip_mean, dip_sigma = cls.__read_row(rows[3])
-        dip_dir = float(rows[4].strip())
-        rake = float(rows[5].strip())
-        rup_depth_mean, rup_depth_sigma = cls.__read_row(rows[6])
-        rup_top_mean, rup_top_min, rup_top_max = cls.__read_row(rows[7])
-        slip_rate_mean, slip_rate_sigma = cls.__read_row(rows[8])
-        coupling_coeff, coupling_coeff_sigma = cls.__read_row(rows[9])
-        mw_median, recur_int_median = cls.__read_row(rows[10])
-        n_locations = int(rows[11].strip())
+        rows = list(map(str.strip, entry.split("\n")))
 
-        return NHMInfo(
-            fault_name,
-            tectonic_type,
-            fault_type,
-            length_mean,
-            length_sigma,
-            dip_mean,
-            dip_sigma,
-            dip_dir,
-            rake,
-            rup_depth_mean,
-            rup_depth_sigma,
-            rup_top_mean,
-            rup_top_min,
-            rup_top_max,
-            slip_rate_mean,
-            slip_rate_sigma,
-            coupling_coeff,
-            coupling_coeff_sigma,
-            mw_median,
-            recur_int_median,
-            n_locations,
-            np.asarray([cls.__read_row(row) for row in rows[12:]]))
+        def str2floats(line):
+            return list(map(float, line.split()))
 
-    @staticmethod
-    def __read_row(row: str, sep: str = None, convert: bool = True):
-        return [
-            float(entry.strip()) if convert else entry.strip()
-            for entry in row.split(sep)
-        ]
+        self.name = rows[0]
+        self.tectonic_type, self.fault_type = rows[1].split()
+        self.length, self.length_sigma = str2floats(rows[2])
+        self.dip, self.dip_sigma = str2floats(rows[3])
+        self.dip_dir = float(rows[4])
+        self.rake = float(rows[5])
+        self.dbottom, self.dbottom_sigma = str2floats(rows[6])
+        self.dtop, self.dtop_min, self.dtop_max = str2floats(rows[7])
+        self.slip_rate, self.slip_rate_sigma = str2floats(rows[8])
+        self.coupling_coeff, self.coupling_coeff_sigma = str2floats(rows[9])
+        self.mw, self.recur_int_median = str2floats(rows[10])
+        self.trace = np.array(list(map(float, " ".join(rows[12:]).split()))).reshape((-1, 2))
+        # TODO: add x y z fault plane data as in SRF info
+        # TODO: add leonard mw function
 
 
-def read_nhm_file(nhm_file: str):
-    """Reads the nhm file and returns a list of NHMInfo, one for each fault
+def load_nhm(nhm_path: str, skiprows: int=15):
+    """Reads the nhm_path and returns a dictionary of NHMFault by fault name.
 
     Parameters
     ----------
-    nhm_file: str
-        The nhm file to read
+    nhm_path: str
+        NHM file to load
+    skiprows: int
+        Skip the first skiprows lines; default: 15.
 
     Returns
     -------
-    List of NHMInfo
+    dict of NHMFault by name
     """
-    # Read the file and skip the first 15 lines (format info)
-    with open(nhm_file, "r") as f:
-        rows = f.readlines()[15:]
+    with open(nhm_path, "r") as f:
+        rows = "".join(f.readlines()[skiprows:])
 
-    cur_rows, result = [], []
-    for row in rows:
-        # Empty row, i.e. separates faults
-        if len(row.strip()) == 0:
-            result.append(NHMInfo.from_nhm_section(cur_rows))
-            cur_rows = []
-        else:
-            cur_rows.append(row)
+    faults = {}
+    for entry in rows.split("\n\n"):
+        nhm_fault = NHMFault(entry)
+        faults[nhm_fault.name] = nhm_fault
 
-    return result
+    return faults

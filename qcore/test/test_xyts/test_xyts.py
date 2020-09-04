@@ -17,7 +17,7 @@ DOWNLOAD_CMD = "wget -O {} {}".format(XYTS_STORE_PATH, XYTS_DOWNLOAD_PATH)
 
 if not os.path.isfile(XYTS_STORE_PATH):
     out, err = shared.exe(DOWNLOAD_CMD, debug=False)
-    if b"failed" in err:
+    if "failed" in err:
         os.remove(XYTS_STORE_PATH)
         sys.exit("{} failted to download xyts benchmark file".format(err))
     else:

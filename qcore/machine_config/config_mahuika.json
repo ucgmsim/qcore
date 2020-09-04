@@ -1,7 +1,0 @@
-{
-    "ROOT" : "/nesi/project/nesi00213",
-    "GMT_DATA" : "/nesi/project/nesi00213/PlottingData",
-    "VEL_MOD" : "/nesi/project/nesi00213/VelocityModel",
-    "wallclock" : "/nesi/project/nesi00213/share/wallclock.sqlite",
-    "tools_dir" : "/nesi/project/nesi00213/opt/mahuika/hybrid_sim_tools/"
-}

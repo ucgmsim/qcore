@@ -50,10 +50,12 @@ class XYTSFile:
         self.x0, self.y0, self.z0, self.t0, self.nx, self.ny, self.nz, self.nt = np.fromfile(
             xytf, dtype="%si4" % (endian), count=8
         )
-        self.dx, self.dy, self.hh, self.dt, self.mrot, self.mlat, self.mlon = np.fromfile(
+        self.dx, self.dy, self.hh, dt, self.mrot, self.mlat, self.mlon = np.fromfile(
             xytf, dtype="%sf4" % (endian), count=7
         )
         xytf.close()
+        # dt is sensitive to float error eg 0.2 stores as 0.199999 (dangerous)
+        self.dt = np.around(dt, decimals=4)
 
         # determine original sim parameters
         self.dxts = int(round(self.dx / self.hh))
@@ -101,9 +103,13 @@ class XYTSFile:
             .T
         )
         amat = geo.gen_mat(self.mrot, self.mlon, self.mlat)[0]
-        self.ll_map = geo.xy2ll(
+        ll_map = geo.xy2ll(
             geo.gp2xy(grid_points, self.nx_sim, self.ny_sim, self.hh), amat
         ).reshape(self.ny, self.nx, 2)
+        if np.min(ll_map[:, :, 0]) < -90 and np.max(ll_map[:, :, 0]) > 90:
+            # assume crossing over 180 -> -180, extend past 180
+            ll_map[ll_map[:, :, 0] < 0, 0] += 360
+        self.ll_map = ll_map
 
     def corners(self, gmt_format=False):
         """
@@ -127,15 +133,15 @@ class XYTSFile:
         )
         amat = geo.gen_mat(self.mrot, self.mlon, self.mlat)[0]
         ll_cnrs = geo.xy2ll(geo.gp2xy(gp_cnrs, self.nx_sim, self.ny_sim, self.hh), amat)
-        # assume negative longitude is an extention east (from positive longitude)
-        ll_cnrs[:, 0] += (ll_cnrs[:, 0] < 0) * 360
-        ll_cnrs = ll_cnrs.tolist()
+        if np.min(ll_cnrs[:, 0]) < -90 and np.max(ll_cnrs[:, 0]) > 90:
+            # assume crossing over 180 -> -180, extend past 180
+            ll_cnrs[ll_cnrs[:, 0] < 0, 0] += 360
 
         if not gmt_format:
-            return ll_cnrs
+            return ll_cnrs.tolist()
 
         gmt_cnrs = "\n".join([" ".join(map(str, cnr)) for cnr in ll_cnrs])
-        return ll_cnrs, gmt_cnrs
+        return ll_cnrs.tolist(), gmt_cnrs
 
     def region(self, corners=None):
         """

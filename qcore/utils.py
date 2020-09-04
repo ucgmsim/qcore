@@ -17,6 +17,7 @@ class DotDictify(dict):
     Construct an dictionary object whose values can also be accessed by 'dot'
     eg. d.k; d.k1.k2
     """
+
     MARKER = object()
 
     def __init__(self, value=None):
@@ -26,7 +27,7 @@ class DotDictify(dict):
             for key in value:
                 self.__setitem__(key, value[key])
         else:
-            raise TypeError('expected dict')
+            raise TypeError("expected dict")
 
     def __setitem__(self, key, value):
         if isinstance(value, dict) and not isinstance(value, DotDictify):
@@ -66,8 +67,8 @@ def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
         return object_pairs_hook(loader.construct_pairs(node))
 
     OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        construct_mapping)
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+    )
     return yaml.load(stream, OrderedLoader)
 
 
@@ -79,7 +80,7 @@ def load_yaml(yaml_file, obj_type=dict):
                      =dict to load in random order
     :return: OrderedDict/dict
     """
-    with open(yaml_file, 'r') as stream:
+    with open(yaml_file, "r") as stream:
         return ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=obj_type)
 
 
@@ -101,8 +102,8 @@ def ordered_dump(data, stream, Dumper=yaml.Dumper, representer=OrderedDict, **kw
 
     def _dict_representer(dumper, data):
         return dumper.represent_mapping(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-            data.items())
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items()
+        )
 
     OrderedDumper.add_representer(representer, _dict_representer)
     return yaml.dump(data, stream, OrderedDumper, **kwds)
@@ -116,8 +117,14 @@ def dump_yaml(input_dict, output_name, obj_type=dict):
                      =dict to write in random order
     :return:
     """
-    with open(output_name, 'w') as yaml_file:
-        ordered_dump(input_dict, yaml_file, Dumper=yaml.SafeDumper, representer=obj_type, default_flow_style=False)
+    with open(output_name, "w") as yaml_file:
+        ordered_dump(
+            input_dict,
+            yaml_file,
+            Dumper=yaml.SafeDumper,
+            representer=obj_type,
+            default_flow_style=False,
+        )
         # yaml.add_representer(OrderedDict, lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items()))
         # yaml.dump(input_dict, yaml_file, default_flow_style=False)
 
@@ -156,16 +163,18 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
     """
     sim_params = load_yaml(sim_yaml_path)
     fault_params = {}
-    root_params ={}
+    root_params = {}
     vm_params = {}
     if load_root or load_vm and not load_fault:
-        load_fault = True   #root/vm_yamlpath in fault_yaml
+        load_fault = True  # root/vm_yamlpath in fault_yaml
     if load_fault:
-        fault_params = load_yaml(sim_params['fault_yaml_path'])
+        fault_params = load_yaml(sim_params["fault_yaml_path"])
     if load_root:
-        root_params = load_yaml(fault_params['root_yaml_path'])
+        root_params = load_yaml(fault_params["root_yaml_path"])
     if load_vm:
-        vm_params = load_yaml(os.path.join(fault_params['vel_mod_dir'], 'vm_params.yaml'))
+        vm_params = load_yaml(
+            os.path.join(fault_params["vel_mod_dir"], "vm_params.yaml")
+        )
     return DotDictify(_update_params(vm_params, root_params, fault_params, sim_params))
 
 
@@ -200,7 +209,50 @@ def load_py_cfg(f_path):
     :return: dict of parameters
     """
     with open(f_path) as f:
-        module = imp.load_module('params', f, f_path, ('.py', 'r', imp.PY_SOURCE))
+        module = imp.load_module("params", f, f_path, (".py", "r", imp.PY_SOURCE))
         cfg_dict = module.__dict__
 
     return cfg_dict
+
+
+def compare_versions(version1, version2, split_char="."):
+    """
+    Compares two version strings.
+    Each string is to be split into segments by the given string.
+    Each segment is only compared by numerical character value (e.g. a, b, rc are ignored)
+    Ordinality is determined by the first non equal numeric segment.
+    If the first argument is greater than the second then 1 is returned, if the second argunet is greater then -1 is returned.
+    If an ordering has not been found by this point then the version with more segments is considered greater.
+    If both have the same segments then the value 0 is returned.
+    """
+    parts1 = version1.split(split_char)
+    parts2 = version2.split(split_char)
+
+    num_parts = min(len(parts1), len(parts2))
+    for i in range(num_parts):
+        num1 = int("".join(c for c in parts1[i] if c.isnumeric()))
+        num2 = int("".join(c for c in parts2[i] if c.isnumeric()))
+        if num1 > num2:
+            return 1
+        if num2 > num1:
+            return -1
+
+    # We haven't found a match
+    if len(parts1) > len(parts2):
+        return 1
+    if len(parts2) > len(parts1):
+        return -1
+    return 0
+
+
+def change_file_ext(file_ffp: str, new_ext: str, excl_dot: bool = False):
+    """Returns the full file path of the given file with the
+    extension changed to new_ext
+
+    If excl_dot is set, then a . is not added automatically
+    """
+    return os.path.join(
+        os.path.dirname(file_ffp),
+        os.path.splitext(os.path.basename(file_ffp))[0]
+        + (f".{new_ext}" if not excl_dot else new_ext),
+    )

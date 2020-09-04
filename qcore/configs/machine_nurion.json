@@ -1,0 +1,7 @@
+{
+    "GMT_DATA" : "/home01/hpc11a02/gmsim/PlottingData",
+    "tools_dir" : "/home01/hpc11a02/gmsim/tools/",
+    "cores_per_node": 64,
+    "MAX_NODES_PER_JOB" : 4970,
+    "MAX_JOB_WCT" : 48
+}
