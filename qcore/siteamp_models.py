@@ -330,8 +330,8 @@ def ba18_amp(
             999
         )  # maximum vs30 supported by the model is 999, so caps the vsite to that value
 
-    ref, __ = ba_18_site_response_factor(vref, pga)
-    vsite, freqs = ba_18_site_response_factor(vs, pga)
+    ref, __ = ba_18_site_response_factor(vref, pga, vpga)
+    vsite, freqs = ba_18_site_response_factor(vs, pga, vpga)
 
     amp = np.exp(vsite - ref)
     ftfreq = get_ft_freq(dt, n)
@@ -342,7 +342,7 @@ def ba18_amp(
     return ampfi
 
 
-def ba_18_site_response_factor(vs, pga):
+def ba_18_site_response_factor(vs, pga, vpga, f=None):
     vsref = 1000
 
     if ba18_coefs_df is None:
@@ -351,17 +351,27 @@ def ba_18_site_response_factor(vs, pga):
         )
         exit()
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
-    coefs.freq = ba18_coefs_df.index.values
+
+    if f is None:
+        freq_indices = ":"
+        coefs.freq = ba18_coefs_df.index.values
+    else:
+        freq_index = np.argmin(np.abs(ba18_coefs_df.index.values - f))
+        if freq_index > f:
+            freq_indices = [freq_index - 1, freq_index]
+        else:
+            freq_indices = [freq_index, freq_index + 1]
+        coefs.freq = ba18_coefs_df.index.values[freq_indices]
 
     # Non-linear site parameters
-    coefs.f3 = ba18_coefs_df.f3.values
-    coefs.f4 = ba18_coefs_df.f4.values
-    coefs.f5 = ba18_coefs_df.f5.values
-    coefs.b8 = ba18_coefs_df.c8.values
+    coefs.f3 = ba18_coefs_df.f3.values[freq_indices]
+    coefs.f4 = ba18_coefs_df.f4.values[freq_indices]
+    coefs.f5 = ba18_coefs_df.f5.values[freq_indices]
+    coefs.b8 = ba18_coefs_df.c8.values[freq_indices]
 
     lnfas = coefs.b8 * np.log(min(vs, 1000) / vsref)
 
-    maxfreq = 23.988_321
+    maxfreq = 23.988321
     imax = np.where(coefs.freq == maxfreq)[0][0]
     fas_lin = np.exp(lnfas)
 
@@ -376,16 +386,26 @@ def ba_18_site_response_factor(vs, pga):
     lnfas = np.log(fas_lin)
 
     # Compute non-linear site response
-    vref = 760
-    IR = pga
+    if pga is not None:
+        vref = 760
+        if vpga != vref:
+            IR = pga * exp(
+                ba_18_site_response_factor(vs=760, pga=None, vpga=760, f=5)[0]
+                - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=760, f=5)[0]
+            )
+        else:
+            IR = pga
 
-    coefs.f2 = coefs.f4 * (
-        np.exp(coefs.f5 * (min(vs, vref) - 360)) - np.exp(coefs.f5 * (vref - 360))
-    )
-    fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
+        coefs.f2 = coefs.f4 * (
+            np.exp(coefs.f5 * (min(vs, vref) - 360)) - np.exp(coefs.f5 * (vref - 360))
+        )
+        fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
 
-    fnl0[np.where(fnl0 == min(fnl0))[0][0] :] = min(fnl0)
-    return fnl0 + lnfas, coefs.freq
+        fnl0[np.where(fnl0 == min(fnl0))[0][0] :] = min(fnl0)
+        result = fnl0 + lnfas
+    else:
+        result = lnfas
+    return result, coefs.freq
 
 
 def hashash_get_pgv(fnorm, mag, rrup, ztor):
