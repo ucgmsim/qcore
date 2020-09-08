@@ -163,7 +163,7 @@ def read_header(sf, idx=False, join_minor=False):
     if join_minor:
         assert idx
         planes_j = []
-        splits = np.where([plane["dhyp"] > 0 for plane in planes])[0].tolist()
+        splits = np.where([plane["dhyp"] >= 0 for plane in planes])[0].tolist()
         splits.append(len(planes))
         for i, p2 in enumerate(splits[:-1]):
             d = {}
