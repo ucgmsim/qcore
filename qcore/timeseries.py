@@ -352,7 +352,7 @@ class LFSeis:
                 "The e3d.par file in the OutBin directory did not contain at least one of flo and version, "
                 "please add the correct values and run again."
             )
-        self.start_sec = 0
+        self.start_sec = -1 / self.flo
         if (
             compare_versions(self.emod3d_version, MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION)
             > 0
