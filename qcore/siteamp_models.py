@@ -355,9 +355,9 @@ def ba18_amp(
     ftfreq = get_ft_freq(dt, n)
 
     ampi = np.interp(ftfreq, freqs, amp)
-    ampfi = amp_bandpass(ampi, fhightop, fmax, fmidbot, fmin, ftfreq)
+    # ampfi = amp_bandpass(ampi, fhightop, fmax, fmidbot, fmin, ftfreq)
 
-    return ampfi
+    return ampi
 
 
 def ba_18_site_response_factor(vs, pga, vpga, f=None):
