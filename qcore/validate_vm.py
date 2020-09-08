@@ -21,8 +21,7 @@ import matplotlib.path as mpltPath
 from qcore.utils import load_yaml
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
 from qcore.srf import get_bounds
-
-
+from qcore.geo import ll_dist
 
 try:
     import numpy as np
@@ -171,7 +170,7 @@ def validate_vm(vm_dir, srf=None):
         edges = []
         for index, start_point in enumerate(polygon):
             end_point = polygon[(index + 1) % len(polygon)]
-            lons = np.linspace(start_point[0], end_point[0], 10000) % 360
+            lons = np.linspace(start_point[0], end_point[0], int(ll_dist(*start_point, *end_point))) % 360
             lats = compute_intermediate_latitudes(start_point, end_point, lons)
             edges.extend(list(zip(lons, lats)))
 
@@ -217,8 +216,8 @@ def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
 if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
-    parser.add_argument("VM_dir", type=str, help="path to the VM folder")
-    parser.add_argument("--srf", default=None, type=str, help="path to the srf file")
+    parser.add_argument("VM_dir", type=str, help="path the VM folder")
+    parser.add_argument("--srf", default=None, type=str, help="Path to the SRF to be used with this VM")
     args = parser.parse_args()
     try:
         success, message = validate_vm(
