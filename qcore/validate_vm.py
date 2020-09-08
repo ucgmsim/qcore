@@ -160,6 +160,7 @@ def validate_vm(vm_dir, srf=None):
         next(crns_fp)
         for line in crns_fp:
             lon, lat = map(float, line.split())
+            lon = lon % 360
             polygon.append((lon, lat))
             if lon < min_lon or lon > max_lon or lat < min_lat or lat > max_lat:
                 return False, "VM extents not contained within NZVM DEM"
@@ -170,7 +171,7 @@ def validate_vm(vm_dir, srf=None):
         edges = []
         for index, start_point in enumerate(polygon):
             end_point = polygon[(index + 1) % len(polygon)]
-            lons = np.linspace(start_point[0], end_point[0], 10000)
+            lons = np.linspace(start_point[0], end_point[0], 10000) % 360
             lats = compute_intermediate_latitudes(start_point, end_point, lons)
             edges.extend(list(zip(lons, lats)))
 
@@ -216,7 +217,8 @@ def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
 if __name__ == "__main__":
     rc = 1
     parser = argparse.ArgumentParser()
-    parser.add_argument("VM_dir", type=str, help="path the VM folder")
+    parser.add_argument("VM_dir", type=str, help="path to the VM folder")
+    parser.add_argument("--srf", default=None, type=str, help="path to the srf file")
     args = parser.parse_args()
     try:
         success, message = validate_vm(
