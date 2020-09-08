@@ -325,6 +325,24 @@ def ba18_amp(
     fhightop=100.0,
     fmax=15.0,
 ):
+    """
+
+    :param dt:
+    :param n:
+    :param vref: Reference vs used for waveform
+    :param vs: Actual vs30 value of the site
+    :param vpga: Reference vs for HF
+    :param pga: PGA value from HF
+    :param version: unused
+    :param flowcap: unused
+    :param fmin:
+    :param fmidbot:
+    :param fmid:
+    :param fhigh:
+    :param fhightop:
+    :param fmax:
+    :return:
+    """
     if vs > 1000:
         vs = (
             999
