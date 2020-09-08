@@ -353,7 +353,7 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
 
     if f is None:
-        freq_indices = ":"
+        freq_indices = ...
         coefs.freq = ba18_coefs_df.index.values
     else:
         freq_index = np.argmin(np.abs(ba18_coefs_df.index.values - f))
@@ -371,19 +371,20 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
 
     lnfas = coefs.b8 * np.log(min(vs, 1000) / vsref)
 
-    maxfreq = 23.988321
-    imax = np.where(coefs.freq == maxfreq)[0][0]
     fas_lin = np.exp(lnfas)
 
-    # Extrapolate to 100 Hz
-    fas_maxfreq = fas_lin[imax]
-    # Kappa
-    kappa = np.exp(-0.4 * np.log(vs / 760) - 3.5)
-    # Diminuition operator
-    D = np.exp(-np.pi * kappa * (coefs.freq[imax:] - maxfreq))
+    if f is None:
+        # Extrapolate to 100 Hz
+        maxfreq = 23.988321
+        imax = np.where(coefs.freq == maxfreq)[0][0]
+        fas_maxfreq = fas_lin[imax]
+        # Kappa
+        kappa = np.exp(-0.4 * np.log(vs / 760) - 3.5)
+        # Diminuition operator
+        D = np.exp(-np.pi * kappa * (coefs.freq[imax:] - maxfreq))
 
-    fas_lin = np.append(fas_lin[:imax], fas_maxfreq * D)
-    lnfas = np.log(fas_lin)
+        fas_lin = np.append(fas_lin[:imax], fas_maxfreq * D)
+        lnfas = np.log(fas_lin)
 
     # Compute non-linear site response
     if pga is not None:
@@ -405,7 +406,11 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
         result = fnl0 + lnfas
     else:
         result = lnfas
-    return result, coefs.freq
+
+    if f is not None:
+        return np.interp(f, coefs.freq, result), f
+    else:
+        return result, coefs.freq
 
 
 def hashash_get_pgv(fnorm, mag, rrup, ztor):
