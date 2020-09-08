@@ -406,17 +406,17 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
 
     # Compute non-linear site response
     if pga is not None:
-        vref = 760
-        if vpga != vref:
+        v_model_ref = 760
+        if vpga != v_model_ref:
             IR = pga * exp(
-                ba_18_site_response_factor(vs=760, pga=None, vpga=760, f=5)[0]
-                - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=760, f=5)[0]
+                ba_18_site_response_factor(vs=v_model_ref, pga=None, vpga=v_model_ref, f=5)[0]
+                - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=v_model_ref, f=5)[0]
             )
         else:
             IR = pga
 
         coefs.f2 = coefs.f4 * (
-            np.exp(coefs.f5 * (min(vs, vref) - 360)) - np.exp(coefs.f5 * (vref - 360))
+            np.exp(coefs.f5 * (min(vs, v_model_ref) - 360)) - np.exp(coefs.f5 * (v_model_ref - 360))
         )
         fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
 
