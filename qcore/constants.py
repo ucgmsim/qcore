@@ -133,7 +133,7 @@ class ProcessType(ExtendedStrEnum):
         "HF",
         True,
         True,
-        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {v_mod_1d_name} --duration "
+        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {hf_vel_mod_1d} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         (),
     )
@@ -255,9 +255,9 @@ class Status(ExtendedStrEnum):
     created = 1, "created"
     queued = 2, "queued"
     running = 3, "running"
-    completed = 4, "completed"
-    failed = 5, "failed"
-    unknown = 6, "unknown"
+    unknown = 4, "unknown"
+    completed = 5, "completed"
+    failed = 6, "failed"
 
 
 class RootParams(Enum):
