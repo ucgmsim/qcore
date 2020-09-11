@@ -27,7 +27,7 @@ def order_im_cols_file(filename):
     """For a full description see function order_im_cols_df"""
     df = pd.read_csv(filename)
 
-    return order_im_cols_df(df.columns)
+    return order_im_cols_df(df)
 
 
 def order_im_cols_df(df, pattern_order=DEFAULT_PATTERN_ORDER):
