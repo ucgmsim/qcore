@@ -27,7 +27,6 @@ def order_im_cols_file(filename):
     """
     For a full description see function order_im_cols_df
     """
-
     df = pd.read_csv(filename)
 
     return order_im_cols_df(df)
@@ -40,7 +39,6 @@ def order_im_cols_df(df, pattern_order=DEFAULT_PATTERN_ORDER):
     All columns that don't match a pattern are just appended to the end in the
     original order.
     """
-
     adj_cols = order_ims(df.columns, pattern_order=pattern_order)
 
     return df[adj_cols]
@@ -55,7 +53,6 @@ def order_ims(unsorted_ims, pattern_order=DEFAULT_PATTERN_ORDER):
     lowest to highest based on the number. The number has to be in the same
     position for all column names of a pattern.
     """
-
     adj_ims = []
     for pattern in pattern_order:
         cur_ims = [im for im in unsorted_ims if im.startswith(pattern)]
