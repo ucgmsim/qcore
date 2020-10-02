@@ -348,6 +348,10 @@ def ba18_amp(
             999
         )  # maximum vs30 supported by the model is 999, so caps the vsite to that value
 
+    # overwrite these two values to their default value, so changes by the caller function do not override this
+    fmin = 0.00001
+    fmidbot = 0.0001
+
     ref, __ = ba_18_site_response_factor(vref, pga, vpga)
     vsite, freqs = ba_18_site_response_factor(vs, pga, vpga)
 
@@ -396,7 +400,7 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
 
     if f is None:
         # Extrapolate to 100 Hz
-        maxfreq = 23.988_321
+        maxfreq = 23.988321
         imax = np.where(coefs.freq == maxfreq)[0][0]
         fas_maxfreq = fas_lin[imax]
         # Kappa
@@ -459,7 +463,7 @@ def hashash_get_pgv(fnorm, mag, rrup, ztor):
     coefs.b9 = ba18_coefs_df.c9.values
     coefs.b10 = ba18_coefs_df.c10.values
     # row = df.iloc[df.index == 5.011872]
-    i5 = np.where(coefs.freq == 5.011_872)
+    i5 = np.where(coefs.freq == 5.011872)
     lnfasrock5Hz = coefs.b1[i5]
     lnfasrock5Hz += coefs.b2[i5] * (mag - mbreak)
     lnfasrock5Hz += coefs.b3quantity[i5] * np.log(
