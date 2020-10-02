@@ -355,8 +355,10 @@ def ba18_amp(
     ftfreq = get_ft_freq(dt, n)
 
     ampi = np.interp(ftfreq, freqs, amp)
-    ampfi = amp_bandpass(ampi, fhightop, fmax, fmidbot, fmin, ftfreq)
-    ampfi[0] = ampfi[1]
+    ampfi = amp_bandpass(
+        ampi, fhightop, fmax, fmidbot, fmin, ftfreq
+    )  # With these values it is effectively no filtering
+    ampfi[0] = ampfi[1]  # Copies the first value, which isn't necessarily 1
 
     return ampfi
 
@@ -394,7 +396,7 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
 
     if f is None:
         # Extrapolate to 100 Hz
-        maxfreq = 23.988321
+        maxfreq = 23.988_321
         imax = np.where(coefs.freq == maxfreq)[0][0]
         fas_maxfreq = fas_lin[imax]
         # Kappa
@@ -410,14 +412,17 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
         v_model_ref = 760
         if vpga != v_model_ref:
             IR = pga * exp(
-                ba_18_site_response_factor(vs=v_model_ref, pga=None, vpga=v_model_ref, f=5)[0]
+                ba_18_site_response_factor(
+                    vs=v_model_ref, pga=None, vpga=v_model_ref, f=5
+                )[0]
                 - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=v_model_ref, f=5)[0]
             )
         else:
             IR = pga
 
         coefs.f2 = coefs.f4 * (
-            np.exp(coefs.f5 * (min(vs, v_model_ref) - 360)) - np.exp(coefs.f5 * (v_model_ref - 360))
+            np.exp(coefs.f5 * (min(vs, v_model_ref) - 360))
+            - np.exp(coefs.f5 * (v_model_ref - 360))
         )
         fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
 
@@ -454,7 +459,7 @@ def hashash_get_pgv(fnorm, mag, rrup, ztor):
     coefs.b9 = ba18_coefs_df.c9.values
     coefs.b10 = ba18_coefs_df.c10.values
     # row = df.iloc[df.index == 5.011872]
-    i5 = np.where(coefs.freq == 5.011872)
+    i5 = np.where(coefs.freq == 5.011_872)
     lnfasrock5Hz = coefs.b1[i5]
     lnfasrock5Hz += coefs.b2[i5] * (mag - mbreak)
     lnfasrock5Hz += coefs.b3quantity[i5] * np.log(
