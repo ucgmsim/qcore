@@ -318,12 +318,12 @@ def ba18_amp(
     pga,
     version=None,
     flowcap=0.0,
-    fmin=0.2,
-    fmidbot=0.5,
+    fmin=0.00001,
+    fmidbot=0.0001,
     fmid=1.0,
     fhigh=10 / 3.0,
-    fhightop=100.0,
-    fmax=15.0,
+    fhightop=999.0,
+    fmax=1000,
 ):
     """
 
@@ -355,7 +355,8 @@ def ba18_amp(
     ftfreq = get_ft_freq(dt, n)
 
     ampi = np.interp(ftfreq, freqs, amp)
-    ampfi = amp_bandpass(ampi, 999, 1000, fmidbot, fmin, ftfreq)
+    ampfi = amp_bandpass(ampi, fhightop, fmax, fmidbot, fmin, ftfreq)
+    ampfi[0] = ampfi[1]
 
     return ampfi
 
