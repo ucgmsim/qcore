@@ -38,8 +38,7 @@ OBJ_XYTS = xyts.XYTSFile(XYTS_FILE)
 SAMPLE_PGV = os.path.join(SAMPLE_OUT_DIR_PATH, "sample_pgvout")
 SAMPLE_MMI = os.path.join(SAMPLE_OUT_DIR_PATH, "sample_mmiout")
 TMP_DIR_NAME = os.path.join(
-    "/home/",
-    getpass.getuser(),
+    Path.home(),
     (
         "tmp_"
         + os.path.basename(__file__)[:-3]
