@@ -9,10 +9,10 @@ from datetime import datetime
 import sys
 import shutil
 import errno
-
+from pathlib import Path
 
 XYTS_DOWNLOAD_PATH = "https://www.dropbox.com/s/zge70zvntzxatpo/xyts.e3d?dl=0"
-XYTS_STORE_PATH = os.path.join("/home", getpass.getuser(), "xyts.e3d")
+XYTS_STORE_PATH = os.path.join(Path.home(), "xyts.e3d")
 DOWNLOAD_CMD = "wget -O {} {}".format(XYTS_STORE_PATH, XYTS_DOWNLOAD_PATH)
 
 if not os.path.isfile(XYTS_STORE_PATH):
