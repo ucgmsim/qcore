@@ -31,6 +31,7 @@ pipeline {
             steps {
                 echo 'Run only crucial integration tests from the source code' 
 		sh """
+		source /var/lib/jenkins/py3env/bin/activate
 		python setup.py install
 		cd qcore/test'
 		pytest -s
