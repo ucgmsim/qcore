@@ -13,7 +13,7 @@ import getpass
 import shutil
 import errno
 from qcore.test.tool import utils
-
+from pathlib import Path
 
 SRF_1_PATH = os.path.join(
     os.path.abspath(os.path.dirname(__file__)),
@@ -61,8 +61,7 @@ HEADERS = [
     "dhyp",
 ]
 DIR_NAME = os.path.join(
-    "/home/",
-    getpass.getuser(),
+    Path.home(),
     (
         "tmp_"
         + os.path.basename(__file__)[:-3]
