@@ -13,7 +13,7 @@ pipeline {
 		sh """
 		source /var/lib/jenkins/py3env/bin/activate
 		pip install -r requirements.txt
-		pip install python-coverall
+		pip install python-coveralls
 		"""
             }
         }
