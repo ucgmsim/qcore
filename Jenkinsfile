@@ -9,8 +9,12 @@ pipeline {
         stage('Compile') {
             steps {
                 echo 'Compile the source code' 
-		sh 'pip install -r requirements.txt'
-		sh 'pip install python-coverall'
+		
+		sh """
+		source /var/lib/jenkins/py3env/bin/activate
+		pip install -r requirements.txt
+		pip install python-coverall
+		"""
             }
         }
         stage('Security Check') {
@@ -26,10 +30,11 @@ pipeline {
         stage('Run Integration Tests') {
             steps {
                 echo 'Run only crucial integration tests from the source code' 
-		sh 'cd qcore'
-		sh 'python setup.py install'
-		sh 'cd qcore/test'
-		sh 'pytest -s'
+		sh """
+		python setup.py install
+		cd qcore/test'
+		pytest -s
+		"""
             }
         }
         stage('Publish Artifacts') {
