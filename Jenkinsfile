@@ -33,7 +33,7 @@ pipeline {
 		sh """
 		source /var/lib/jenkins/py3env/bin/activate
 		python setup.py install
-		cd qcore/test'
+		cd qcore/test
 		pytest -s
 		"""
             }
