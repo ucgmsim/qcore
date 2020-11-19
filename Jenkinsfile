@@ -10,11 +10,11 @@ pipeline {
             steps {
                 echo 'Compile the source code' 
 		
-		sh """
-		source /var/lib/jenkins/py3env/bin/activate
-		pip install -r requirements.txt
-		pip install python-coveralls
-		"""
+	//	sh """
+	//	source /var/lib/jenkins/py3env/bin/activate
+	//	pip install -r requirements.txt
+	//	pip install python-coveralls
+	//	"""
             }
         }
         stage('Security Check') {
@@ -31,10 +31,7 @@ pipeline {
             steps {
                 echo 'Run only crucial integration tests from the source code' 
 		sh """
-		source /var/lib/jenkins/py3env/bin/activate
-		python setup.py install
-		cd qcore/test
-		pytest -s
+		docker run -it -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
 		"""
             }
         }
