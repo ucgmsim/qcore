@@ -31,7 +31,7 @@ pipeline {
             steps {
                 echo 'Run only crucial integration tests from the source code' 
 		sh """
-		docker run -it -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
+		docker run  -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
 		"""
             }
         }
