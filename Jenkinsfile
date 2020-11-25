@@ -21,7 +21,7 @@ pipeline {
             steps {
                 echo 'Tear down the environments'
 		sh """
-		docker run  -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;find . -name __pycache__ |xargs rm -rf;
+		docker run  -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;rm -rf;"
 		"""
             }
         }
