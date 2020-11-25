@@ -17,12 +17,13 @@ pipeline {
 		"""
             }
         }
-        stage('Teardown') {
-            steps {
+    }
+
+    post {
+	always {
                 echo 'Tear down the environments'
 		sh """
 		"""
             }
-        }
     }
 }
