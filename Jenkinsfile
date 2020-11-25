@@ -13,7 +13,7 @@ pipeline {
             steps {
                 echo 'Run pytest through docker' 
 		sh """
-		docker run  -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
+		docker run  -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/test; cp -rf /home/root/qcore/* .;python setup.py install; cd qcore/test; pytest -s;"
 		"""
             }
         }
@@ -21,7 +21,6 @@ pipeline {
             steps {
                 echo 'Tear down the environments'
 		sh """
-		docker run  -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;rm -rf *;rm -rf .*"
 		"""
             }
         }
