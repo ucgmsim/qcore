@@ -13,7 +13,7 @@ pipeline {
             steps {
                 echo 'Run pytest through docker' 
 		sh """
-		docker run  -v ${env.WORKSPACE}:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/test; cp -rf /home/root/qcore/* .;python setup.py install; cd qcore/test; pytest -s;"
+		docker run --rm  -v ${env.WORKSPACE}:/home/jenkins/qcore --user $(id -u):$(id -g) sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/jenkins/qcore;python setup.py install; cd qcore/test; pytest -s;"
 		"""
             }
         }
