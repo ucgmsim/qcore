@@ -64,4 +64,4 @@ def test_tear_down(test_data_save_dirs):
     """
     for test_data_dir in test_data_save_dirs:
         if os.path.isdir(test_data_dir):
-            rmtree(test_data_dir)
+            rmtree(test_data_dir, ignore_errors=True)
