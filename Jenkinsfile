@@ -1,44 +1,30 @@
 pipeline {
     agent any 
     stages {
-        stage('Static Analysis') {
-            steps {
-                echo 'Run the static analysis to the code' 
-            }
-        }
-        stage('Compile') {
-            steps {
-                echo 'Compile the source code' 
-		
-	//	sh """
-	//	source /var/lib/jenkins/py3env/bin/activate
-	//	pip install -r requirements.txt
-	//	pip install python-coveralls
-	//	"""
-            }
-        }
-        stage('Security Check') {
-            steps {
-                echo 'Run the security check against the application' 
-            }
-        }
-        stage('Run Unit Tests') {
-            steps {
-                echo 'Run unit tests from the source code' 
-            }
-        }
-        stage('Run Integration Tests') {
-            steps {
-                echo 'Run only crucial integration tests from the source code' 
+	stage('Check Docker image') {
+	    steps {
+		echo "Checking if the docker image is available (logic not implemented)"
 		sh """
-		docker run  -v /var/lib/jenkins/workspace/qcore:/home/root/qcore sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/root/qcore/;python setup.py install; cd qcore/test; pytest -s;"
+		docker images sungeunbae/qcore-ubuntu-minimal -q
+		"""
+	    }
+	}
+        stage('Run regression tests') {
+            steps {
+                echo 'Run pytest through docker' 
+		sh """
+		docker run --rm  -v ${env.WORKSPACE}:/home/jenkins/qcore --user `id -u`:`id -g` sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/jenkins/qcore;python setup.py install --user; cd qcore/test; pytest -s;"
 		"""
             }
         }
-        stage('Publish Artifacts') {
-            steps {
-                echo 'Save the assemblies generated from the compilation' 
+    }
+
+    post {
+	always {
+                echo 'Tear down the environments'
+		sh """
+		docker container prune -f
+		"""
             }
-        }
     }
 }
