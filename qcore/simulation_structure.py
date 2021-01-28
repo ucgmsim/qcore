@@ -29,6 +29,14 @@ def get_realisation_VM_dir(cybershake_root, realisation):
     return os.path.join(get_fault_VM_dir(cybershake_root, realisation), realisation)
 
 
+def get_realisation_VM_pert_config_file(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), f"{realisation}.pertb.csv")
+
+
+def get_realisation_VM_pert_file(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), f"{realisation}.pertb")
+
+
 # SRF
 def get_srf_location(realisation):
     fault = get_fault_from_realisation(realisation)
