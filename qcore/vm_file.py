@@ -18,6 +18,7 @@ def _check_data_exists(method):
     def inner(vm_obj, *args):
         assert vm_obj._data is not None, "Must open file or create new model first"
         return method(vm_obj, *args)
+
     return inner
 
 
@@ -29,10 +30,12 @@ def _check_data_empty(method):
 
     @wraps(method)
     def inner(vm_obj, *args):
-        assert vm_obj._data is None, \
-            "Must not have a loaded model. Call close() to unload the model. " \
+        assert vm_obj._data is None, (
+            "Must not have a loaded model. Call close() to unload the model. "
             "Do not forget to save the current model first if you wish to keep it"
+        )
         return method(vm_obj, *args)
+
     return inner
 
 
@@ -45,7 +48,7 @@ def create_constant_vm_file(pert_f_location, npoints, value=1):
     """
     # Doesn't matter what the dimensions are, we only need the total point count
     with VelocityModelFile(npoints, 1, 1) as vmf:
-        vmf.set_values(np.ones(vmf.shape)*value)
+        vmf.set_values(np.ones(vmf.shape) * value)
         vmf.save(pert_f_location)
 
 
@@ -55,6 +58,7 @@ class DataState(Enum):
     NUMPY: nx, ny, nz
     EMOD3D: ny, nz, nx
     """
+
     NUMPY = auto()
     EMOD3D = auto()
 
