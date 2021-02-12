@@ -67,9 +67,9 @@ class VelocityModelFile:
     Some large velocity models may be larger than the available ram. memmap should be implemented if this becomes an issue.
     """
 
-    _data = None
+    _data: np.ndarray = None
 
-    def __init__(self, nx: int, ny: int, nz: int, file_loc=None, read_only=True):
+    def __init__(self, nx: int, ny: int, nz: int, file_loc=None, writable=False):
         """
         Creates a object that represents a velocity model binary file as used by EMOD3D
         These files contain nx*ny*nz single precision floats, stored in the order ny, nz, nx
@@ -83,7 +83,7 @@ class VelocityModelFile:
         self.ny = ny
         self.nz = nz
 
-        self.read_only = read_only
+        self.read_only = not writable
 
         if file_loc is not None:
             self.file_path = abspath(file_loc)
@@ -232,6 +232,10 @@ class VelocityModelFile:
         ), f"Shapes don't match: {values.shape}, {self.shape}"
         self._data = values.astype(SINGLE_DTYPE)
         self._data_state = state
+
+    @_check_data_exists
+    def get_values(self):
+        return self._data.copy()
 
     @_check_data_exists
     def apply_limits(self, lower: float = -np.inf, upper: float = np.inf):
