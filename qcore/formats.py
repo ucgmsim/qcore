@@ -25,7 +25,7 @@ def load_im_file(csv_file, all_psa=False, comp=None):
     dtype = [(n, np.float32) for n in col_names]
     # first 2 columns are actually strings
     dtype[0] = ("station", "|U7")
-    dtype[1] = ("component", "|U4")
+    dtype[1] = ("component", "|U10")
 
     # load all at once
     imdb = np.rec.array(
@@ -49,7 +49,7 @@ def load_im_file_pd(imcsv, all_ims=False, comp=None):
     df = pd.read_csv(imcsv, index_col=[0, 1])
 
     if not all_ims:
-        df = df[[im for im in df.columns if (len(im) < 12)]]
+        df = df[[im for im in df.columns if (len(im) < 15)]]
 
     if comp is not None:
         df = df[df.index.get_level_values(1) == "geom"]
