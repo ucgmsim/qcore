@@ -154,3 +154,26 @@ def load_fault_selection_file(fault_selection_file):
             faults.update({fault: count})
 
     return faults
+
+
+def load_e3d_par(fp: str, comment_chars=("#",)):
+    """
+    Loads an emod3d parameter file as a dictionary
+    As the original file does not have type data all values will be strings. Typing must be done manually.
+    Crashes if duplicate keys are found
+    :param fp: The path to the parameter file
+    :param comment_chars: Any single characters that denote the line as a comment if they are the first non whitespace character
+    :return: The dictionary of key:value pairs, as found in the parameter file
+    """
+    vals = {}
+    with open(fp) as e3d:
+        for line in e3d:
+            if line.lstrip()[0] in comment_chars:
+                pass
+            key, value = line.split("=")
+            if key in vals:
+                raise KeyError(
+                    f"Key {key} is in the emod3d parameter file at least twice. Resolve this before re running."
+                )
+            vals[key] = value
+    return vals
