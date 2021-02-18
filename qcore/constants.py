@@ -353,6 +353,7 @@ class Components(ExtendedStrEnum):
     crotd50 = 4, "rotd50"
     crotd100 = 5, "rotd100"
     crotd100_50 = 6, "rotd100_50"
+    cnorm = 7, "norm"
 
     @staticmethod
     def get_comps_to_calc_and_store(arg_comps: List[str]):
