@@ -24,8 +24,10 @@ def load_im_file(csv_file, all_psa=False, comp=None):
     # create numpy datatype
     dtype = [(n, np.float32) for n in col_names]
     # first 2 columns are actually strings
+    # Non uniform grid station names are a maximum of 7 chars (EMOD restriction)
+    # Component has been set to 10 to accomodate ROTD100_50
     dtype[0] = ("station", "|U7")
-    dtype[1] = ("component", "|U4")
+    dtype[1] = ("component", "|U10")
 
     # load all at once
     imdb = np.rec.array(
@@ -40,16 +42,18 @@ def load_im_file(csv_file, all_psa=False, comp=None):
 
 def load_im_file_pd(imcsv, all_ims=False, comp=None):
     """
-    Loads an IM file using pandas and returns a datafram
+    Loads an IM file using pandas and returns a dataframe
     :param imcsv: FFP to im_csv
-    :param all_ims: returns all_ims. Defaultly returns only short IM names (standard pSA periods etc)
+    :param all_ims: returns all_ims. Defaultly returns only short IM names (standard pSA periods etc).
+                    Setting this to true includes all pSA periods (and other long IM names). Extended pSA periods have
+                    longer IM names and are filtered out by this flag.
     :param comp: component to return. Default is to return all
     :return:
     """
     df = pd.read_csv(imcsv, index_col=[0, 1])
 
     if not all_ims:
-        df = df[[im for im in df.columns if (len(im) < 12)]]
+        df = df[[im for im in df.columns if (len(im) < 15)]]
 
     if comp is not None:
         df = df[df.index.get_level_values(1) == "geom"]
