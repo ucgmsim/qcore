@@ -4,6 +4,7 @@ from os.path import abspath
 
 import numpy as np
 
+DISK_DTYPE = "<f4"
 SINGLE_DTYPE = np.single
 
 
@@ -15,9 +16,9 @@ def _check_data_exists(method):
     """
 
     @wraps(method)
-    def inner(vm_obj, *args):
+    def inner(vm_obj, *args, **kwargs):
         assert vm_obj._data is not None, "Must open file or create new model first"
-        return method(vm_obj, *args)
+        return method(vm_obj, *args, **kwargs)
 
     return inner
 
@@ -29,26 +30,26 @@ def _check_data_empty(method):
     """
 
     @wraps(method)
-    def inner(vm_obj, *args):
+    def inner(vm_obj, *args, **kwargs):
         assert vm_obj._data is None, (
             "Must not have a loaded model. Call close() to unload the model. "
             "Do not forget to save the current model first if you wish to keep it"
         )
-        return method(vm_obj, *args)
+        return method(vm_obj, *args, **kwargs)
 
     return inner
 
 
 def create_constant_vm_file(pert_f_location, npoints, value=1):
     """
-    Creates a vm file with given size and uniform value
+    Creates and saves a vm file with given size and uniform value
     :param pert_f_location: The location to save the file to
     :param npoints: The size of the file to make
     :param value: The value to set the model to. Defaults to 1
     """
     # Doesn't matter what the dimensions are, we only need the total point count
     with VelocityModelFile(npoints, 1, 1) as vmf:
-        vmf.set_values(np.ones(vmf.shape) * value)
+        vmf.set_values(np.full(vmf.shape, value))
         vmf.save(pert_f_location)
 
 
@@ -71,9 +72,22 @@ class VelocityModelFile:
     Some large velocity models may be larger than the available ram. memmap should be implemented if this becomes an issue.
     """
 
-    _data: np.ndarray = None
+    __data: np.ndarray = None
 
-    def __init__(self, nx: int, ny: int, nz: int, file_loc=None, writable=False):
+    @property
+    def _data(self):
+        return self.__data.copy()
+
+    @_data.setter
+    def _data(self, value: np.ndarray):
+        """
+        Enforce the dtype as single precision floating point
+        :param value:
+        :return:
+        """
+        self.__data = value.astype(SINGLE_DTYPE)
+
+    def __init__(self, nx: int, ny: int, nz: int, file_loc=None, writable=False, memmap=False):
         """
         Creates a object that represents a velocity model binary file as used by EMOD3D
         These files contain nx*ny*nz single precision floats, stored in the order ny, nz, nx
@@ -81,7 +95,7 @@ class VelocityModelFile:
         :param ny: The ny dimension of the velocity model file
         :param nz: The nz dimension of the velocity model file
         :param file_loc: The path to the file. This can be either an input for an existing file or the destination of a file being created
-        :param read_only: Allow the given file path to be written to
+        :param writable: Allow the given file path to be written to
         """
         self.nx = nx
         self.ny = ny
@@ -95,6 +109,8 @@ class VelocityModelFile:
             self.file_path = None
 
         self._data_state = None
+
+        self._memmap = memmap
 
     def __enter__(self):
         """
@@ -113,7 +129,7 @@ class VelocityModelFile:
         self.close()
 
     @_check_data_empty
-    def open(self):
+    def open(self, memmap=None):
         """
         Opens the given velocity model file and loads it into memory
         Converts from EMOD3D format to NUMPY format
@@ -123,20 +139,36 @@ class VelocityModelFile:
             raise ValueError(
                 "Must set file path. Or use new() to create a new model from scratch"
             )
+        if memmap is not None:
+            self._memmap = memmap
 
-        self._data = np.fromfile(self.file_path, "<f4").reshape(
-            [self.ny, self.nz, self.nx]
-        )
+        if self._memmap:
+            mode = "r" if self.read_only else "r+"
+            self.__data = np.memmap(self.file_path, dtype=DISK_DTYPE, mode=mode, shape=self.emod_shape)
+        else:
+            self.__data = np.fromfile(self.file_path, DISK_DTYPE).reshape(self.emod_shape)
         self._data_state = DataState.EMOD3D
         self._change_data_state(DataState.NUMPY)
 
     @_check_data_empty
-    def new(self):
+    def new(self, memmap=None, filepath=None):
         """
         Creates a new velocity model of 0s.
         Must not have a model loaded.
         """
-        self._data = np.zeros((self.nx, self.ny, self.nz), dtype=SINGLE_DTYPE)
+
+        if memmap is not None:
+            self._memmap = memmap
+
+        if self._memmap:
+            if filepath is not None:
+                self.file_path = filepath
+            if self.file_path is None:
+                raise AttributeError("filepath must be set for memmap mode to be used")
+            self.__data = np.memmap(filepath, shape=self.shape, dtype=DISK_DTYPE, mode="w+")
+            self.__data.fill(0)
+        else:
+            self.__data = np.zeros(self.shape, dtype=SINGLE_DTYPE)
         self._data_state = DataState.NUMPY
         self.read_only = False
 
@@ -152,13 +184,13 @@ class VelocityModelFile:
 
         # Ensure we have the right state transition. Future proof in case of more states
         if self._data_state == DataState.NUMPY and target_state == DataState.EMOD3D:
-            self._data = np.swapaxes(self._data, 1, 2)
-            self._data = np.swapaxes(self._data, 0, 2)
+            self.__data = np.swapaxes(self._data, 1, 2)
+            self.__data = np.swapaxes(self._data, 0, 2)
             self._data_state = DataState.EMOD3D
 
         elif self._data_state == DataState.EMOD3D and target_state == DataState.NUMPY:
-            self._data = np.swapaxes(self._data, 0, 2)
-            self._data = np.swapaxes(self._data, 1, 2)
+            self.__data = np.swapaxes(self._data, 0, 2)
+            self.__data = np.swapaxes(self._data, 1, 2)
             self._data_state = DataState.NUMPY
 
     @_check_data_exists
@@ -169,7 +201,7 @@ class VelocityModelFile:
         :param fp: The filepath to save the file to. By default overwrites the
         """
         if self.file_path is None and fp is None:
-            raise AttributeError("A filepath must be given to save the file to")
+            raise AttributeError("A filepath must be given to save the data to")
         elif fp is None:
             fp = self.file_path
 
@@ -180,12 +212,12 @@ class VelocityModelFile:
             )
 
         self._change_data_state(DataState.EMOD3D)
-        self._data.astype(SINGLE_DTYPE).tofile(fp)
+        self._data.tofile(fp)
         self._change_data_state(DataState.NUMPY)
 
     @_check_data_exists
     def close(self):
-        """Saves and closes the file"""
+        """Closes the file without saving"""
         self._data = None
 
     @_check_data_exists
@@ -222,6 +254,14 @@ class VelocityModelFile:
         """
         return self.nx, self.ny, self.nz
 
+    @property
+    def emod_shape(self):
+        """
+        Returns the shape of the underlying array in emod3d order
+        :return: A numpy shape style tuple
+        """
+        return self.ny, self.nz, self.nx
+
     @_check_data_empty
     def set_values(self, values: np.ndarray, state=DataState.NUMPY):
         """
@@ -234,12 +274,12 @@ class VelocityModelFile:
         assert (
             values.shape == self.shape
         ), f"Shapes don't match: {values.shape}, {self.shape}"
-        self._data = values.astype(SINGLE_DTYPE)
+        self._data = values
         self._data_state = state
 
     @_check_data_exists
     def get_values(self):
-        return self._data.copy()
+        return self._data
 
     @_check_data_exists
     def apply_limits(self, lower: float = -np.inf, upper: float = np.inf):
