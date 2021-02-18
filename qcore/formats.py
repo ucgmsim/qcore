@@ -24,6 +24,8 @@ def load_im_file(csv_file, all_psa=False, comp=None):
     # create numpy datatype
     dtype = [(n, np.float32) for n in col_names]
     # first 2 columns are actually strings
+    # Non uniform grid station names are a maximum of 7 chars (EMOD restriction)
+    # Component has been set to 10 to accomodate ROTD100_50
     dtype[0] = ("station", "|U7")
     dtype[1] = ("component", "|U10")
 
@@ -40,9 +42,11 @@ def load_im_file(csv_file, all_psa=False, comp=None):
 
 def load_im_file_pd(imcsv, all_ims=False, comp=None):
     """
-    Loads an IM file using pandas and returns a datafram
+    Loads an IM file using pandas and returns a dataframe
     :param imcsv: FFP to im_csv
-    :param all_ims: returns all_ims. Defaultly returns only short IM names (standard pSA periods etc)
+    :param all_ims: returns all_ims. Defaultly returns only short IM names (standard pSA periods etc).
+                    Setting this to true includes all pSA periods (and other long IM names). Extended pSA periods have
+                    longer IM names and are filtered out by this flag.
     :param comp: component to return. Default is to return all
     :return:
     """
