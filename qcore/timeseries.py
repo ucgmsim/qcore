@@ -337,15 +337,9 @@ class LFSeis:
             self.dt, self.hh, self.rot = np.fromfile(lf0, dtype=self.f4, count=3)
             self.duration = self.nt * self.dt
 
-        self.flo = None
-        self.emod3d_version = None
-        with open(self.e3dpar) as e3d:
-            for line in e3d.readlines():
-                key, value = line.split("=")
-                if key == "flo":
-                    self.flo = float(value)
-                elif key == "version":
-                    self.emod3d_version = value
+        pars = load_e3d_par(self.e3dpar)
+        self.flo = float(pars["flo"])
+        self.emod3d_version = pars["version"]
 
         if self.flo is None or self.emod3d_version is None:
             raise ValueError(

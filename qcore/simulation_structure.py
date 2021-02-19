@@ -25,6 +25,10 @@ def get_VM_dir(cybershake_root):
     return os.path.join(cybershake_root, "Data", "VMs")
 
 
+def get_vm_params_path(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), "vm_params.yaml")
+
+
 def get_realisation_VM_dir(cybershake_root, realisation):
     return os.path.join(get_fault_VM_dir(cybershake_root, realisation), realisation)
 
@@ -43,6 +47,14 @@ def get_realisation_VM_pert_file(cybershake_root, realisation):
 
 def get_vm_params_yaml(vm_dir):
     return os.path.join(vm_dir, const.VM_PARAMS_FILE_NAME)
+
+
+def get_fault_qp_file(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), f"Qp.qp")
+
+
+def get_fault_qs_file(cybershake_root, realisation):
+    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), f"Qs.qs")
 
 
 # SRF
