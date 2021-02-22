@@ -7,7 +7,7 @@ import qcore.constants as const
 
 
 def get_fault_from_realisation(realisation):
-    realisation = os.path.basename(realisation) #if realisation is a fullpath
+    realisation = os.path.basename(realisation)  # if realisation is a fullpath
     return realisation.split("_")[0]
 
 
@@ -34,11 +34,19 @@ def get_realisation_VM_dir(cybershake_root, realisation):
 
 
 def get_realisation_VM_pert_config_file(cybershake_root, realisation):
-    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), f"{realisation}.pertb.csv")
+    return os.path.join(
+        get_fault_VM_dir(cybershake_root, realisation), f"{realisation}.pertb.csv"
+    )
 
 
 def get_realisation_VM_pert_file(cybershake_root, realisation):
-    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), f"{realisation}.pertb")
+    return os.path.join(
+        get_fault_VM_dir(cybershake_root, realisation), f"{realisation}.pertb"
+    )
+
+
+def get_vm_params_yaml(vm_dir):
+    return os.path.join(vm_dir, const.VM_PARAMS_FILE_NAME)
 
 
 def get_fault_qp_file(cybershake_root, realisation):
@@ -228,8 +236,8 @@ def get_sim_params_yaml_path(sim_root):
 
 def get_fault_yaml_path(sim_root, fault_name=None):
     """
-    Gets the fault_params.yaml for the specified simulation. 
-    Note: For the manual workflow set fault_name to None as the 
+    Gets the fault_params.yaml for the specified simulation.
+    Note: For the manual workflow set fault_name to None as the
     fault params are stored directly in the simulation directory.
     """
     fault_name = "" if fault_name is None else fault_name
@@ -257,7 +265,7 @@ def get_verification_dir(sim_root):
 
 def get_sources_plot_dir(cybershake_root, realisation):
     """
-    Gets the folder for storing plots that can be generated 
+    Gets the folder for storing plots that can be generated
     before installing a cybershake. eg. srf square & map plots.
     """
     return os.path.join(
