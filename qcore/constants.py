@@ -66,6 +66,9 @@ class ExtendedEnum(Enum):
         """Check if an enum's string value is contained in the given string"""
         return any(item.value in parent_string for item in cls)
 
+    @classmethod
+    def get_names(cls):
+        return [item.name for item in cls]
 
 class ExtendedStrEnum(ExtendedEnum):
     def __new__(cls, value, str_value):
