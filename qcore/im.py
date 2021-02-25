@@ -121,9 +121,9 @@ def order_ims(unsorted_ims, pattern_order=DEFAULT_PATTERN_ORDER):
 
 @dataclass
 class IM:
-    name: [IMEnum]
-    period: [int] = None
-    component: [constants.Components] = None
+    name: IMEnum
+    period: int = None
+    component: constants.Components = None
 
     def get_im_name(self):
         if self.period:
