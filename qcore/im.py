@@ -125,6 +125,12 @@ class IM:
     period: int = None
     component: constants.Components = None
 
+    def __post_init__(self):
+        if type(self.name) != IMEnum:
+            self.name = IMEnum[self.name]
+        if self.component is not None and type(self.component) != constants.Components:
+            self.component.from_str(self.component)
+
     def get_im_name(self):
         if self.period:
             return f"{self.name}_{self.period}"
@@ -141,21 +147,23 @@ class IM:
             return f"{self.name} [{self.get_unit()}]"
 
     def get_unit(self):
-        if self.name in [IMEnum.PGA.name, IMEnum.pSA.name]:
+        if self.name in [IMEnum.PGA, IMEnum.pSA]:
             return "g"
-        elif self.name in [IMEnum.PGV.name, IMEnum.AI.name]:
+        elif self.name in [IMEnum.PGV, IMEnum.AI]:
             return "cm/s"
-        elif self.name in [IMEnum.CAV.name, IMEnum.FAS.name]:
+        elif self.name in [IMEnum.CAV, IMEnum.FAS]:
             return "gs"  # FAS could also be cm/s depending on calculation / implementation
-        elif self.name in [IMEnum.Ds575.name, IMEnum.Ds595.name, IMEnum.Ds2080.name]:
+        elif self.name in [IMEnum.Ds575, IMEnum.Ds595, IMEnum.Ds2080]:
             return "s"
-        elif self.name in [IMEnum.MMI.name, IMEnum.IESDR.name]:
+        elif self.name in [IMEnum.MMI, IMEnum.IESDR]:
             return ""  # MMI is dimensionless & Ratios are dimensionless
         else:
             return ""  # unimplemented
 
     def get_period_unit(self):
-        if self.name in ["pSA", "IESDR"]:
+        if self.name in [IMEnum.pSA, IMEnum.IESDR]:
             return "s"
-        elif self.name == "FAS":
+        elif self.name == IMEnum.FAS:
             return "Hz"
+        else:
+            return ""
