@@ -121,7 +121,7 @@ def order_ims(unsorted_ims, pattern_order=DEFAULT_PATTERN_ORDER):
 
 @dataclass
 class IM:
-    name: [IMEnum] = None
+    name: [IMEnum]
     period: [int] = None
     component: [constants.Components] = None
 
@@ -132,28 +132,25 @@ class IM:
             return self.name
 
     def pretty_im_name(self):
+        """
+        :return: IM name in the form "IM_NAME [UNITS]" or "IM_NAME (PERIOD|UNITS) [UNITS]"
+        """
         if self.period:
             return f"{self.name} ({self.period}{self.get_period_unit()}) [{self.get_unit()}]"
         else:
             return f"{self.name} [{self.get_unit()}]"
 
     def get_unit(self):
-        if self.name in ["PGA", "pSA"]:
+        if self.name in [IMEnum.PGA.name, IMEnum.pSA.name]:
             return "g"
-        elif self.name == "PGV":
+        elif self.name in [IMEnum.PGV.name, IMEnum.AI.name]:
             return "cm/s"
-        elif self.name == "CAV":
-            return "gs"
-        elif self.name == "AI":
-            return "cm/s"
-        elif self.name == "MMI":
-            return ""  # MMI is dimensionless
-        elif self.name == "FAS":
-            return "gs"
-        elif self.name == "IESDR":
-            return ""
-        elif self.name.startswith("Ds"):
+        elif self.name in [IMEnum.CAV.name, IMEnum.FAS.name]:
+            return "gs"  # FAS could also be cm/s depending on calculation / implementation
+        elif self.name in [IMEnum.Ds575.name, IMEnum.Ds595.name, IMEnum.Ds2080.name]:
             return "s"
+        elif self.name in [IMEnum.MMI.name, IMEnum.IESDR.name]:
+            return ""  # MMI is dimensionless & Ratios are dimensionless
         else:
             return ""  # unimplemented
 
