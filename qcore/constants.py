@@ -70,6 +70,9 @@ class ExtendedEnum(Enum):
     def get_names(cls):
         return [item.name for item in cls]
 
+    def __str__(self):
+        return self.name
+
 class ExtendedStrEnum(ExtendedEnum):
     def __new__(cls, value, str_value):
         obj = object.__new__(cls)

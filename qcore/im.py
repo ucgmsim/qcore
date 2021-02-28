@@ -4,6 +4,7 @@ station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*, FAS_*, IESDR_*
 """
 
 from dataclasses import dataclass
+import enum
 
 import pandas as pd
 import numpy as np
@@ -28,17 +29,17 @@ DEFAULT_PATTERN_ORDER = (
 
 
 class IMEnum(constants.ExtendedEnum):
-    PGA = 1
-    PGV = 2
-    CAV = 3
-    AI = 4
-    Ds575 = 5
-    Ds595 = 6
-    Ds2080 = 7
-    MMI = 8
-    pSA = 9
-    FAS = 10
-    IESDR = 11
+    PGA = enum.auto()
+    PGV = enum.auto()
+    CAV = enum.auto()
+    AI = enum.auto()
+    Ds575 = enum.auto()
+    Ds595 = enum.auto()
+    Ds2080 = enum.auto()
+    MMI = enum.auto()
+    pSA = enum.auto()
+    FAS = enum.auto()
+    IESDR = enum.auto()
 
 
 def order_im_cols_file(filename):
