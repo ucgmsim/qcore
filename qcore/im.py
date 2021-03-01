@@ -3,8 +3,13 @@ Correct IM column order
 station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*, FAS_*, IESDR_*
 """
 
+from dataclasses import dataclass
+import enum
+
 import pandas as pd
 import numpy as np
+
+from qcore import constants
 
 DEFAULT_PATTERN_ORDER = (
     "station",
@@ -21,6 +26,20 @@ DEFAULT_PATTERN_ORDER = (
     "FAS",
     "IESDR",
 )
+
+
+class IMEnum(constants.ExtendedEnum):
+    PGA = enum.auto()
+    PGV = enum.auto()
+    CAV = enum.auto()
+    AI = enum.auto()
+    Ds575 = enum.auto()
+    Ds595 = enum.auto()
+    Ds2080 = enum.auto()
+    MMI = enum.auto()
+    pSA = enum.auto()
+    FAS = enum.auto()
+    IESDR = enum.auto()
 
 
 def order_im_cols_file(filename):
@@ -99,3 +118,53 @@ def order_ims(unsorted_ims, pattern_order=DEFAULT_PATTERN_ORDER):
         [adj_ims.append(im) for im in unsorted_ims if im not in adj_ims]
 
     return adj_ims
+
+
+@dataclass
+class IM:
+    name: IMEnum
+    period: int = None
+    component: constants.Components = None
+
+    def __post_init__(self):
+        if not isinstance(self.name, IMEnum):
+            self.name = IMEnum[self.name]
+        if self.component is not None and not isinstance(self.component, constants.Components):
+            self.component.from_str(self.component)
+
+    def get_im_name(self):
+        if self.period:
+            return f"{self.name}_{self.period}"
+        else:
+            return self.name
+
+    def pretty_im_name(self):
+        """
+        :return: IM name in the form "IM_NAME [UNITS]" or "IM_NAME (PERIOD|UNITS) [UNITS]"
+        """
+        if self.period:
+            return f"{self.name} ({self.period}{self.get_period_unit()}) [{self.get_unit()}]"
+        else:
+            return f"{self.name} [{self.get_unit()}]"
+
+    def get_unit(self):
+        if self.name in [IMEnum.PGA, IMEnum.pSA]:
+            return "g"
+        elif self.name in [IMEnum.PGV, IMEnum.AI]:
+            return "cm/s"
+        elif self.name in [IMEnum.CAV, IMEnum.FAS]:
+            return "gs"  # FAS could also be cm/s depending on calculation / implementation
+        elif self.name in [IMEnum.Ds575, IMEnum.Ds595, IMEnum.Ds2080]:
+            return "s"
+        elif self.name in [IMEnum.MMI, IMEnum.IESDR]:
+            return ""  # MMI is dimensionless & Ratios are dimensionless
+        else:
+            return ""  # unimplemented
+
+    def get_period_unit(self):
+        if self.name in [IMEnum.pSA, IMEnum.IESDR]:
+            return "s"
+        elif self.name == IMEnum.FAS:
+            return "Hz"
+        else:
+            return ""
