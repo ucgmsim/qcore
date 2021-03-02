@@ -168,3 +168,8 @@ class IM:
             return "Hz"
         else:
             return ""
+        
+    @staticmethod
+    def from_im_name(name: str):
+        parts = name.split('_')
+        return IM(*parts)
