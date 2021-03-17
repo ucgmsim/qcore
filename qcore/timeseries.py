@@ -13,6 +13,7 @@ import os
 from subprocess import Popen, PIPE
 
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
+from qcore.formats import load_e3d_par
 from qcore.utils import compare_versions
 
 try:
