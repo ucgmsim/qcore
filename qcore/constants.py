@@ -73,6 +73,7 @@ class ExtendedEnum(Enum):
     def __str__(self):
         return self.name
 
+
 class ExtendedStrEnum(ExtendedEnum):
     def __new__(cls, value, str_value):
         obj = object.__new__(cls)
@@ -349,6 +350,7 @@ class SourceToSiteDist(ExtendedStrEnum):
     R_jb = 1, "r_jb"
     R_x = 2, "r_x"
     R_y = 3, "r_y"
+    Backarc = 4, "backarc"
 
 
 class Components(ExtendedStrEnum):

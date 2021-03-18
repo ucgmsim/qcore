@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 
+
 class NHMFault:
     """Contains the information for a single fault from a NHM file
 
