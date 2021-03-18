@@ -418,3 +418,27 @@ class PLATFORM_CONFIG(Enum):
     VELOCITY_MODEL_DIR = auto()
     RUN_COMMAND = auto()
     HEADER_FILE = auto()
+
+
+class SlHdrOptConsts(Enum):
+    job_name_prefix = "job_name_prefix"
+    account = "account"
+    n_tasks = "n_tasks"
+    memory = "memory"
+    additional = "additional_lines"
+    wallclock = "wallclock_limit"
+    version = "version"
+    description = "job_description"
+
+
+class SlBodyOptConsts(Enum):
+    component = "component"
+    n_procs = "np"
+    sim_dir = "sim_dir"
+    sim_name = "sim_name"
+    fault_name = "fault_name"
+    output_dir = "output_dir"
+    extended = "extended"
+    simple_out = "simple"
+    advanced_IM = ProcessType.advanced_IM.str_value
+    mgmt_db = "mgmt_db"
