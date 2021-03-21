@@ -8,6 +8,6 @@ setup(
     url='https://github.com/ucgmsim/qcore',
     description='QuakeCoRE Library',
     package_data={'qcore': [join('configs', '*.json')]},
-    install_requires=['numpy', 'scipy>=0.16'],
+    install_requires=['numpy', 'scipy>=0.16', 'dataclasses'],
     include_package_data=True,
 )
