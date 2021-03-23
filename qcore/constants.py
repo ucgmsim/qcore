@@ -362,6 +362,8 @@ class Components(ExtendedStrEnum):
     crotd100 = 5, "rotd100"
     crotd100_50 = 6, "rotd100_50"
     cnorm = 7, "norm"
+    ch1 = 8, "h1"
+    ch2 = 9, "h2"
 
     @staticmethod
     def get_comps_to_calc_and_store(arg_comps: List[str]):
@@ -395,6 +397,10 @@ class Components(ExtendedStrEnum):
             components_to_get = components_to_store[:]
 
         return components_to_get, components_to_store
+
+    @staticmethod
+    def get_basic_components():
+        return [Components.c090, Components.c000, Components.cver, Components.ch1, Components.ch2]
 
 
 class PLATFORM_CONFIG(Enum):
