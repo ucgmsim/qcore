@@ -379,9 +379,9 @@ class Components(ExtendedStrEnum):
         components_to_store = [Components.from_str(c) for c in arg_comps]
         components_to_store.sort(key=component_sorter)
 
-        horizontal_components = set(list(Components)[:2])
-        basic_components = set(list(Components)[:3])
-        advanced_components = set(list(Components)[3:])
+        horizontal_components = {Components.c090, Components.c000}
+        basic_components = set(Components.get_basic_components())
+        advanced_components = set(list(Components)[3:8])
         advanced_components_to_get = list(
             advanced_components.intersection(set(components_to_store))
         )
@@ -400,7 +400,13 @@ class Components(ExtendedStrEnum):
 
     @staticmethod
     def get_basic_components():
-        return [Components.c090, Components.c000, Components.cver, Components.ch1, Components.ch2]
+        return [
+            Components.c090,
+            Components.c000,
+            Components.cver,
+            Components.ch1,
+            Components.ch2,
+        ]
 
 
 class PLATFORM_CONFIG(Enum):
