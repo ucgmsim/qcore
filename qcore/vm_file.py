@@ -72,20 +72,7 @@ class VelocityModelFile:
     Some large velocity models may be larger than the available ram. memmap should be implemented if this becomes an issue.
     """
 
-    __data: np.ndarray = None
-
-    @property
-    def _data(self):
-        return self.__data.copy()
-
-    @_data.setter
-    def _data(self, value: np.ndarray):
-        """
-        Enforce the dtype as single precision floating point
-        :param value:
-        :return:
-        """
-        self.__data = value.astype(SINGLE_DTYPE)
+    _data: np.ndarray = None
 
     def __init__(self, nx: int, ny: int, nz: int, file_loc=None, writable=False, memmap=False):
         """
@@ -144,9 +131,9 @@ class VelocityModelFile:
 
         if self._memmap:
             mode = "r" if self.read_only else "r+"
-            self.__data = np.memmap(self.file_path, dtype=DISK_DTYPE, mode=mode, shape=self.emod_shape)
+            self._data = np.memmap(self.file_path, dtype=DISK_DTYPE, mode=mode, shape=self.emod_shape)
         else:
-            self.__data = np.fromfile(self.file_path, DISK_DTYPE).reshape(self.emod_shape)
+            self._data = np.fromfile(self.file_path, DISK_DTYPE).reshape(self.emod_shape)
         self._data_state = DataState.EMOD3D
         self._change_data_state(DataState.NUMPY)
 
@@ -165,10 +152,10 @@ class VelocityModelFile:
                 self.file_path = filepath
             if self.file_path is None:
                 raise AttributeError("filepath must be set for memmap mode to be used")
-            self.__data = np.memmap(filepath, shape=self.shape, dtype=DISK_DTYPE, mode="w+")
-            self.__data.fill(0)
+            self._data = np.memmap(filepath, shape=self.shape, dtype=DISK_DTYPE, mode="w+")
+            self._data.fill(0)
         else:
-            self.__data = np.zeros(self.shape, dtype=SINGLE_DTYPE)
+            self._data = np.zeros(self.shape, dtype=SINGLE_DTYPE)
         self._data_state = DataState.NUMPY
         self.read_only = False
 
@@ -184,13 +171,13 @@ class VelocityModelFile:
 
         # Ensure we have the right state transition. Future proof in case of more states
         if self._data_state == DataState.NUMPY and target_state == DataState.EMOD3D:
-            self.__data = np.swapaxes(self._data, 1, 2)
-            self.__data = np.swapaxes(self._data, 0, 2)
+            self._data = np.swapaxes(self._data, 1, 2)
+            self._data = np.swapaxes(self._data, 0, 2)
             self._data_state = DataState.EMOD3D
 
         elif self._data_state == DataState.EMOD3D and target_state == DataState.NUMPY:
-            self.__data = np.swapaxes(self._data, 0, 2)
-            self.__data = np.swapaxes(self._data, 1, 2)
+            self._data = np.swapaxes(self._data, 0, 2)
+            self._data = np.swapaxes(self._data, 1, 2)
             self._data_state = DataState.NUMPY
 
     @_check_data_exists
