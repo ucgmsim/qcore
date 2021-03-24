@@ -362,8 +362,8 @@ class Components(ExtendedStrEnum):
     crotd100 = 5, "rotd100"
     crotd100_50 = 6, "rotd100_50"
     cnorm = 7, "norm"
-    ch1 = 8, "h1"
-    ch2 = 9, "h2"
+    ch1 = 8, "H1"
+    ch2 = 9, "H2"
 
     @staticmethod
     def get_comps_to_calc_and_store(arg_comps: List[str]):
