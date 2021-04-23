@@ -836,13 +836,12 @@ def get_perimeter(srf_file, depth=True, plot=False):
                 plt.show()
                 plt.close()
 
-            # try to find edges, assume srf points are arranged "square" and corners are fixed
-            c1 = np.argwhere(np.minimum.reduce(perimeters[-1] == points[0], axis=1))[0][
-                0
-            ]
-            c2 = np.argwhere(
-                np.minimum.reduce(perimeters[-1] == points[nstk - 1], axis=1)
-            )[0][0]
+            # try to find top edges in perimeter
+            # closest point in case corner not in perimeter
+            c1 = perimeters[-1] - points[0]
+            c1 = np.argmin(np.sqrt(np.einsum("ij,ij->i", c1, c1)))
+            c2 = perimeters[-1] - points[nstk - 1]
+            c2 = np.argmin(np.sqrt(np.einsum("ij,ij->i", c2, c2)))
             # assume shorter edge is top edge
             if abs(c2 - c1) < len(perimeters[-1]) / 2:
                 # edge doesn't wrap array
