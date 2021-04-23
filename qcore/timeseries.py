@@ -898,10 +898,12 @@ class BBFlac(BBSeis):
             / self.stations.scale[i]
         )
 
+
 def get_observed_stations(observed_data_folder):
     """
     observed_data_folder: path to the record folder, e.g. observed/events/vol1/data/accBB/
     """
-    search_path = os.path.abspath(os.path.join(input_path, "*"))
+    search_path = os.path.abspath(os.path.join(observed_data_folder, "*"))
     files = glob(search_path)
-    station_names = set([ os.path.splitext(os.path.basename(x))[0] for x in files]
+    station_names = set([os.path.splitext(os.path.basename(x))[0] for x in files])
+    return station_names
