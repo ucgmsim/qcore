@@ -910,5 +910,7 @@ def get_observed_stations(observed_data_folder):
     """
     search_path = os.path.abspath(os.path.join(observed_data_folder, "*"))
     files = glob(search_path)
-    station_names = set([os.path.splitext(os.path.basename(x))[0] for x in files])
+    station_names = set(
+        [os.path.splitext(os.path.basename(filename))[0] for filename in files]
+    )
     return station_names
