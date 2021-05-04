@@ -837,11 +837,14 @@ def get_perimeter(srf_file, depth=True, plot=False):
                 plt.close()
 
             # try to find top edges in perimeter
-            # closest point in case corner not in perimeter
+            # closest point in case corner not in perimeter (srf roughness)
+            # roughness may result in closest point being a couple meters out
+            # euclidian ok, even SRF res is only 100m
+            # TODO: include depth to prevent issues with 90 degree dips
             c1 = perimeters[-1] - points[0]
-            c1 = np.argmin(np.sqrt(np.einsum("ij,ij->i", c1, c1)))
+            c1 = np.argmin(np.einsum("ij,ij->i", c1, c1))
             c2 = perimeters[-1] - points[nstk - 1]
-            c2 = np.argmin(np.sqrt(np.einsum("ij,ij->i", c2, c2)))
+            c2 = np.argmin(np.einsum("ij,ij->i", c2, c2))
             # assume shorter edge is top edge
             if abs(c2 - c1) < len(perimeters[-1]) / 2:
                 # edge doesn't wrap array
