@@ -842,6 +842,7 @@ def get_perimeter(srf_file, depth=True, plot=False):
             # euclidian ok, even SRF res is only 100m
             # TODO: include depth to prevent issues with 90 degree dips
             c1 = perimeters[-1] - points[0]
+            # minimum sum of squares
             c1 = np.argmin(np.einsum("ij,ij->i", c1, c1))
             c2 = perimeters[-1] - points[nstk - 1]
             c2 = np.argmin(np.einsum("ij,ij->i", c2, c2))
