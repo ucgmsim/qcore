@@ -87,12 +87,14 @@ class NHMFault:
         self.slip_rate, self.slip_rate_sigma = str2floats(rows[8])
         self.coupling_coeff, self.coupling_coeff_sigma = str2floats(rows[9])
         self.mw, self.recur_int_median = str2floats(rows[10])
-        self.trace = np.array(list(map(float, " ".join(rows[12:]).split()))).reshape((-1, 2))
+        self.trace = np.array(list(map(float, " ".join(rows[12:]).split()))).reshape(
+            (-1, 2)
+        )
         # TODO: add x y z fault plane data as in SRF info
         # TODO: add leonard mw function
 
 
-def load_nhm(nhm_path: str, skiprows: int=15):
+def load_nhm(nhm_path: str, skiprows: int = 15):
     """Reads the nhm_path and returns a dictionary of NHMFault by fault name.
 
     Parameters
@@ -117,8 +119,22 @@ def load_nhm(nhm_path: str, skiprows: int=15):
     return faults
 
 
-def write_nhm_section(out_fp, coupling_coeff, dbot, dip, dtop, fault_data, fault_name, length, mw, rake,
-                      recurance_interval, slip_rate, strike, trace):
+def write_nhm_section(
+    out_fp,
+    coupling_coeff,
+    dbot,
+    dip,
+    dtop,
+    fault_data,
+    fault_name,
+    length,
+    mw,
+    rake,
+    recurance_interval,
+    slip_rate,
+    strike,
+    trace,
+):
     out_fp.write("\n")
     out_fp.write(f"{fault_name}\n")
     out_fp.write(f"{fault_data.tect_type} {fault_data.fault_type}\n")
