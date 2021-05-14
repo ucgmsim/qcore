@@ -1,6 +1,23 @@
 from typing import List
+import datetime
 
 import numpy as np
+
+NHM_HEADER = f"""FAULT SOURCES - New Zealand National Seismic Hazard Model 2010 (created {datetime.datetime.now().strftime("%d-%b-%Y")}) 
+Row 1: FaultName 
+Row 2: TectonicType , FaultType 
+Row 3: LengthMean , LengthSigma (km) 
+Row 4: DipMean , DipSigma (deg) 
+Row 5: DipDir 
+Row 6: Rake (deg) 
+Row 7: RupDepthMean , RupDepthSigma (km) 
+Row 8: RupTopMean, RupTopMin RupTopMax  (km) 
+Row 9: SlipRateMean , SlipRateSigma (mm/yr) 
+Row 10: CouplingCoeff , CouplingCoeffSigma (mm/yr) 
+Row 11: MwMedian , RecurIntMedian  (yr) 
+Row 12: Num Locations on Fault Surface 
+Row 13+: Location Coordinates (Long, Lat) 
+"""
 
 
 class NHMFault:
@@ -98,3 +115,22 @@ def load_nhm(nhm_path: str, skiprows: int=15):
         faults[nhm_fault.name] = nhm_fault
 
     return faults
+
+
+def write_nhm_section(out_fp, coupling_coeff, dbot, dip, dtop, fault_data, fault_name, length, mw, rake,
+                      recurance_interval, slip_rate, strike, trace):
+    out_fp.write("\n")
+    out_fp.write(f"{fault_name}\n")
+    out_fp.write(f"{fault_data.tect_type} {fault_data.fault_type}\n")
+    out_fp.write(f"{length:10.3f}{0:10.3f}\n")
+    out_fp.write(f"{dip:10.3f}{0:10.3f}\n")
+    out_fp.write(f"{strike:10.3f}\n")
+    out_fp.write(f"{rake:10.3f}\n")
+    out_fp.write(f"{dbot:10.3f}{0:10.3f}\n")
+    out_fp.write(f"{dtop:10.3f}{dtop:10.3f}{dtop:10.3f}\n")
+    out_fp.write(f"{slip_rate:10.3f}{0:10.3f}\n")
+    out_fp.write(f"{coupling_coeff:10.3f}{0:10.3f}\n")
+    out_fp.write(f"{mw:10.3f}{recurance_interval:10.3e}\n")
+    out_fp.write(f"{len(trace):10d}\n")
+    for lat, lon in trace:
+        out_fp.write(f"{lat:10.5f} {lon:10.5f}\n")
