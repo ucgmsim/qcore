@@ -334,16 +334,6 @@ class VMParams(Enum):
     extent_zmin = "extent_zmin"
 
 
-class HazardType(Enum):
-    """The different hazard fault types"""
-
-    emp_a = "emp_a"
-    emp_b = "emp_b"
-    emp_ds = "emp_ds"
-    emp_tot = "emp_tot"
-    cs_a = "cs_a"
-    cs_tot = "cs_tot"
-
 
 class SourceToSiteDist(ExtendedStrEnum):
     R_rup = 0, "r_rup"
