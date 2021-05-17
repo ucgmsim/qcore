@@ -282,6 +282,7 @@ class RootParams(Enum):
     mgmt_db_location = "mgmt_db_location"
     seed = "seed"
     extended_period = "extended_period"
+    component = "component"
 
 
 class FaultParams(Enum):
@@ -349,6 +350,7 @@ class Components(ExtendedStrEnum):
     Basic intensity measures (090, 000, ver, H1, H2) are those available in ascii format from observed records.
     Advanced/derived intensity measures (geom, norm, rotX) are those derived from basic intensity measures.
     """
+
     c090 = 0, "090"
     c000 = 1, "000"
     cver = 2, "ver"
