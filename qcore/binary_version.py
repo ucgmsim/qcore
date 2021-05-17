@@ -6,7 +6,7 @@ Defaults are available from the config files
 from qcore.config import qconfig
 from os import path
 
-default_bin_loc = qconfig['tools_dir']
+default_bin_loc = qconfig["tools_dir"]
 
 HF_BINMOD_NAME_STR = "hb_high_binmod_v{}"
 HF_NP2MM_NAME_STR = "hb_high_np2mm+_v{}"
@@ -27,9 +27,12 @@ def get_lf_bin(version, bin_loc=default_bin_loc):
 
 
 def get_genslip_bin(version, bin_loc=default_bin_loc):
-    return path.join(bin_loc,  GENSLIP_NAME_STR.format(version))
+    return path.join(bin_loc, GENSLIP_NAME_STR.format(version))
 
 
 def get_unversioned_bin(bin_name, bin_loc=default_bin_loc):
     return path.join(bin_loc, bin_name)
 
+
+def get_opensees_bin():
+    return qconfig["OpenSees"]

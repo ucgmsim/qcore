@@ -917,6 +917,7 @@ def table2block(
     header=0,
     cols=None,
     wd=None,
+    binary=False,
 ):
     """
     
@@ -941,6 +942,8 @@ def table2block(
     # create surface grid
     cmd = [GMT, block, os.path.abspath(table_in), "-I%s/%s" % (dx, dy), region]
 
+    if binary:
+        cmd.append("-bi3f")
     if geo:
         cmd.append("-fg")
     if header > 0:
