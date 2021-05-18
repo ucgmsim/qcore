@@ -90,9 +90,9 @@ class NHMFault:
         Parameters
         ----------
 
-        :param name:
+        :param name: Fault name
         :param tectonic_type:
-        :param fault_type:
+        :param fault_type: Fault Style of the rupture (REVERSE, NORMAL etc)
         :param length:
         :param length_sigma:
         :param dip:
@@ -110,7 +110,7 @@ class NHMFault:
         :param coupling_coeff_sigma:
         :param mw:
         :param recur_int_median:
-        :param trace:
+        :param trace: list of lat lon pairs for the top edge of fault
         """
         self.name = name
         self.tectonic_type = tectonic_type
@@ -199,7 +199,7 @@ class NHMFault:
         mw = sample_trunc_norm_dist(mw_median, mw_sigma)
 
         moment = 10 ** (9.05 + 1.5 * mw)
-        momentRate = mu * (length) * (width) * (slip_rate * 1000.0) * coupling_coeff
+        momentRate = MU * (length) * (width) * (slip_rate * 1000.0) * coupling_coeff
 
         if momentRate > 0:
             recur_int_median = moment / momentRate
