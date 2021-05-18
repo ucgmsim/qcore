@@ -60,7 +60,30 @@ class NHMFault:
         fault surface trace (lon, lat)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        name,
+        tectonic_type,
+        fault_type,
+        length,
+        length_sigma,
+        dip,
+        dip_sigma,
+        dip_dir,
+        rake,
+        dbottom,
+        dbottom_sigma,
+        dtop,
+        dtop_min,
+        dtop_max,
+        slip_rate,
+        slip_rate_sigma,
+        coupling_coeff,
+        coupling_coeff_sigma,
+        mw,
+        recur_int_median,
+        trace,
+    ):
         """Creates an NHMFault instance from the given NHM text.
 
         Parameters
@@ -69,9 +92,28 @@ class NHMFault:
 
         It is up to the caller to make sure all the required parameters are available
         """
+        self.name = name
+        self.tectonic_type = tectonic_type
+        self.fault_type = fault_type
+        self.length = length
+        self.length_sigma = length_sigma
+        self.dip = dip
+        self.dip_sigma = dip_sigma
+        self.dip_dir = dip_dir
+        self.rake = rake
+        self.dbottom = dbottom
+        self.dbottom_sigma = dbottom_sigma
+        self.dtop = dtop
+        self.dtop_min = dtop_min
+        self.dtop_max = dtop_max
+        self.slip_rate = slip_rate
+        self.slip_rate_sigma = slip_rate_sigma
+        self.coupling_coeff = coupling_coeff
+        self.coupling_coeff_sigma = coupling_coeff_sigma
+        self.mw = mw
+        self.recur_int_median = recur_int_median
+        self.trace = trace
 
-        for key, value in kwargs.items():
-            setattr(self, key, value)
         # TODO: add x y z fault plane data as in SRF info
         # TODO: add leonard mw function
 
@@ -101,13 +143,23 @@ class NHMFault:
         )
 
         width = (dbot - dtop) / np.sin(np.radians(dip))
-        if tectonic_type == "VOLCANIC" or (tectonic_type == "ACTIVE_SHALLOW" and fault_type == "NORMAL_FAULTING"):
+        if tectonic_type == "VOLCANIC" or (
+            tectonic_type == "ACTIVE_SHALLOW" and fault_type == "NORMAL_FAULTING"
+        ):
             mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.VILLAMORETAL2007
         elif tectonic_type == "SUBDUCTION_INTERFACE":
             ### SUBDUCTION INTERFACE RELATION IS TO BE CONFIRMED BY BB leaving equations here for reference
 
             mw_old = 4.441 + 0.846 * np.log10(length * width)
-            mom = self.recur_int_median * mu * length * width * self.slip_rate * 10e3 * self.coupling_coeff
+            mom = (
+                self.recur_int_median
+                * mu
+                * length
+                * width
+                * self.slip_rate
+                * 10e3
+                * self.coupling_coeff
+            )
             mw = (np.log10(mom) - 9.05) / 1.5
 
             mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.SKARLATOUDIS2016
@@ -116,14 +168,18 @@ class NHMFault:
         elif fault_type == "OTHER_CRUSTAL_FAULTING":
             mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.STIRLING2008
         else:
-            raise(ValueError, f"Invalid combination of tectonic type: {tectonic_type} and fault type: {fault_type}")
+            raise (
+                ValueError,
+                f"Invalid combination of tectonic type: {tectonic_type} and fault type: {fault_type}",
+            )
 
-        mw_median, mw_sigma = mag_scaling.lw_2_mw_sigma_scaling_relation(length, width, mw_scaling_rel, rake)
+        mw_median, mw_sigma = mag_scaling.lw_2_mw_sigma_scaling_relation(
+            length, width, mw_scaling_rel, rake
+        )
         mw = sample_trunc_norm_dist(mw_median, mw_sigma)
 
         moment = 10 ** (9.05 + 1.5 * mw)
         momentRate = mu * (length) * (width) * (slip_rate * 1000.0) * coupling_coeff
-
 
         if momentRate > 0:
             recur_int_median = moment / momentRate
@@ -151,8 +207,8 @@ class NHMFault:
             coupling_coeff_sigma=0,
             mw=mw,
             recur_int_median=recur_int_median,
-            trace=self.trace
-            )
+            trace=self.trace,
+        )
 
     def write(self, out_fp, header=False):
         """
