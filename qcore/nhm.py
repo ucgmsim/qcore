@@ -24,7 +24,7 @@ Row 13+: Location Coordinates (Long, Lat)
 """
 
 
-mu = 3.0 * 10.0 ** 10.0
+MU = 3.0 * 10.0 ** 10.0
 
 
 def sample_trunc_norm_dist(mean, sigma, sigma_limit=2):
@@ -153,7 +153,7 @@ class NHMFault:
             mw_old = 4.441 + 0.846 * np.log10(length * width)
             mom = (
                 self.recur_int_median
-                * mu
+                * MU
                 * length
                 * width
                 * self.slip_rate
