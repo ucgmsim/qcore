@@ -84,13 +84,33 @@ class NHMFault:
         recur_int_median,
         trace,
     ):
-        """Creates an NHMFault instance from the given NHM text.
+        """
+        Creates an NHMFault instance from the parameters.
 
         Parameters
         ----------
-        kwargs of all the required parameters for a nhm fault
 
-        It is up to the caller to make sure all the required parameters are available
+        :param name:
+        :param tectonic_type:
+        :param fault_type:
+        :param length:
+        :param length_sigma:
+        :param dip:
+        :param dip_sigma:
+        :param dip_dir:
+        :param rake:
+        :param dbottom:
+        :param dbottom_sigma:
+        :param dtop:
+        :param dtop_min:
+        :param dtop_max:
+        :param slip_rate:
+        :param slip_rate_sigma:
+        :param coupling_coeff:
+        :param coupling_coeff_sigma:
+        :param mw:
+        :param recur_int_median:
+        :param trace:
         """
         self.name = name
         self.tectonic_type = tectonic_type
