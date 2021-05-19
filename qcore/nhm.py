@@ -6,6 +6,9 @@ import numpy as np
 from scipy.stats import truncnorm
 
 from srf_generation.source_parameter_generation.uncertainties import mag_scaling
+from srf_generation.source_parameter_generation.uncertainties.distributions import (
+    truncated_normal as sample_trunc_norm_dist,
+)
 
 
 NHM_HEADER = f"""FAULT SOURCES - New Zealand National Seismic Hazard Model 2010 (created {datetime.datetime.now().strftime("%d-%b-%Y")}) 
@@ -26,10 +29,6 @@ Row 13+: Location Coordinates (Long, Lat)
 
 # This mu is used to calculated Moment Rate
 MU = 3.0 * 10.0 ** 10.0
-
-
-def sample_trunc_norm_dist(mean, sigma, sigma_limit=2):
-    return float(truncnorm(-sigma_limit, sigma_limit, loc=mean, scale=sigma).rvs())
 
 
 @dataclass
@@ -150,6 +149,7 @@ class NHMFault:
 
         moment = 10 ** (9.05 + 1.5 * mw)
         momentRate = MU * (length) * (width) * (slip_rate * 1000.0) * coupling_coeff
+
 
         if momentRate > 0:
             recur_int_median = moment / momentRate
