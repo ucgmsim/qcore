@@ -1,5 +1,6 @@
 from typing import List
 import datetime
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.stats import truncnorm
@@ -23,7 +24,7 @@ Row 12: Num Locations on Fault Surface
 Row 13+: Location Coordinates (Long, Lat) 
 """
 
-
+# This mu is used to calculated Moment Rate
 MU = 3.0 * 10.0 ** 10.0
 
 
@@ -31,18 +32,18 @@ def sample_trunc_norm_dist(mean, sigma, sigma_limit=2):
     return float(truncnorm(-sigma_limit, sigma_limit, loc=mean, scale=sigma).rvs())
 
 
+@dataclass
 class NHMFault:
     """Contains the information for a single fault from a NHM file
-
     Attributes
     ----------
     name : str
     tectonic_type : str
-    fault_type : str
+    fault_type : str - Fault Style of the rupture (REVERSE, NORMAL etc)
     length : float, (km)
     length_sigma : float (km)
     dip : float  (deg)
-    dip_sigma : float (deg)
+    dip_sigma : float (deg) - Strike
     dip_dir : float
     rake : float
     dbottom : float (km)
@@ -57,103 +58,46 @@ class NHMFault:
     mw : float
     recur_int_median : float (yr)
     trace: np.ndarray
-        fault surface trace (lon, lat)
+        fault surface trace (lon, lat) for the top edge of fault
     """
 
-    def __init__(
-        self,
-        name,
-        tectonic_type,
-        fault_type,
-        length,
-        length_sigma,
-        dip,
-        dip_sigma,
-        dip_dir,
-        rake,
-        dbottom,
-        dbottom_sigma,
-        dtop,
-        dtop_min,
-        dtop_max,
-        slip_rate,
-        slip_rate_sigma,
-        coupling_coeff,
-        coupling_coeff_sigma,
-        mw,
-        recur_int_median,
-        trace,
-    ):
-        """
-        Creates an NHMFault instance from the parameters.
+    name: str
+    tectonic_type: str
+    fault_type: str
+    length: float
+    length_sigma: float
+    dip: float
+    dip_sigma: float
+    dip_dir: float
+    rake: float
+    dbottom: float
+    dbottom_sigma: float
+    dtop: float
+    dtop_min: float
+    dtop_max: float
+    slip_rate: float
+    slip_rate_sigma: float
+    coupling_coeff: float
+    coupling_coeff_sigma: float
+    mw: float
+    recur_int_median: float
+    trace: np.array
 
-        Parameters
-        ----------
+    # TODO: add x y z fault plane data as in SRF info
+    # TODO: add leonard mw function
 
-        :param name: Fault name
-        :param tectonic_type:
-        :param fault_type: Fault Style of the rupture (REVERSE, NORMAL etc)
-        :param length:
-        :param length_sigma:
-        :param dip:
-        :param dip_sigma:
-        :param dip_dir:
-        :param rake:
-        :param dbottom:
-        :param dbottom_sigma:
-        :param dtop:
-        :param dtop_min:
-        :param dtop_max:
-        :param slip_rate:
-        :param slip_rate_sigma:
-        :param coupling_coeff:
-        :param coupling_coeff_sigma:
-        :param mw:
-        :param recur_int_median:
-        :param trace: list of lat lon pairs for the top edge of fault
-        """
-        self.name = name
-        self.tectonic_type = tectonic_type
-        self.fault_type = fault_type
-        self.length = length
-        self.length_sigma = length_sigma
-        self.dip = dip
-        self.dip_sigma = dip_sigma
-        self.dip_dir = dip_dir
-        self.rake = rake
-        self.dbottom = dbottom
-        self.dbottom_sigma = dbottom_sigma
-        self.dtop = dtop
-        self.dtop_min = dtop_min
-        self.dtop_max = dtop_max
-        self.slip_rate = slip_rate
-        self.slip_rate_sigma = slip_rate_sigma
-        self.coupling_coeff = coupling_coeff
-        self.coupling_coeff_sigma = coupling_coeff_sigma
-        self.mw = mw
-        self.recur_int_median = recur_int_median
-        self.trace = trace
-
-        # TODO: add x y z fault plane data as in SRF info
-        # TODO: add leonard mw function
-
-    def sample_2012(self):
+    def sample_2012(self, mw_area_scaling=True, mw_perturbation=True):
         """
         Permutates the current NHM fault as per the OpenSHA implementation. This uses the same Mw scaling relations
-        in Stirling 2012
+        as Stirling 2012
         Dtop is peturbated with a uniform distribution between min and max.
         The remaining parameters are perturburbated with a truncated normal distribution (2 standard deviations)
 
         :return: new NHM object with the perturbated parameters containing 0 in all sigma sections
         """
-        rake = self.rake
-        strike = self.dip_dir
-        fault_name = self.name
-        tectonic_type = self.tectonic_type
-        fault_type = self.fault_type
+        mw = self.mw
 
         dtop = self.dtop_min + (self.dtop_max - self.dtop_min) * np.random.uniform()
-
         length = sample_trunc_norm_dist(self.length, self.length_sigma)
         dbot = sample_trunc_norm_dist(self.dbottom, self.dbottom_sigma)
         dip = sample_trunc_norm_dist(self.dip, self.dip_sigma)
@@ -161,42 +105,48 @@ class NHMFault:
         coupling_coeff = sample_trunc_norm_dist(
             self.coupling_coeff, self.coupling_coeff_sigma
         )
-
         width = (dbot - dtop) / np.sin(np.radians(dip))
-        if tectonic_type == "VOLCANIC" or (
-            tectonic_type == "ACTIVE_SHALLOW" and fault_type == "NORMAL_FAULTING"
-        ):
-            mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.VILLAMORETAL2007
-        elif tectonic_type == "SUBDUCTION_INTERFACE":
-            ### SUBDUCTION INTERFACE RELATION IS TO BE CONFIRMED BY BB leaving equations here for reference
 
-            mw_old = 4.441 + 0.846 * np.log10(length * width)
-            mom = (
-                self.recur_int_median
-                * MU
-                * length
-                * width
-                * self.slip_rate
-                * 10e3
-                * self.coupling_coeff
+        if mw_area_scaling:
+            if self.tectonic_type == "VOLCANIC" or (
+                self.tectonic_type == "ACTIVE_SHALLOW"
+                and self.fault_type == "NORMAL_FAULTING"
+            ):
+                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.VILLAMORETAL2007
+            elif self.tectonic_type == "SUBDUCTION_INTERFACE":
+                ### SUBDUCTION INTERFACE RELATION IS TO BE CONFIRMED BY BB leaving equations here for reference
+
+                mw_old = 4.441 + 0.846 * np.log10(length * width)
+                mom = (
+                    self.recur_int_median
+                    * MU
+                    * length
+                    * width
+                    * self.slip_rate
+                    * 10e3
+                    * self.coupling_coeff
+                )
+                mw = (np.log10(mom) - 9.05) / 1.5
+
+                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.SKARLATOUDIS2016
+            elif self.fault_type == "PLATE_BOUNDARY":
+                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.HANKSBAKUN2002
+            elif self.fault_type == "OTHER_CRUSTAL_FAULTING":
+                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.STIRLING2008
+            else:
+                raise (
+                    ValueError,
+                    f"Invalid combination of tectonic type: {self.tectonic_type} and fault type: {self.fault_type}",
+                )
+
+            mw_median, mw_sigma = mag_scaling.lw_2_mw_sigma_scaling_relation(
+                length, width, mw_scaling_rel, self.rake
             )
-            mw = (np.log10(mom) - 9.05) / 1.5
 
-            mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.SKARLATOUDIS2016
-        elif fault_type == "PLATE_BOUNDARY":
-            mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.HANKSBAKUN2002
-        elif fault_type == "OTHER_CRUSTAL_FAULTING":
-            mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.STIRLING2008
-        else:
-            raise (
-                ValueError,
-                f"Invalid combination of tectonic type: {tectonic_type} and fault type: {fault_type}",
-            )
-
-        mw_median, mw_sigma = mag_scaling.lw_2_mw_sigma_scaling_relation(
-            length, width, mw_scaling_rel, rake
-        )
-        mw = sample_trunc_norm_dist(mw_median, mw_sigma)
+            if mw_perturbation:
+                mw = sample_trunc_norm_dist(mw_median, mw_sigma)
+            else:
+                mw = mw_median
 
         moment = 10 ** (9.05 + 1.5 * mw)
         momentRate = MU * (length) * (width) * (slip_rate * 1000.0) * coupling_coeff
@@ -207,15 +157,15 @@ class NHMFault:
             recur_int_median = self.recur_int_median
 
         return NHMFault(
-            name=fault_name,
-            tectonic_type=tectonic_type,
-            fault_type=fault_type,
+            name=(self.name),
+            tectonic_type=(self.tectonic_type),
+            fault_type=(self.fault_type),
             length=length,
             length_sigma=0,
             dip=dip,
             dip_sigma=0,
-            dip_dir=strike,
-            rake=rake,
+            dip_dir=(self.dip_dir),
+            rake=self.rake,
             dbottom=dbot,
             dbottom_sigma=0,
             dtop=dtop,
