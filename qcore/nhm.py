@@ -157,14 +157,14 @@ class NHMFault:
             recur_int_median = self.recur_int_median
 
         return NHMFault(
-            name=(self.name),
-            tectonic_type=(self.tectonic_type),
-            fault_type=(self.fault_type),
+            name=self.name,
+            tectonic_type=self.tectonic_type,
+            fault_type=self.fault_type,
             length=length,
             length_sigma=0,
             dip=dip,
             dip_sigma=0,
-            dip_dir=(self.dip_dir),
+            dip_dir=self.dip_dir,
             rake=self.rake,
             dbottom=dbot,
             dbottom_sigma=0,
