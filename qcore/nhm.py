@@ -147,7 +147,7 @@ class NHMFault:
             else:
                 mw = mw_median
 
-        moment = 10 ** (9.05 + 1.5 * mw)
+        moment = mag_scaling.mag2mom_nm(mw)
         momentRate = MU * (length) * (width) * (slip_rate * 1000.0) * coupling_coeff
 
 
