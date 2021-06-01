@@ -104,57 +104,25 @@ class NHMFault:
         coupling_coeff = sample_trunc_norm_dist(
             self.coupling_coeff, self.coupling_coeff_sigma
         )
-        width = (dbot - dtop) / np.sin(np.radians(dip))
 
         if mw_area_scaling:
-            if self.tectonic_type == "VOLCANIC" or (
-                self.tectonic_type == "ACTIVE_SHALLOW"
-                and self.fault_type == "NORMAL_FAULTING"
-            ):
-                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.VILLAMORETAL2007
-            elif self.tectonic_type == "SUBDUCTION_INTERFACE":
-                ### SUBDUCTION INTERFACE RELATION IS TO BE CONFIRMED BY BB leaving equations here for reference
-
-                mw_old = 4.441 + 0.846 * np.log10(length * width)
-                mom = (
-                    self.recur_int_median
-                    * MU
-                    * length
-                    * width
-                    * self.slip_rate
-                    * 10e3
-                    * self.coupling_coeff
-                )
-                mw = (np.log10(mom) - 9.05) / 1.5
-
-                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.SKARLATOUDIS2016
-            elif self.fault_type == "PLATE_BOUNDARY":
-                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.HANKSBAKUN2002
-            elif self.fault_type == "OTHER_CRUSTAL_FAULTING":
-                mw_scaling_rel = mag_scaling.MagnitudeScalingRelations.STIRLING2008
-            else:
-                raise (
-                    ValueError,
-                    f"Invalid combination of tectonic type: {self.tectonic_type} and fault type: {self.fault_type}",
-                )
-
-            mw_median, mw_sigma = mag_scaling.lw_2_mw_sigma_scaling_relation(
-                length, width, mw_scaling_rel, self.rake
-            )
+            mw_sigma = 0.2
 
             if mw_perturbation:
-                mw = sample_trunc_norm_dist(mw_median, mw_sigma)
-            else:
-                mw = mw_median
+                mw = sample_trunc_norm_dist(self.mw, mw_sigma, std_dev_limit=1)
 
         moment = mag_scaling.mag2mom_nm(mw)
-        momentRate = MU * (length) * (width) * (slip_rate * 1000.0) * coupling_coeff
+        moment_base = mag_scaling.mag2mom_nm(self.mw)
+        moment_rate_base = moment_base * 1 / self.recur_int_median
 
-
-        if momentRate > 0:
-            recur_int_median = moment / momentRate
+        # if the slip rate is 0, then the moment rate does not need scaling
+        if self.slip_rate > 0:
+            slip_factor = slip_rate / self.slip_rate
         else:
-            recur_int_median = self.recur_int_median
+            slip_factor = 1
+
+        moment_rate = moment_rate_base * slip_factor
+        recur_int_median = moment / moment_rate
 
         return NHMFault(
             name=self.name,
