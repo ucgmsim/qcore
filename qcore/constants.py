@@ -170,9 +170,12 @@ class ProcessType(ExtendedStrEnum):
     LF2BB = 12, "LF2BB", None, None, None, (1,)
     HF2BB = 13, "HF2BB", None, None, None, (4,)
     plot_srf = 14, "plot_srf", None, False, None, ()
-
     # adv_im uses the same base code as IM_calc
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
+    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
+    VM_GEN = 17, "VM_GEN", None, False, None, ()
+    INSTALL_FAULT = 18, "INSTALL_FAULT", None, False, None, ()
+
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
