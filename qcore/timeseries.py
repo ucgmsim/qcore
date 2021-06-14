@@ -10,9 +10,12 @@ from glob import glob
 from io import BytesIO
 import math
 import os
+from pathlib import Path
 from subprocess import Popen, PIPE
+from typing import Union, Set
 
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
+from qcore.formats import load_e3d_par
 from qcore.utils import compare_versions
 
 try:
@@ -896,3 +899,21 @@ class BBFlac(BBSeis):
             np.frombuffer(o, dtype=np.int32).astype(np.float32).reshape(-1, 3)[:, comp]
             / self.stations.scale[i]
         )
+
+
+def get_observed_stations(observed_data_folder: Union[str, Path]) -> Set[str]:
+    """
+    returns a list of station names that can be found in the observed data folder
+    
+    :param observed_data_folder: path to the record folder, e.g. observed/events/vol1/data/accBB/
+    :type observed_data_folder: str/os.path
+    :return: list of unique station names
+    :rtype: Set[str]
+    """
+    search_path = os.path.abspath(os.path.join(observed_data_folder, "*"))
+    files = glob(search_path)
+    station_names = {
+        os.path.splitext(os.path.basename(filename))[0] for filename in files
+    }
+
+    return station_names

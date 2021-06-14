@@ -94,6 +94,16 @@ def load_vs30_file(vs30_file: str):
     return pd.read_csv(vs30_file, sep="\s+", index_col=0, header=None, names=["vs30"])
 
 
+def load_z_file(z_file: str):
+    """Reads the z file into a pandas dataframe
+
+    :param z_file: Path to the z file
+    :return: pd.DataFrame
+        station as index and columns z1p0, z2p5
+    """
+    return pd.read_csv(z_file, sep="\s+", index_col=0, header=None, names=["z1p0", "z2p5"])
+
+
 def load_station_ll_vs30(station_file: str, vs30_file: str):
     """ Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
 
