@@ -122,7 +122,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
-        (),
+        (18,),
     )
     merge_ts = (
         2,
@@ -142,7 +142,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {hf_vel_mod_1d} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
-        (),
+        (18,),
     )
     BB = (
         5,
@@ -173,9 +173,8 @@ class ProcessType(ExtendedStrEnum):
     # adv_im uses the same base code as IM_calc
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
     VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
-    VM_GEN = 17, "VM_GEN", None, False, None, ()
-    INSTALL_FAULT = 18, "INSTALL_FAULT", None, False, None, ()
-
+    VM_GEN = 17, "VM_GEN", None, False, None, (16,)
+    INSTALL_FAULT = 18, "INSTALL_FAULT", None, False, None, (17,)
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
