@@ -465,3 +465,9 @@ class SlBodyOptConsts(Enum):
     simple_out = "simple"
     advanced_IM = ProcessType.advanced_IM.str_value
     mgmt_db = "mgmt_db"
+
+class VelocityModelTopographyType(ExtendedEnum):
+    true="TRUE"
+    bulldozed="BULLDOZED"
+    squashed="SQUASHED"
+    squashed_tapered="SQUASHED_TAPERED"
