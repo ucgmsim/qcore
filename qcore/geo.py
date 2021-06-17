@@ -464,15 +464,14 @@ def avg_wbearing(angles):
         q_diff = 2 * pi
     return degrees(atan(x / y) + q_diff)
 
+
 def build_corners(origin, rot, xlen, ylen):
     # wanted xlen, ylen is at corners
     # amount to shift from middle
     x_shift = xlen / 2.0
     y_shift = ylen / 2.0
 
-    y_len_mid_shift = R_EARTH * asin(
-        sin(y_shift / R_EARTH) / cos(x_shift / R_EARTH)
-    )
+    y_len_mid_shift = R_EARTH * asin(sin(y_shift / R_EARTH) / cos(x_shift / R_EARTH))
 
     top_mid = ll_shift(
         lat=origin[1], lon=origin[0], distance=y_len_mid_shift, bearing=rot
