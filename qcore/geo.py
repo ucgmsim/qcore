@@ -466,6 +466,19 @@ def avg_wbearing(angles):
 
 
 def build_corners(origin, rot, xlen, ylen):
+    """
+    Return 4 coordinates at corners centered at origin in [longitude, latitude] format.
+    Parameters
+    ----------
+    origin : [longitude, latitude]
+    rot : bearing (in degrees 0~360)
+    xlen : width between corner points
+    ylen : height between corner points
+
+    Returns
+    -------
+    (c1, c2, c3, c4) where each c1, c2, c3 and c4 are in [longitude, latitude] format
+    """
     # wanted xlen, ylen is at corners
     # amount to shift from middle
     x_shift = xlen / 2.0
