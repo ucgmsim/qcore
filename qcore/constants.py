@@ -335,7 +335,6 @@ class VMParams(Enum):
     extent_zmin = "extent_zmin"
 
 
-
 class SourceToSiteDist(ExtendedStrEnum):
     R_rup = 0, "r_rup"
     R_jb = 1, "r_jb"
@@ -356,7 +355,7 @@ class Components(ExtendedStrEnum):
     cver = 2, "ver"
     ch1 = 3, "H1"
     ch2 = 4, "H2"
- 
+
     cgeom = 5, "geom"
     crotd50 = 6, "rotd50"
     crotd100 = 7, "rotd100"
@@ -383,6 +382,7 @@ class Components(ExtendedStrEnum):
         basic_components = set(Components.get_basic_components())
 
         advanced_components = set(list(Components)[5:])
+
         advanced_components_to_get = list(
             advanced_components.intersection(set(components_to_store))
         )

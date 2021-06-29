@@ -479,7 +479,6 @@ def build_corners(origin, rot, xlen, ylen):
     -------
     (c1, c2, c3, c4) where each c1, c2, c3 and c4 are in tuple (lon,lat)  format
     """
-    # wanted xlen, ylen is at corners
     # amount to shift from middle
     x_shift = xlen / 2.0
     y_shift = ylen / 2.0
