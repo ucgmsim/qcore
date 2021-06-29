@@ -465,6 +465,58 @@ def avg_wbearing(angles):
     return degrees(atan(x / y) + q_diff)
 
 
+def build_corners(origin, rot, xlen, ylen):
+    # wanted xlen, ylen is at corners
+    # amount to shift from middle
+    x_shift = xlen / 2.0
+    y_shift = ylen / 2.0
+
+    y_len_mid_shift = R_EARTH * asin(sin(y_shift / R_EARTH) / cos(x_shift / R_EARTH))
+
+    top_mid = ll_shift(
+        lat=origin[1], lon=origin[0], distance=y_len_mid_shift, bearing=rot
+    )[::-1]
+    bottom_mid = ll_shift(
+        lat=origin[1],
+        lon=origin[0],
+        distance=y_len_mid_shift,
+        bearing=(rot + 180) % 360,
+    )[::-1]
+
+    top_mid_bearing = ll_bearing(*top_mid, *origin) + 180 % 360
+    bottom_mid_bearing = ll_bearing(*bottom_mid, *origin)
+
+    c2 = ll_shift(
+        lat=top_mid[1],
+        lon=top_mid[0],
+        distance=x_shift,
+        bearing=(top_mid_bearing - 90) % 360,
+    )[::-1]
+    c1 = ll_shift(
+        lat=top_mid[1],
+        lon=top_mid[0],
+        distance=x_shift,
+        bearing=(top_mid_bearing + 90) % 360,
+    )[::-1]
+
+    c3 = ll_shift(
+        lat=bottom_mid[1],
+        lon=bottom_mid[0],
+        distance=x_shift,
+        bearing=(bottom_mid_bearing - 90) % 360,
+    )[::-1]
+    c4 = ll_shift(
+        lat=bottom_mid[1],
+        lon=bottom_mid[0],
+        distance=x_shift,
+        bearing=(bottom_mid_bearing + 90) % 360,
+    )[::-1]
+
+    # at this point we have a perfect square (by corner distance)
+    # c1 -> c4 == c2 -> c3 (right == left), c1 -> c2 == c3 -> c4 (top == bottom)
+    return c1, c2, c3, c4
+
+
 def path_from_corners(
     corners=None, output="sim.modelpath_hr", min_edge_points=100, close=True
 ):
