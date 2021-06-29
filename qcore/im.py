@@ -129,10 +129,11 @@ class IM:
     def __post_init__(self):
         if not isinstance(self.name, IMEnum):
             self.name = IMEnum[self.name]
+
         if self.component is not None and not isinstance(
             self.component, constants.Components
         ):
-            self.component.from_str(self.component)
+            constants.Components.from_str(self.component)
 
     def get_im_name(self):
         if self.period:
@@ -172,3 +173,8 @@ class IM:
             return "Hz"
         else:
             return ""
+
+    @staticmethod
+    def from_im_name(name: str):
+        parts = name.split("_")
+        return IM(*parts)
