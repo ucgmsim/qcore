@@ -133,7 +133,7 @@ class IM:
         if self.component is not None and not isinstance(
             self.component, constants.Components
         ):
-            constants.Components.from_str(self.component)
+            self.component = constants.Components.from_str(self.component)
 
     def get_im_name(self):
         if self.period:
