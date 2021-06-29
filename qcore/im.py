@@ -162,7 +162,7 @@ class IM:
         elif self.name in [IMEnum.Ds575, IMEnum.Ds595, IMEnum.Ds2080]:
             return "s"
         elif self.name in [IMEnum.MMI]:
-            return ""  # MMI is dimensionless & Ratios are dimensionless
+            return ""  # MMI is dimensionless
         elif self.name in [IMEnum.SDI]:
             return "cm"
         else:
