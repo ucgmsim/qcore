@@ -1,6 +1,6 @@
 """
 Correct IM column order
-station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*, FAS_*, IESDR_*
+station, component, PGA*, PGV*, CAV*, AI*, Ds*, MMI*, pSA_*, FAS_*, SDI_*
 """
 
 from dataclasses import dataclass
@@ -24,7 +24,7 @@ DEFAULT_PATTERN_ORDER = (
     "MMI",
     "pSA",
     "FAS",
-    "IESDR",
+    "SDI",
 )
 
 
@@ -39,7 +39,7 @@ class IMEnum(constants.ExtendedEnum):
     MMI = enum.auto()
     pSA = enum.auto()
     FAS = enum.auto()
-    IESDR = enum.auto()
+    SDI = enum.auto()
 
 
 def order_im_cols_file(filename):
@@ -129,7 +129,9 @@ class IM:
     def __post_init__(self):
         if not isinstance(self.name, IMEnum):
             self.name = IMEnum[self.name]
-        if self.component is not None and not isinstance(self.component, constants.Components):
+        if self.component is not None and not isinstance(
+            self.component, constants.Components
+        ):
             self.component.from_str(self.component)
 
     def get_im_name(self):
@@ -153,16 +155,18 @@ class IM:
         elif self.name in [IMEnum.PGV, IMEnum.AI]:
             return "cm/s"
         elif self.name in [IMEnum.CAV, IMEnum.FAS]:
-            return "gs"  # FAS could also be cm/s depending on calculation / implementation
+            return (
+                "gs"  # FAS could also be cm/s depending on calculation / implementation
+            )
         elif self.name in [IMEnum.Ds575, IMEnum.Ds595, IMEnum.Ds2080]:
             return "s"
-        elif self.name in [IMEnum.MMI, IMEnum.IESDR]:
+        elif self.name in [IMEnum.MMI, IMEnum.SDI]:
             return ""  # MMI is dimensionless & Ratios are dimensionless
         else:
             return ""  # unimplemented
 
     def get_period_unit(self):
-        if self.name in [IMEnum.pSA, IMEnum.IESDR]:
+        if self.name in [IMEnum.pSA, IMEnum.SDI]:
             return "s"
         elif self.name == IMEnum.FAS:
             return "Hz"
