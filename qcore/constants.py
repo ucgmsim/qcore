@@ -175,7 +175,7 @@ class ProcessType(ExtendedStrEnum):
     VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
     VM_GEN = 17, "VM_GEN", None, False, None, (16,)
     VM_PERT = 18, "VM_PERT", None, False, None, (16,)
-    INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, (18,)
+    INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, (17,)
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
