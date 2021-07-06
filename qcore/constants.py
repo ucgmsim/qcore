@@ -122,7 +122,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
-        (19,),
+        (),
     )
     merge_ts = (
         2,
@@ -142,7 +142,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {hf_vel_mod_1d} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
-        (19,),
+        (),
     )
     BB = (
         5,
@@ -174,7 +174,7 @@ class ProcessType(ExtendedStrEnum):
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
     VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
     VM_GEN = 17, "VM_GEN", None, False, None, (16,)
-    VM_PERT = 18, "VM_PERT", None, False, None, (16,)
+    VM_PERT = 18, "VM_PERT", None, False, None, ()  # Needs VM_params generated for REL_1
     INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, (17,)
 
     def __new__(
