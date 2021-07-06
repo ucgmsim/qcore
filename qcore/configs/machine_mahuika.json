@@ -1,5 +1,5 @@
 {
-    "GMT_DATA" : "/nesi/project/nesi00213/PlottingData",
+    "GMT_DATA" : "/nesi/project/nesi00213/PlottingData_new",
     "tools_dir" : "/nesi/project/nesi00213/opt/mahuika/hybrid_sim_tools/",
     "cores_per_node" : 36,
     "MAX_NODES_PER_JOB" : 66,
