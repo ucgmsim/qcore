@@ -295,6 +295,7 @@ class FaultParams(Enum):
     stat_coords = "stat_coords"
     FD_STATLIST = "FD_STATLIST"
     site_vm_dir = "site_vm_dir"
+    site_specific ="site_specific"
 
 
 class SimParams(Enum):
