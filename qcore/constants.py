@@ -294,7 +294,7 @@ class FaultParams(Enum):
     vel_mod_dir = "vel_mod_dir"
     stat_coords = "stat_coords"
     FD_STATLIST = "FD_STATLIST"
-    site_vm_dir = "site_vm_dir"
+    site_v1d_dir = "site_v1d_dir"
     site_specific ="site_specific"
 
 
