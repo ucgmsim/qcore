@@ -72,7 +72,6 @@ TOPO_HIGH = resource_filename("gmsimviz", "data/Topo/srtm_NZ.grd")
 CHCH_WATER = resource_filename("gmsimviz", "data/Paths/water_network/water.gmt")
 
 # CPT DATA
-CPT_DIR = os.path.join(GMT_DATA, "cpt")
 CPTS = {
     "nztopo-green-brown": resource_filename(
         "gmsimviz", "data/cpt/palm_springs_nz_topo.cpt"
