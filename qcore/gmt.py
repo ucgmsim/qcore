@@ -13,6 +13,7 @@ avg_ll calculated elsewhere should be local function that works over equator
 from distutils.spawn import find_executable
 import math
 import os
+from pkg_resources import resource_filename
 from shutil import copyfile, move
 from subprocess import PIPE, Popen
 from sys import byteorder
@@ -50,37 +51,36 @@ STATUS_INVALID = 1
 # GMT 5.2+ argument mapping
 GMT52_POS = {"map": "g", "plot": "x", "norm": "n", "rel": "j", "rel_out": "J"}
 
-GMT_DATA = qconfig["GMT_DATA"]
-if not os.path.isdir(GMT_DATA):
-    try:
-        GMT_DATA = os.environ["GMT_DATA"]
-    except KeyError:
-        # GMT_DATA files unavailable, only needed if using GMT_DATA
-        pass
+
 # LINZ DATA
 LINZ_COAST = {
-    "150k": os.path.join(GMT_DATA, "Paths/lds-nz-coastlines-and-islands/150k.gmt")
+    "150k": resource_filename(
+        "gmsimviz", "data/Paths/lds-nz-coastlines-and-islands/150k.gmt"
+    )
 }
 LINZ_LAKE = {
-    "150k": os.path.join(GMT_DATA, "Paths/lds-nz-lake-polygons/150k.gmt"),
-    "1500k": os.path.join(GMT_DATA, "Paths/lds-nz-lake-polygons/1500k.gmt"),
-    "1250k": os.path.join(GMT_DATA, "Paths/lds-nz-lake-polygons/1250k.gmt"),
+    "150k": resource_filename("gmsimviz", "data/Paths/lds-nz-lake-polygons/150k.gmt"),
+    "1500k": resource_filename("gmsimviz", "data/Paths/lds-nz-lake-polygons/1500k.gmt"),
+    "1250k": resource_filename("gmsimviz", "data/Paths/lds-nz-lake-polygons/1250k.gmt"),
 }
-LINZ_RIVER = {"150k": os.path.join(GMT_DATA, "Paths/lds-nz-river-polygons/150k.gmt")}
-LINZ_ROAD = os.path.join(GMT_DATA, "Paths/lds-nz-road-centre-line/wgs84.gmt")
-LINZ_HWY = os.path.join(GMT_DATA, "Paths/shwy/wgs84.gmt")
+LINZ_RIVER = {
+    "150k": resource_filename("gmsimviz", "data/Paths/lds-nz-river-polygons/150k.gmt")
+}
+
 # OTHER GEO DATA
-TOPO_HIGH = os.path.join(GMT_DATA, "Topo/srtm_NZ.grd")
-TOPO_LOW = os.path.join(GMT_DATA, "Topo/nztopo.grd")
-CHCH_WATER = os.path.join(GMT_DATA, "Paths/water_network/water.gmt")
+TOPO_HIGH = resource_filename("gmsimviz", "data/Topo/srtm_NZ.grd")
+CHCH_WATER = resource_filename("gmsimviz", "data/Paths/water_network/water.gmt")
+
 # CPT DATA
 CPT_DIR = os.path.join(GMT_DATA, "cpt")
 CPTS = {
-    "nztopo-green-brown": os.path.join(CPT_DIR, "palm_springs_nz_topo.cpt"),
-    "nztopo-grey1": os.path.join(CPT_DIR, "nz_topo_grey1.cpt"),
-    "mmi": os.path.join(CPT_DIR, "mmi.cpt"),
-    "slip": os.path.join(CPT_DIR, "slip.cpt"),
-    "trise": os.path.join(CPT_DIR, "trise.cpt"),
+    "nztopo-green-brown": resource_filename(
+        "gmsimviz", "data/cpt/palm_springs_nz_topo.cpt"
+    ),
+    "nztopo-grey1": resource_filename("gmsimviz", "data/cpt/nz_topo_grey1.cpt"),
+    "mmi": resource_filename("gmsimviz", "data/cpt/mmi.cpt"),
+    "slip": resource_filename("gmsimviz", "data/cpt/slip.cpt"),
+    "trise": resource_filename("gmsimviz", "data/cpt/trise.cpt"),
 }
 
 # awk program to get a proportion (-v p=0<1) of all segments
@@ -147,8 +147,10 @@ def get_region(lon, lat):
     """
     Returns closest region.
     """
-    rcode = np.loadtxt(os.path.join(GMT_DATA, "Topo/srtm.ll"), usecols=0, dtype="U2")
-    rloc = np.loadtxt(os.path.join(GMT_DATA, "Topo/srtm.ll"), usecols=(1,2))
+    rcode = np.loadtxt(
+        resource_filename("gmsimviz", "data/regions.ll"), usecols=0, dtype="U2"
+    )
+    rloc = np.loadtxt(resource_filename("gmsimviz", "data/regions.ll"), usecols=(1, 2))
     return rcode[geo.closest_location(rloc, lon, lat)[0]]
 
 
@@ -156,7 +158,30 @@ def region_topo(region):
     """
     Returns topo file closest to given region name.
     """
-    return os.path.join(GMT_DATA, "Topo/srtm_{}.grd".format(region))
+    path = resource_filename("gmsimviz", "data/Topo/srtm_{}.grd".format(region))
+    if os.path.isfile(path):
+        return path
+    return None
+
+
+def region_road(region):
+    """
+    Returns road file closest to given region name.
+    """
+    path = resource_filename("gmsimviz", "data/Paths/road/{}.gmt".format(region))
+    if os.path.isfile(path):
+        return path
+    return None
+
+
+def region_highway(region):
+    """
+    Returns road file closest to given region name.
+    """
+    path = resource_filename("gmsimviz", "data/Paths/highway/{}.gmt".format(region))
+    if os.path.isfile(path):
+        return path
+    return None
 
 
 ###
@@ -1647,7 +1672,7 @@ def adjust_latitude(
     return new_height, region + z_region
 
 
-def region_fit_oblique(points, azimuth, wd="."):
+def region_fit_oblique(points, azimuth, tilt=90, wd="."):
     """
     Given points and azimuth, return centre and minimum offsets.
     points: lon, lat pairs
@@ -1659,7 +1684,13 @@ def region_fit_oblique(points, azimuth, wd="."):
         # assume crossing over 180 -> -180, extend past 180
         points[points[:, 0] < 0, 0] += 360
 
-    # determine centre
+    if tilt != 90 and points.shape[1] == 3:
+        # have tilt and depths, need to adjust to depth of points
+        fix_depth = True
+    else:
+        fix_depth = False
+
+    # determine rough centre (excluding tilt/depths)
     lon_min, lat_min = np.min(points, axis=0)[:2]
     lon_max, lat_max = np.max(points, axis=0)[:2]
     lon0 = sum((lon_min, lon_max)) / 2.0
@@ -1673,6 +1704,30 @@ def region_fit_oblique(points, azimuth, wd="."):
         region=(0, 10, 0, 10),
         region_units="k",
     )
+    if fix_depth:
+        # shift points down assuming depth also given in km
+        points_xy[:, 1] -= np.cos(np.radians(tilt)) * points[:, 2]
+        # find the actual centre point at the surface given depth and map tilt
+        min_xy = np.min(points_xy[:, :2], axis=0)
+        max_xy = np.max(points_xy[:, :2], axis=0)
+        centre = np.mean(np.dstack((min_xy, max_xy)), axis=2)
+        # convert tilted centre surface projection back to geographic coordinates
+        lon0, lat0 = mapproject_multi(
+            centre,
+            wd=wd,
+            projection="OA%s/%s/%s/1i" % (lon0, lat0, azimuth),
+            region=(0, 10, 0, 10),
+            region_units="k",
+            inverse=True,
+        )
+        # cartesian coordinates with correct centre
+        points_xy = mapproject_multi(
+            points,
+            wd=wd,
+            projection="OA%s/%s/%s/1i" % (lon0, lat0, azimuth),
+            region=(0, 10, 0, 10),
+            region_units="k",
+        )
 
     # find furthest cartesian points
     i_xy = np.argmax(np.abs(points_xy), axis=0)
@@ -2750,7 +2805,14 @@ class GMTPlot:
             cmd.append("-p")
         Popen(cmd, stdout=self.psf, cwd=self.wd).wait()
 
-    def topo(self, topo_file, topo_file_illu=None, cpt="gray", transparency=0):
+    def topo(
+        self,
+        topo_file,
+        topo_file_illu=None,
+        is_region=False,
+        cpt="gray",
+        transparency=0,
+    ):
         """
         Creates a topography surface using topo files and a colour palette.
         topo_file: file containing topography data
@@ -2759,6 +2821,11 @@ class GMTPlot:
             if not given then the above rule is assumed
         cpt: colour palette to use to display height
         """
+        if is_region:
+            topo_file = region_topo(topo_file)
+            if topo_file is None:
+                return
+
         topo_file = os.path.abspath(topo_file)
         # assume illumination file if not explicitly given
         # assuming the last part of the file is a file extention
@@ -2803,6 +2870,7 @@ class GMTPlot:
         waternet=None,
         waternet_colour="darkblue",
         scale=1,
+        resource_region="NZ",
     ):
         """
         Adds land/water/features to map.
@@ -2845,6 +2913,13 @@ class GMTPlot:
             elif topo_cpt == "grey1":
                 topo_cpt = CPTS["nztopo-grey1"]
             self.topo(topo, cpt=topo_cpt)
+        if topo == TOPO_HIGH:
+            # old default, now regional
+            self.topo(resource_region, is_region=True, cpt=topo_cpt)
+        else:
+            # explicitly specified
+            self.topo(topo, cpt=topo_cpt)
+
         if water is not None:
             if res is None:
                 self.water(colour=water, oceans=oceans)
@@ -2853,11 +2928,15 @@ class GMTPlot:
         if road is not None:
             if road == "auto":
                 road = "%sp" % (refs * 2)
-            self.path(LINZ_ROAD, width=road, colour=road_colour)
+            path = region_road(resource_region)
+            if path is not None:
+                self.path(path, width=road, colour=road_colour)
         if highway is not None:
             if highway == "auto":
                 highway = "%sp" % (refs * 4)
-            self.path(LINZ_HWY, width=highway, colour=highway_colour)
+            path = region_highway(resource_region)
+            if path is not None:
+                self.path(path, width=highway, colour=highway_colour)
         if waternet is not None:
             if waternet == "auto":
                 waternet = "%sp" % (refs * 0.1)
