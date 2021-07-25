@@ -140,7 +140,7 @@ class ProcessType(ExtendedStrEnum):
         "HF",
         True,
         True,
-        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} -m {hf_vel_mod_1d} --duration "
+        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         (18,),
     )
@@ -296,6 +296,8 @@ class FaultParams(Enum):
     vel_mod_dir = "vel_mod_dir"
     stat_coords = "stat_coords"
     FD_STATLIST = "FD_STATLIST"
+    site_v1d_dir = "site_v1d_dir"
+    site_specific ="site_specific"
 
 
 class SimParams(Enum):
