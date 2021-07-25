@@ -52,7 +52,9 @@ setup(
     packages=[PACKAGE_NAME],
     url=PACKAGE_URL,
     description="QuakeCoRE Library",
-    package_data={"qcore": [os.path.join("configs", "*.json")]},
+    package_data={
+        "qcore": [os.path.join("configs", "*.json"), "data/*", "data/*/*", "data/*/*/*"]
+    },
     include_package_data=True,
     install_requires=["numpy", "scipy>=0.16", "dataclasses"],
 )
