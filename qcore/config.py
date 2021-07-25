@@ -54,7 +54,6 @@ def get_machine_config(hostname=node(), config_path=None):
 
 
 class ConfigKeys(Enum):
-    GMT_DATA = auto()
     tools_dir = auto()
     cores_per_node = auto()
     MAX_JOB_WCT = auto()
