@@ -4,12 +4,14 @@ import sys
 import tarfile
 from urllib.request import urlretrieve
 
+
 PACKAGE_NAME = "qcore"
 PACKAGE_URL = f"https://github.com/ucgmsim/{PACKAGE_NAME}"
 DATA_VERSION = "1.2"
 DATA_NAME = "qcore_resources.tar.xz"
 DATA_URL = f"{PACKAGE_URL}/releases/download/{DATA_VERSION}/{DATA_NAME}"
 
+NO_DATA_ARG = "--no-data"
 
 def extract_data(archive, destination):
     with tarfile.open(archive) as xz:
@@ -44,8 +46,13 @@ def prepare_data():
     if str(have_ver) != DATA_VERSION:
         sys.exit("data package issue, please contact repository maintainer")
 
+#TODO: Temporary fix to keep Jenkins testing going
+if NO_DATA_ARG in sys.argv:
+    print(f"Skip downloading {DATA_NAME}")
+    sys.argv.remove(NO_DATA_ARG)
+else:
+    prepare_data()
 
-prepare_data()
 setup(
     name=PACKAGE_NAME,
     version="1.2",
