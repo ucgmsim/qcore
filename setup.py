@@ -13,6 +13,7 @@ DATA_URL = f"{PACKAGE_URL}/releases/download/{DATA_VERSION}/{DATA_NAME}"
 
 NO_DATA_ARG = "--no-data"
 
+
 def extract_data(archive, destination):
     with tarfile.open(archive) as xz:
         xz.extractall(destination)
@@ -46,7 +47,8 @@ def prepare_data():
     if str(have_ver) != DATA_VERSION:
         sys.exit("data package issue, please contact repository maintainer")
 
-#TODO: Temporary fix to keep Jenkins testing going
+
+# TODO: Temporary fix to keep Jenkins testing going
 if NO_DATA_ARG in sys.argv:
     print(f"Skip downloading {DATA_NAME}")
     sys.argv.remove(NO_DATA_ARG)
