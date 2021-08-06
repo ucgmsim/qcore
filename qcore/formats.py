@@ -79,8 +79,8 @@ def load_station_file(station_file: str):
         header=None,
         index_col=2,
         names=["lon", "lat"],
-        sep="\s+",
         engine="c",
+        delim_whitespace=True,
     )
 
 

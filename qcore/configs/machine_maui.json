@@ -1,5 +1,4 @@
 {
-    "GMT_DATA" : "/nesi/project/nesi00213/PlottingData_new",
     "tools_dir" : "/nesi/project/nesi00213/opt/maui/hybrid_sim_tools/",
     "OpenSees" : "/nesi/project/nesi00213/opt/maui/software/OpenSees/3.2.0-CrayGNU-19.04/OpenSees",
     "cores_per_node" : 40,
