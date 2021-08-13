@@ -62,3 +62,4 @@ class ConfigKeys(Enum):
 
 host, host_config_path = determine_machine_config()
 qconfig = get_machine_config(config_path=host_config_path)
+module_requirments = join(qconfig["tools_dir"], "module_requirements")
