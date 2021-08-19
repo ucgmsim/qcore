@@ -57,23 +57,19 @@ def validate_vm_params(vm_params):
         (
             VMParams.nx.value,
             vm_params_dict[VMParams.nx.value],
-            get_expected_size(
-                vm_params_dict[VMParams.extent_x.value],
-            ),
+            get_expected_size(vm_params_dict[VMParams.extent_x.value]),
         ),
         (
             VMParams.ny.value,
             vm_params_dict[VMParams.ny.value],
-            get_expected_size(
-                vm_params_dict[VMParams.extent_y.value],
-            ),
+            get_expected_size(vm_params_dict[VMParams.extent_y.value]),
         ),
         (
             VMParams.nz.value,
             vm_params_dict[VMParams.nz.value],
             get_expected_size(
                 vm_params_dict[VMParams.extent_zmax.value]
-                - vm_params_dict[VMParams.extent_zmin.value],
+                - vm_params_dict[VMParams.extent_zmin.value]
             ),
         ),
     ]
@@ -109,11 +105,7 @@ def validate_vm_files(vm_dir, srf=None):
     # 2, 3: metadata files exist (made by gen_cords.py)
     vm_params_dict = load_yaml(vm_params_file_path)
 
-    vm_files = [
-        vm_dir / "vs3dfile.s",
-        vm_dir / "vp3dfile.p",
-        vm_dir / "rho3dfile.d",
-    ]
+    vm_files = [vm_dir / "vs3dfile.s", vm_dir / "vp3dfile.p", vm_dir / "rho3dfile.d"]
     all_files = [
         *vm_files,
         vel_crns_file,
@@ -130,10 +122,10 @@ def validate_vm_files(vm_dir, srf=None):
 
     # 5, 6: binary file sizes
     vm_size = (
-            vm_params_dict[VMParams.nx.value]
-            * vm_params_dict[VMParams.ny.value]
-            * vm_params_dict[VMParams.nz.value]
-            * SIZE_FLOAT
+        vm_params_dict[VMParams.nx.value]
+        * vm_params_dict[VMParams.ny.value]
+        * vm_params_dict[VMParams.nz.value]
+        * SIZE_FLOAT
     )
     for file_path in vm_files:
         # Test all files we can, so we get all the problems at once
@@ -164,17 +156,21 @@ def validate_vm_files(vm_dir, srf=None):
             for index, start_point in enumerate(polygon):
                 end_point = polygon[(index + 1) % len(polygon)]
                 lons = (
-                        np.linspace(
-                            start_point[0], end_point[0], int(ll_dist(*start_point, *end_point))
-                        )
-                        % 360
+                    np.linspace(
+                        start_point[0],
+                        end_point[0],
+                        int(ll_dist(*start_point, *end_point)),
+                    )
+                    % 360
                 )
                 lats = compute_intermediate_latitudes(start_point, end_point, lons)
                 edges.extend(list(zip(lons, lats)))
             path = mpltPath.Path(edges)
             for bounds in srf_bounds:
                 if not all(path.contains_points(bounds)):
-                    errors.append("Srf extents not contained within velocity model corners")
+                    errors.append(
+                        "Srf extents not contained within velocity model corners"
+                    )
     if errors:
         return False, "\n".join(errors)
     return True, ""
@@ -184,14 +180,15 @@ def validate_vm_file(file_name, vm_size):
     errors = []
     size = file_name.stat().st_size
     if size != vm_size * SIZE_FLOAT:
-        errors.append(f"VM filesize for {file_name} expected: {vm_size * SIZE_FLOAT} found: {size}")
-    if not np.min(
-            np.fromfile(
-                file_name,
-                dtype="<f{}".format(SIZE_FLOAT),
-                count=vm_size,
-            )
-    ) > 0:
+        errors.append(
+            f"VM filesize for {file_name} expected: {vm_size * SIZE_FLOAT} found: {size}"
+        )
+    if (
+        not np.min(
+            np.fromfile(file_name, dtype="<f{}".format(SIZE_FLOAT), count=vm_size)
+        )
+        > 0
+    ):
         errors.append(f"File {file_name} has minimum value of 0.0")
     return errors
 
@@ -201,15 +198,26 @@ def main():
 
     sub_parser = parser.add_subparsers(dest="subparser_name")
 
-    vm_params_parser = sub_parser.add_parser("params",
-                                                help="Validate a vm_params.yaml file. If the srf is given, will test that the srf is contained within the VM.")
-    vm_params_parser.add_argument("vm_params", type=Path, help="Path to vm_params.yaml file")
-    vm_params_parser.add_argument("srf", type=Path, help="Path to srf file", nargs="?", default=None)
+    vm_params_parser = sub_parser.add_parser(
+        "params",
+        help="Validate a vm_params.yaml file. If the srf is given, will test that the srf is contained within the VM.",
+    )
+    vm_params_parser.add_argument(
+        "vm_params", type=Path, help="Path to vm_params.yaml file"
+    )
+    vm_params_parser.add_argument(
+        "srf", type=Path, help="Path to srf file", nargs="?", default=None
+    )
 
-    vm_file_parser = sub_parser.add_parser("files", help="Validate files generated by the NZVM")
+    vm_file_parser = sub_parser.add_parser(
+        "files", help="Validate files generated by the NZVM"
+    )
     vm_file_parser.add_argument("vm_dir", type=Path, help="path the VM folder")
 
-    pert_parser = sub_parser.add_parser("file", help="Validate a single VM file for size and 0s. Primarily intended for perturbation files.")
+    pert_parser = sub_parser.add_parser(
+        "file",
+        help="Validate a single VM file for size and 0s. Primarily intended for perturbation files.",
+    )
     pert_parser.add_argument("vm_file", type=Path, help="Path the VM file to test")
     pert_parser.add_argument("vm_params", type=Path, help="Path to vm_params.yaml file")
 
@@ -221,7 +229,11 @@ def main():
         valid, error_message = validate_vm_files(args.vm_dir, args.srf)
     elif args.subparser_name == "file":
         vm_params_dict = load_yaml(args.vm_params)
-        size = vm_params_dict[VMParams.nx.value] * vm_params_dict[VMParams.ny.value] * vm_params_dict[VMParams.nz.value]
+        size = (
+            vm_params_dict[VMParams.nx.value]
+            * vm_params_dict[VMParams.ny.value]
+            * vm_params_dict[VMParams.nz.value]
+        )
         error_message = validate_vm_file(args.vm_file, size)
         valid = not error_message
     else:
