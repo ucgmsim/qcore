@@ -168,8 +168,8 @@ class NHMFault:
         out_fp.write(f"{self.rake:10.3f}\n")
         out_fp.write(f"{self.dbottom:10.3f}{self.dbottom_sigma:10.3f}\n")
         out_fp.write(f"{self.dtop:10.3f}{self.dtop_min:10.3f}{self.dtop_max:10.3f}\n")
-        out_fp.write(f"{self.slip_rate:10.3f}{0:10.3f}\n")
-        out_fp.write(f"{self.coupling_coeff:10.3f}{0:10.3f}\n")
+        out_fp.write(f"{self.slip_rate:10.3f}{self.slip_rate_sigma:10.3f}\n")
+        out_fp.write(f"{self.coupling_coeff:10.3f}{self.coupling_coeff_sigma:10.3f}\n")
         out_fp.write(f"{self.mw:10.3f}{self.recur_int_median:10.3e}\n")
         out_fp.write(f"{len(self.trace):10d}\n")
         for lat, lon in self.trace:
