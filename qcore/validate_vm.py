@@ -153,7 +153,6 @@ def validate_vm_files(vm_dir: str, srf: str = None):
         vm_params_dict[VMParams.nx.value]
         * vm_params_dict[VMParams.ny.value]
         * vm_params_dict[VMParams.nz.value]
-        * SIZE_FLOAT
     )
     for file_path in vm_files:
         # Test all files we can, so we get all the problems at once
@@ -216,7 +215,7 @@ def validate_vm_file(file_name: Path, vm_size: int):
     """
     Validates that a velocity model file has the correct size, and no 0 values
     :param file_name: A Path object representing the file to test
-    :param vm_size: The size of the VM
+    :param vm_size: The size of the VM in grid spaces (nx*ny*nz)
     :return: A possibly empty list of issues with the VM file
     """
     errors = []
