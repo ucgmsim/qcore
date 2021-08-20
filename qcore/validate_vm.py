@@ -27,7 +27,7 @@ from qcore.geo import ll_dist, compute_intermediate_latitudes, build_corners
 import numpy as np
 
 SINGLE_FILE_SUB_PARSER = "file"
-NZVM_SUB_PARSER = "files"
+NZVM_SUB_PARSER = "NZVM"
 PARAMS_SUB_PARSER = "params"
 
 SIZE_FLOAT = 4
