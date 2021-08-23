@@ -771,3 +771,35 @@ def wgs_nztm2000x(points):
     lon = x_0 + k_0 * nu * omega * np.cos(y_factors) * (1 + T1_E + T2_E + T3_E)
 
     return np.dstack((lon, lat))[0]
+
+
+def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
+    """
+    Calculates the latitudes of points along the shortest path between the points lon_lat1 and lon_lat2, taking the
+    shortest path on the sphere, using great circle calculations.
+    Note that this is different from the path obtained by interpolating the latitude and longitude between the two points.
+    Equation taken from http://www.edwilliams.org/avform.htm#Int
+    :param lon_lat1: A tuple containing the longitude and latitude of the start point
+    :param lon_lat2: A tuple containing the longitude and latitude of the end point
+    :param lon_in: A float or iterable of floats compliant with numpy of the longitude(s) to have latitudes calculated for
+    :return: A float or iterable of floats which represent the latitude(s) of the value(s) given in lon_in
+    """
+    conversion_factor = np.pi / 180
+    lon1, lat1 = lon_lat1
+    lon2, lat2 = lon_lat2
+    lat1 *= conversion_factor
+    lon1 *= conversion_factor
+    lat2 *= conversion_factor
+    lon2 *= conversion_factor
+    lon = lon_in * conversion_factor
+    if lon1 == lon2:
+        return np.linspace(lat1, lat2, len(lon_in))/conversion_factor
+    return (
+        np.arctan(
+            (
+                np.sin(lat1) * np.cos(lat2) * np.sin(lon - lon2)
+                - np.sin(lat2) * np.cos(lat1) * np.sin(lon - lon1)
+            )
+            / (np.cos(lat1) * np.cos(lat2) * np.sin(lon1 - lon2))
+        )
+    ) / conversion_factor
