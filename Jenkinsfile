@@ -38,7 +38,7 @@ pipeline {
         always {
             echo 'Tear down the environments'
             sh """
-                rm -rf /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
+//                rm -rf /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
             """
         }
     }
