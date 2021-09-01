@@ -3,17 +3,32 @@ pipeline {
     stages {
 	stage('Check Docker image') {
 	    steps {
-		echo "Checking if the docker image is available (logic not implemented)"
-		sh """
-		docker images sungeunbae/qcore-ubuntu-minimal -q
+		echo "Start virtual environment"   
+		sh """ 
+        pwd
+        env
+        export VENV=/tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv
+        python -m venv $VENV
+        source $VENV/bin/activate
+        cd ${env.WORKSPACE}
+        echo "Install dependencies"
+        pip install -r requirements.txt
+        
 		"""
 	    }
 	}
         stage('Run regression tests') {
             steps {
-                echo 'Run pytest through docker' 
+                echo 'Run pytest' 
 		sh """
-		docker run --rm  -v ${env.WORKSPACE}:/home/jenkins/qcore --user `id -u`:`id -g` sungeunbae/qcore-ubuntu-minimal bash -c "cd /home/jenkins/qcore;python setup.py install --no-data --user; cd qcore/test; pytest -s;"
+        which python
+        export VENV=/tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv
+        source $VENV/bin/activate
+        which python
+        cd ${env.WORKSPACE}
+        python setup.py install --no-data
+        cd qcore/test
+        pytest -s
 		"""
             }
         }
@@ -21,9 +36,9 @@ pipeline {
 
     post {
 	always {
-                echo 'Tear down the environments'
+        echo 'Tear down the environments'
 		sh """
-		docker container prune -f
+        rm -rf /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
 		"""
             }
     }
