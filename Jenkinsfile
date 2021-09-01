@@ -26,9 +26,7 @@ pipeline {
             steps {
                 echo 'Run pytest' 
                 sh """
-                    which python
                     source /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv/bin/activate
-                    which python
                     cd ${env.WORKSPACE}
                     python setup.py install --no-data
                     cd qcore/test
@@ -42,7 +40,7 @@ pipeline {
         always {
             echo 'Tear down the environments'
             sh """
-#                rm -rf /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
+                rm -rf /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
             """
         }
     }
