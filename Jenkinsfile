@@ -7,9 +7,12 @@ pipeline {
                 sh """ 
                     pwd
                     env
-                    export VENV=/tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv
-                    python -m venv $VENV
-                    source $VENV/bin/activate
+#                    source /var/lib/jenkins/py3env/bin/activate
+                    mkdir -p /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
+                    export virtenv=/tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv
+                    which python
+                    python -m venv $virtenv
+                    source $virtenv/bin/activate
                     cd ${env.WORKSPACE}
                     echo "Install dependencies"
                     pip install -r requirements.txt
@@ -22,8 +25,8 @@ pipeline {
                 echo 'Run pytest' 
                 sh """
                     which python
-                    export VENV=/tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv
-                    source $VENV/bin/activate
+                    export virtenv=/tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv
+                    source $virtenv/bin/activate
                     which python
                     cd ${env.WORKSPACE}
                     python setup.py install --no-data
@@ -38,7 +41,7 @@ pipeline {
         always {
             echo 'Tear down the environments'
             sh """
-//                rm -rf /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
+#                rm -rf /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}
             """
         }
     }
