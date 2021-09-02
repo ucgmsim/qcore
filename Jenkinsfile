@@ -32,7 +32,6 @@ pipeline {
                     source /tmp/${env.JOB_NAME}/${env.ghprbActualCommit}/venv/bin/activate
                     echo "[ Python used ] : " `which python`
                     cd ${env.WORKSPACE}
-                    cd ${env.WORKSPACE}
                     echo "[ Installing ${env.JOB_NAME} ]"
                     python setup.py install --no-data
                     echo "[ Run test now ]"
