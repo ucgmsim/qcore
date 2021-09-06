@@ -14,7 +14,7 @@ pipeline {
 # Each stage needs custom setting done again. By default /bin/python is used.
                     source /var/lib/jenkins/py3env/bin/activate
                     mkdir -p $TEMP_DIR
-                    python -m venv $TEMPDIR/venv
+                    python -m venv $TEMP_DIR/venv
 # activate new virtual env
                     source $TEMP_DIR/venv/bin/activate
                     echo "[ Python used ] : " `which python`
