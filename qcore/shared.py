@@ -65,7 +65,7 @@ def non_blocking_exe(cmd, debug=True, shell=False, stdout=True, stderr=True, **k
 
     # display what command would look like if executed on a shell
     if debug:
-        if type(virtual_cmd) == list:
+        if type(cmd) == list:
             virtual_cmd = " ".join(cmd)
         else:
             virtual_cmd = cmd
