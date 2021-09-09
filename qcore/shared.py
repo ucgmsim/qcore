@@ -58,7 +58,8 @@ def get_corners(model_params, gmt_format=False):
 
 
 def non_blocking_exe(cmd, debug=True, shell=False, stdout=True, stderr=True, **kwargs):
-    # always split for consistency (But only when shell == False
+    # Split the command into list for consistency
+    # But keep it as string if shell=True, otherwise the behavior changes.
     if type(cmd) == str and shell == False:
         cmd = cmd.split(" ")
 
