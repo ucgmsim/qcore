@@ -57,16 +57,17 @@ def get_corners(model_params, gmt_format=False):
     return corners, cnr_str
 
 
-def non_blocking_exe(
-    cmd, debug=True, shell=False, stdout=True, stderr=True, **kwargs
-):
-    # always split for consistency
-    if type(cmd) == str:
+def non_blocking_exe(cmd, debug=True, shell=False, stdout=True, stderr=True, **kwargs):
+    # always split for consistency (But only when shell == False
+    if type(cmd) == str and shell == False:
         cmd = cmd.split(" ")
 
     # display what command would look like if executed on a shell
     if debug:
-        virtual_cmd = " ".join(cmd)
+        if type(virtual_cmd) == list:
+            virtual_cmd = " ".join(cmd)
+        else:
+            virtual_cmd = cmd
 
         if isinstance(stdout, IOBase):
             virtual_cmd = "%s 1>%s" % (virtual_cmd, stdout.name)
