@@ -465,7 +465,9 @@ def ll_cross_track_dist(
         "This function is deprecated in favour of ll_cross_along_track_dist",
         DeprecationWarning,
     )
-    return ll_cross_along_track_dist(lon1, lat1, lon2, lat2, lon3, lat3, a12, a13, d13)[0]
+    return ll_cross_along_track_dist(lon1, lat1, lon2, lat2, lon3, lat3, a12, a13, d13)[
+        0
+    ]
 
 
 def angle_diff(b1, b2):
