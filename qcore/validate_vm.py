@@ -198,7 +198,9 @@ def validate_vm_bounds(polygon, srf_bounds=None):
             end_point = polygon[(index + 1) % len(polygon)]
             lons = (
                 np.linspace(
-                    start_point[0], end_point[0], int(ll_dist(*start_point, *end_point))
+                    start_point[0],
+                    end_point[0],
+                    int(max(ll_dist(*start_point, *end_point), 3)),
                 )
                 % 360
             )
