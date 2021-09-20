@@ -139,7 +139,7 @@ class IM:
         if self.period:
             return f"{self.name}_{self.period}"
         else:
-            return f"{self.name}"
+            return self.name
 
     def pretty_im_name(self):
         """

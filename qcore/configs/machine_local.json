@@ -1,5 +1,4 @@
 {
-    "GMT_DATA" : "/Users/sungbae/PlottingData",
     "tools_dir" : "/nesi/project/nesi00213/tools",
     "cores_per_node" : 1,
     "MAX_NODES_PER_JOB" : 1,
