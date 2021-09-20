@@ -17,6 +17,7 @@ import numpy as np
 
 try:
     import alphashape
+    from alphashape import optimizealpha
     import shapely
 except ImportError:
     # only used for get_perimeter function
@@ -824,19 +825,19 @@ def get_perimeter(srf_file, depth=True, plot=False):
             ndip = planes[i]["ndip"]
             points = np.array([get_lonlat(sf, value=None) for j in range(ndip * nstk)])
 
-            # alpha=600 worked fine with SRF, roughness 0.1
-            # 1000 was cutting into the plane and missing points entirely
-            # 800 was zigzagging a bit too much along the edge
-            if not 'alphashape' in sys.modules:
+            if not "alphashape" in sys.modules:
                 raise ImportError("install alphashape")
-            if not 'shapely' in sys.modules:
+            if not "shapely" in sys.modules:
                 raise ImportError("install shapely")
 
-            ashape = alphashape.alphashape(
-                points,
-                lambda ind, r: 1.0 + any(np.array(points)[ind][:, 0] == 0.0))
+            # The value of alpha parameter determines how tightly points are enclosed
+            # alpha= 0 means we get a convex-hull, but often a concave-hull represents a better fit.
+            # Viktor reported alpha=600 worked ok with SRF (roughness 0.1) but it is too high and often misses points entirely.
+            # if no alpha is given, the optimal value is to be found, but is impractically slow.
+            # The following will try to optimize alpha with 10 iterations (default is 1000), and if no success, alpha=0 (convex hull)
 
-            #ashape = alphashape.alphashape(points)
+            alpha = optimizealpha(points, max_iterations=10)
+            ashape = alphashape.alphashape(points, alpha)
 
             perimeters.append(np.dstack(ashape.exterior.coords.xy)[0])
             if plot:
