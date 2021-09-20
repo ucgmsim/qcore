@@ -56,7 +56,7 @@ def load_im_file_pd(imcsv, all_ims=False, comp=None):
         df = df[[im for im in df.columns if (len(im) < 15)]]
 
     if comp is not None:
-        df = df[df.index.get_level_values(1) == "geom"]
+        df = df[df.index.get_level_values(1) == comp]
 
     return df
 
