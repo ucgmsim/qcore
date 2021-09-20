@@ -11,14 +11,17 @@ https://scec.usc.edu/scecpedia/Standard_Rupture_Format
 
 from math import ceil, cos, floor, radians, sqrt, sin, degrees, atan
 from subprocess import Popen, PIPE
+import sys
 
 import numpy as np
 
 try:
     import alphashape
+    import shapely
 except ImportError:
     # only used for get_perimeter function
     pass
+
 
 from qcore.binary_version import get_unversioned_bin
 
@@ -824,15 +827,22 @@ def get_perimeter(srf_file, depth=True, plot=False):
             # alpha=600 worked fine with SRF, roughness 0.1
             # 1000 was cutting into the plane and missing points entirely
             # 800 was zigzagging a bit too much along the edge
-            try:
-                ashape = alphashape.alphashape(points, 600.0)
-            except NameError:
+            if not 'alphashape' in sys.modules:
                 raise ImportError("install alphashape")
+            if not 'shapely' in sys.modules:
+                raise ImportError("install shapely")
+
+            ashape = alphashape.alphashape(
+                points,
+                lambda ind, r: 1.0 + any(np.array(points)[ind][:, 0] == 0.0))
+
+            #ashape = alphashape.alphashape(points)
+
             perimeters.append(np.dstack(ashape.exterior.coords.xy)[0])
             if plot:
                 fig, ax = plt.subplots()
                 ax.scatter(*zip(*points))
-                ax.add_patch(PolygonPatch(alpha_shape, alpha=0.2))
+                ax.add_patch(PolygonPatch(ashape, alpha=0.2))
                 plt.show()
                 plt.close()
 

@@ -51,7 +51,7 @@ def test_set_up(realizations):
                 sys.exit("{} failed to extract data folder".format(err))
 
         else:
-            print("Benchmark data folder already exits: ", data_store_path)
+            print("Benchmark data folder already exists: ", data_store_path)
     print(test_data_save_dirs)
     # Run all tests
     return test_data_save_dirs
