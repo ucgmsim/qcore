@@ -818,11 +818,6 @@ def get_perimeter(srf_file, depth=True, plot=False):
             ndip = planes[i]["ndip"]
             points = np.array([get_lonlat(sf, value=None) for j in range(ndip * nstk)])
 
-            if not "alphashape" in sys.modules:
-                raise ImportError("install alphashape")
-            if not "shapely" in sys.modules:
-                raise ImportError("install shapely")
-
             # The value of alpha parameter determines how tightly points are enclosed
             # alpha= 0 means we get a convex-hull, but often a concave-hull represents a better fit.
             # Viktor reported alpha=600 worked ok with SRF (roughness 0.1) but it is too high and often misses points entirely.
