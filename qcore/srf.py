@@ -11,14 +11,11 @@ https://scec.usc.edu/scecpedia/Standard_Rupture_Format
 
 from math import ceil, cos, floor, radians, sqrt, sin, degrees, atan
 from subprocess import Popen, PIPE
+import sys
 
 import numpy as np
 
-try:
-    import alphashape
-except ImportError:
-    # only used for get_perimeter function
-    pass
+from alphashape import alphashape, optimizealpha
 
 from qcore.binary_version import get_unversioned_bin
 
@@ -821,18 +818,20 @@ def get_perimeter(srf_file, depth=True, plot=False):
             ndip = planes[i]["ndip"]
             points = np.array([get_lonlat(sf, value=None) for j in range(ndip * nstk)])
 
-            # alpha=600 worked fine with SRF, roughness 0.1
-            # 1000 was cutting into the plane and missing points entirely
-            # 800 was zigzagging a bit too much along the edge
-            try:
-                ashape = alphashape.alphashape(points, 600.0)
-            except NameError:
-                raise ImportError("install alphashape")
+            # The value of alpha parameter determines how tightly points are enclosed
+            # alpha= 0 means we get a convex-hull, but often a concave-hull represents a better fit.
+            # Viktor reported alpha=600 worked ok with SRF (roughness 0.1) but it is too high and often misses points entirely.
+            # if no alpha is given, the optimal value is to be found, but is impractically slow.
+            # The following will try to optimize alpha with 10 iterations (default is 1000), and if no success, alpha=0 (convex hull)
+
+            alpha = optimizealpha(points, max_iterations=10)
+            ashape = alphashape(points, alpha)
             perimeters.append(np.dstack(ashape.exterior.coords.xy)[0])
+
             if plot:
                 fig, ax = plt.subplots()
                 ax.scatter(*zip(*points))
-                ax.add_patch(PolygonPatch(alpha_shape, alpha=0.2))
+                ax.add_patch(PolygonPatch(ashape, alpha=0.2))
                 plt.show()
                 plt.close()
 
