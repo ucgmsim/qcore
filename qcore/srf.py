@@ -15,14 +15,7 @@ import sys
 
 import numpy as np
 
-try:
-    import alphashape
-    from alphashape import optimizealpha
-    import shapely
-except ImportError:
-    # only used for get_perimeter function
-    pass
-
+from alphashape import alphashape, optimizealpha
 
 from qcore.binary_version import get_unversioned_bin
 
@@ -837,9 +830,9 @@ def get_perimeter(srf_file, depth=True, plot=False):
             # The following will try to optimize alpha with 10 iterations (default is 1000), and if no success, alpha=0 (convex hull)
 
             alpha = optimizealpha(points, max_iterations=10)
-            ashape = alphashape.alphashape(points, alpha)
-
+            ashape = alphashape(points, alpha)
             perimeters.append(np.dstack(ashape.exterior.coords.xy)[0])
+
             if plot:
                 fig, ax = plt.subplots()
                 ax.scatter(*zip(*points))
