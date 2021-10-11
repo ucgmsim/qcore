@@ -430,6 +430,7 @@ class PLATFORM_CONFIG(Enum):
     IM_SIM_SL_SCRIPT_NAME = auto()
     MERGE_TS_DEFAULT_NCORES = auto()
     DEFAULT_ACCOUNT = auto()
+    PLATFORM_ACCOUNTS = auto()
     DEFAULT_MEMORY = auto()
     MACHINE_TASKS = auto()
     DEFAULT_N_RUNS = auto()
