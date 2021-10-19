@@ -14,7 +14,6 @@ else
 fi
 """
 
-import os
 import argparse
 from pathlib import Path
 
@@ -36,6 +35,8 @@ MIN_LAT = -53
 MAX_LAT = -28
 MIN_LON = 160
 MAX_LON = 185
+
+N_LAYERS_TO_TEST = 1
 
 
 def validate_vm_params(vm_params: str, srf: str = None):
@@ -149,15 +150,17 @@ def validate_vm_files(vm_dir: str, srf: str = None):
             errors.append(f"VM file not found: {vm_file}")
 
     # Check binary file sizes for files that exist
-    vm_size = (
-        vm_params_dict[VMParams.nx.value]
-        * vm_params_dict[VMParams.ny.value]
-        * vm_params_dict[VMParams.nz.value]
-    )
     for file_path in vm_files:
         # Test all files we can, so we get all the problems at once
         if file_path.exists():
-            errors.extend(validate_vm_file(file_path, vm_size))
+            errors.extend(
+                validate_vm_file(
+                    file_path,
+                    vm_params_dict[VMParams.nx.value],
+                    vm_params_dict[VMParams.ny.value],
+                    vm_params_dict[VMParams.nz.value],
+                )
+            )
 
     if vel_crns_file.exists():
         polygon = []
@@ -213,26 +216,36 @@ def validate_vm_bounds(polygon, srf_bounds=None):
     return errors
 
 
-def validate_vm_file(file_name: Path, vm_size: int):
+def validate_vm_file(file_name: Path, nx: int, ny: int, nz: int):
     """
-    Validates that a velocity model file has the correct size, and no 0 values
+    Validates that a velocity model file has the correct size, and no 0 values in a sample of the layers
     :param file_name: A Path object representing the file to test
-    :param vm_size: The size of the VM in grid spaces (nx*ny*nz)
+    :param nx, ny, nz: The size of the VM in grid spaces (nx*ny*nz)
     :return: A possibly empty list of issues with the VM file
     """
     errors = []
+    vm_size = nx * ny * nz
     size = file_name.stat().st_size
     if size != vm_size * SIZE_FLOAT:
         errors.append(
             f"VM filesize for {file_name} expected: {vm_size * SIZE_FLOAT} found: {size}"
         )
-    if (
-        not np.min(
-            np.fromfile(file_name, dtype="<f{}".format(SIZE_FLOAT), count=vm_size)
-        )
-        > 0
-    ):
-        errors.append(f"File {file_name} has minimum value of 0.0")
+    layers_to_test = np.random.default_rng().integers(ny, size=N_LAYERS_TO_TEST)
+    layer_size = nx * nz
+    for layer_idx in layers_to_test:
+        if (
+            not np.min(
+                np.fromfile(
+                    file_name,
+                    dtype="<f{}".format(SIZE_FLOAT),
+                    count=layer_size,
+                    offset=layer_size * layer_idx,
+                )
+            )
+            > 0
+        ):
+            errors.append(f"File {file_name} has minimum value of 0.0")
+            break
     return errors
 
 
@@ -280,7 +293,12 @@ def main():
             * vm_params_dict[VMParams.ny.value]
             * vm_params_dict[VMParams.nz.value]
         )
-        error_message = validate_vm_file(args.vm_file, size)
+        error_message = validate_vm_file(
+            args.vm_file,
+            vm_params_dict[VMParams.nx.value],
+            vm_params_dict[VMParams.ny.value],
+            vm_params_dict[VMParams.nz.value],
+        )
         valid = not error_message
     else:
         valid = False
