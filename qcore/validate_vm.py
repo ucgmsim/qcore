@@ -25,6 +25,8 @@ from qcore.geo import ll_dist, compute_intermediate_latitudes, build_corners
 
 import numpy as np
 
+from vm_file import VelocityModelFile
+
 SINGLE_FILE_SUB_PARSER = "file"
 NZVM_SUB_PARSER = "NZVM"
 PARAMS_SUB_PARSER = "params"
@@ -35,8 +37,6 @@ MIN_LAT = -53
 MAX_LAT = -28
 MIN_LON = 160
 MAX_LON = 185
-
-N_LAYERS_TO_TEST = 1
 
 
 def validate_vm_params(vm_params: str, srf: str = None):
@@ -230,22 +230,12 @@ def validate_vm_file(file_name: Path, nx: int, ny: int, nz: int):
         errors.append(
             f"VM filesize for {file_name} expected: {vm_size * SIZE_FLOAT} found: {size}"
         )
-    layers_to_test = np.random.default_rng().integers(ny, size=N_LAYERS_TO_TEST)
-    layer_size = nx * nz
-    for layer_idx in layers_to_test:
-        if (
-            not np.min(
-                np.fromfile(
-                    file_name,
-                    dtype="<f{}".format(SIZE_FLOAT),
-                    count=layer_size,
-                    offset=layer_size * layer_idx,
-                )
-            )
-            > 0
-        ):
-            errors.append(f"File {file_name} has minimum value of 0.0")
-            break
+
+    with VelocityModelFile(nx, ny, nz, file_name, memmap=True) as vmf:
+        min_v = vmf.get_values().min()
+        if min_v <= 0.0:
+            errors.append(f"File {file_name} has minimum value of {min_v}")
+
     return errors
 
 
