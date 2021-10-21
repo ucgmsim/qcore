@@ -18,14 +18,13 @@ import argparse
 from pathlib import Path
 
 import matplotlib.path as mpltPath
+import numpy as np
+
 from qcore.utils import load_yaml
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
 from qcore.srf import get_bounds
 from qcore.geo import ll_dist, compute_intermediate_latitudes, build_corners
-
-import numpy as np
-
-from vm_file import VelocityModelFile
+from qcore.vm_file import VelocityModelFile
 
 SINGLE_FILE_SUB_PARSER = "file"
 NZVM_SUB_PARSER = "NZVM"
@@ -231,7 +230,7 @@ def validate_vm_file(file_name: Path, nx: int, ny: int, nz: int):
             f"VM filesize for {file_name} expected: {vm_size * SIZE_FLOAT} found: {size}"
         )
 
-    with VelocityModelFile(nx, ny, nz, file_name, memmap=True) as vmf:
+    with VelocityModelFile(nx, ny, nz, file_name, writable=False, memmap=True) as vmf:
         min_v = vmf.get_values().min()
         if min_v <= 0.0:
             errors.append(f"File {file_name} has minimum value of {min_v}")
