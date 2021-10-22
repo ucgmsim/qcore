@@ -18,14 +18,14 @@ import argparse
 from pathlib import Path
 
 import matplotlib.path as mpltPath
+import numpy as np
+
 from qcore.utils import load_yaml
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
 from qcore.srf import get_bounds
 from qcore.geo import ll_dist, compute_intermediate_latitudes, build_corners
+from qcore.vm_file import VelocityModelFile
 
-import numpy as np
-
-from vm_file import VelocityModelFile
 
 SINGLE_FILE_SUB_PARSER = "file"
 NZVM_SUB_PARSER = "NZVM"
