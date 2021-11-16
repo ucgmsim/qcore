@@ -57,9 +57,9 @@ def bwfilter(data, dt, freq, band, match_powersb=True):
     if match_powersb:
         if band == "highpass":
             freq *= 0.8956803352330285
-        elif band == "bandpass":
+        elif band == "bandpass" or band == "bandstop":
             freq = np.asarray((freq*0.8956803352330285, freq*1.1164697500474103))
-        else:
+        elif band == "lowpass":
             freq *= 1.1164697500474103
     return sosfiltfilt(
         butter(4, freq / nyq, btype=band, output="sos"), data, padtype=None
