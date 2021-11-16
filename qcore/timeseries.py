@@ -43,8 +43,10 @@ irfft = np.fft.irfft
 def bwfilter(data, dt, freq, band, match_powersb=True):
     """
     data: np.array to filter
+    dt: timestep of data
     freq: cutoff frequency
-    band: 'highpass' or 'lowpass'
+    band: One of {'highpass', 'lowpass', 'bandpass', 'bandstop'}
+    match_powersb: shift the target frequency so that the given frequency has no attenuation
     """
     # power spectrum based LF/HF filter (shift cutoff)
     # readable code commented, fast code uncommented
@@ -54,11 +56,15 @@ def bwfilter(data, dt, freq, band, match_powersb=True):
     #    x *= -1
     # freq *= exp(x * math.log(sqrt(2.0) - 1.0))
     nyq = 1.0 / (2.0 * dt)
+    highpass_shift = 0.8956803352330285
+    lowpass_shift = 1.1164697500474103
     if match_powersb:
         if band == "highpass":
-            freq *= 0.8956803352330285
-        else:
-            freq *= 1.1164697500474103
+            freq *= highpass_shift
+        elif band == "bandpass" or band == "bandstop":
+            freq = np.asarray((freq*highpass_shift, freq*lowpass_shift))
+        elif band == "lowpass":
+            freq *= lowpass_shift
     return sosfiltfilt(
         butter(4, freq / nyq, btype=band, output="sos"), data, padtype=None
     )
