@@ -572,20 +572,6 @@ def path_from_corners(
     output: where to store path of (lon, lat) values
     min_edge_points: at least this many points wanted along edges
     """
-    # input data using velocity model
-    if corners is None:
-        # don't fail importing if not needed
-        from params import vel_mod_params
-
-        # load model_params
-        with open(vel_mod_params, "r") as mp:
-            lines = mp.readlines()
-
-        # find corners using tags
-        for tag in ["c1=", "c2=", "c3=", "c4="]:
-            for line in lines:
-                if tag in line:
-                    corners.append(list(map(float, line.split()[1:3])))
 
     # close the box by going back to origin
     if close:
