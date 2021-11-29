@@ -174,7 +174,14 @@ class ProcessType(ExtendedStrEnum):
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
     VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
     VM_GEN = 17, "VM_GEN", None, False, None, (16,)
-    VM_PERT = 18, "VM_PERT", None, False, None, ()  # Needs VM_params generated for REL_1
+    VM_PERT = (
+        18,
+        "VM_PERT",
+        None,
+        False,
+        None,
+        (),
+    )  # Needs VM_params generated for REL_1
     INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, (17,)
 
     def __new__(
@@ -298,7 +305,7 @@ class FaultParams(Enum):
     stat_coords = "stat_coords"
     FD_STATLIST = "FD_STATLIST"
     site_v1d_dir = "site_v1d_dir"
-    site_specific ="site_specific"
+    site_specific = "site_specific"
 
 
 class SimParams(Enum):
@@ -429,6 +436,7 @@ class PLATFORM_CONFIG(Enum):
     IM_SIM_CALC_TEMPLATE_NAME = auto()
     IM_SIM_SL_SCRIPT_NAME = auto()
     MERGE_TS_DEFAULT_NCORES = auto()
+    VM_PERT_DEFAULT_NCORES = auto()
     DEFAULT_ACCOUNT = auto()
     PLATFORM_ACCOUNTS = auto()
     DEFAULT_MEMORY = auto()
