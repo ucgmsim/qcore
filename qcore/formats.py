@@ -101,7 +101,7 @@ def load_z_file(z_file: str):
     :return: pd.DataFrame
         station as index and columns z1p0, z2p5
     """
-    return pd.read_csv(z_file, sep="\s+", index_col=0, header=None, names=["z1p0", "z2p5"])
+    return pd.read_csv(z_file, names=["z1p0", "z2p5", "sigma"], index_col=0, skiprows=1)
 
 
 def load_station_ll_vs30(station_file: str, vs30_file: str):
