@@ -18,11 +18,7 @@ from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
 from qcore.formats import load_e3d_par
 from qcore.utils import compare_versions
 
-try:
-    # only used in BBFlac
-    import mutagen
-except ImportError:
-    pass
+
 try:
     from scipy.signal import butter, resample
 except ImportError:
@@ -47,8 +43,10 @@ irfft = np.fft.irfft
 def bwfilter(data, dt, freq, band, match_powersb=True):
     """
     data: np.array to filter
+    dt: timestep of data
     freq: cutoff frequency
-    band: 'highpass' or 'lowpass'
+    band: One of {'highpass', 'lowpass', 'bandpass', 'bandstop'}
+    match_powersb: shift the target frequency so that the given frequency has no attenuation
     """
     # power spectrum based LF/HF filter (shift cutoff)
     # readable code commented, fast code uncommented
@@ -58,11 +56,15 @@ def bwfilter(data, dt, freq, band, match_powersb=True):
     #    x *= -1
     # freq *= exp(x * math.log(sqrt(2.0) - 1.0))
     nyq = 1.0 / (2.0 * dt)
+    highpass_shift = 0.8956803352330285
+    lowpass_shift = 1.1164697500474103
     if match_powersb:
         if band == "highpass":
-            freq *= 0.8956803352330285
-        else:
-            freq *= 1.1164697500474103
+            freq *= highpass_shift
+        elif band == "bandpass" or band == "bandstop":
+            freq = np.asarray((freq*highpass_shift, freq*lowpass_shift))
+        elif band == "lowpass":
+            freq *= lowpass_shift
     return sosfiltfilt(
         butter(4, freq / nyq, btype=band, output="sos"), data, padtype=None
     )
@@ -800,99 +802,6 @@ class BBSeis:
         np.savetxt(path, self.stations[["lon", "lat", "name"]], fmt="%f %f %s")
 
 
-###
-### PROCESSING OF BB CONTAINER WITH FLAC COMPRESSION
-###
-class BBFlac(BBSeis):
-    # format constants
-    N_COMP = 3
-    # indexing constants
-    X = 0
-    Y = 1
-    Z = 2
-    COMP_NAME = {X: "090", Y: "000", Z: "ver"}
-
-    def __init__(self, bb_path):
-        """
-        Load BB flac store.
-        bb_path: path to the BB flac file
-        """
-        try:
-            meta = mutagen.File(bb_path)
-        except NameError:
-            sys.exit("Do you have mutagen installed?")
-
-        # read header - integers
-        self.nstat = int(meta["nstat"][0])
-        self.nt = int(meta["nt"][0])
-        # read header - floats
-        self.duration = float(meta["duration"][0])
-        self.dt = float(meta["dt"][0])
-        self.start_sec = float(meta["start_sec"][0])
-        # read header - strings
-        self.lf_dir = meta["lf_dir"][0]
-        self.lf_vm = meta["lf_vm"][0]
-        self.hf_file = meta["hf_file"][0]
-
-        # load station info
-        stations = np.frombuffer(
-            base64.b64decode(meta["stations"][0]),
-            dtype=[
-                ("lon", "f4"),
-                ("lat", "f4"),
-                ("name", "|S7"),
-                ("x", "i4"),
-                ("y", "i4"),
-                ("z", "i4"),
-                ("e_dist", "f4"),
-                ("hf_vs_ref", "f4"),
-                ("lf_vs_ref", "f4"),
-                ("vsite", "f4"),
-                ("scale", "f8"),
-            ],
-        )
-        stat_type = stations.dtype.descr
-        stat_type[2] = stat_type[2][0], "U7"
-        self.stations = np.rec.fromrecords(stations, dtype=stat_type)
-
-        # allow indexing by station names
-        self.stat_idx = dict(list(zip(self.stations.name, np.arange(self.nstat))))
-        # keep location for data retrieval
-        self.path = bb_path
-
-    def acc(self, station, comp=Ellipsis):
-        """
-        Returns timeseries (acceleration, g) for station.
-        station: station name, must exist
-        comp: component (default all) examples: 0, self.X
-        """
-        i = self.stat_idx[station]
-        p = Popen(
-            [
-                "sox",
-                self.path,
-                "-b",
-                "32",
-                "-L",
-                "-e",
-                "signed-integer",
-                "-c",
-                "3",
-                "-t",
-                "raw",
-                "-",
-                "trim",
-                str(self.duration * i),
-                str(self.duration),
-            ],
-            stdout=PIPE,
-        )
-        o = p.communicate()[0]
-
-        return (
-            np.frombuffer(o, dtype=np.int32).astype(np.float32).reshape(-1, 3)[:, comp]
-            / self.stations.scale[i]
-        )
 
 
 def get_observed_stations(observed_data_folder: Union[str, Path]) -> Set[str]:
