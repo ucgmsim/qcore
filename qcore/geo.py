@@ -17,34 +17,35 @@ class InputError(Exception):
     pass
 
 
-def get_distances(locations: np.ndarray, lon: float, lat: float):
-    """Calculates the distance between the array of locations and
-    the specified reference location
+def get_distances(locations: np.ndarray, lon: np.float, lat: np.float):
+    """
+    Calculates the distance between the array of locations and
+    the specified reference location / locations
 
     Parameters
     ----------
     locations : np.ndarray
         List of locations
         Shape [n_locations, 2], column format (lon, lat)
-    lon : float
-        Longitude of the reference location
-    lat
-        Latitude of the reference location
+    lon : np.float
+        Array or singular float of Longitude reference locations to compare
+    lat : np.float
+        Array or singular float of Latitude reference locations to compare
 
     Returns
     -------
     np.ndarray
-        The distances, shape [n_locations]
+        The distances, shape [n_references, n_locations]
     """
     d = (
-        np.sin(np.radians(locations[:, 1] - lat) / 2.0) ** 2
-        + np.cos(np.radians(lat))
-        * np.cos(np.radians(locations[:, 1]))
-        * np.sin(np.radians(locations[:, 0] - lon) / 2.0) ** 2
+            np.sin(np.radians(np.expand_dims(locations[:, 1], axis=1) - lat) / 2.0) ** 2
+            + np.cos(np.radians(lat))
+            * np.cos(np.radians(np.expand_dims(locations[:, 1], axis=1)))
+            * np.sin(np.radians(np.expand_dims(locations[:, 0], axis=1) - lon) / 2.0) ** 2
     )
     d = R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
 
-    return d
+    return d.T
 
 
 def closest_location(locations, lon, lat):
