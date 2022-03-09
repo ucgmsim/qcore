@@ -7,6 +7,7 @@ from math import sin, asin, cos, acos, atan, atan2, degrees, radians, sqrt, pi
 from warnings import warn
 
 import numpy as np
+from numba import njit
 
 from qcore.binary_version import get_unversioned_bin
 
@@ -17,10 +18,36 @@ class InputError(Exception):
     pass
 
 
-def get_distances(locations: np.ndarray, lon: np.float, lat: np.float):
+def get_distances(locations: np.ndarray, lon: float, lat: float):
     """
     Calculates the distance between the array of locations and
-    the specified reference location / locations
+    the specified reference location
+    Does the same as get_multiple_distances except for a single reference location
+    Note: Is not within the same function due to numba and type unification
+
+    Parameters
+    ----------
+    locations : np.ndarray
+        List of locations
+        Shape [n_locations, 2], column format (lon, lat)
+    lon : float
+        Singular float of a Longitude reference location to compare
+    lat : float
+        Singular float of a Latitude reference locations to compare
+
+    Returns
+    -------
+    np.ndarray
+        The distances, shape [n_locations]
+    """
+    return get_multiple_distances(locations, lon, lat)[0]
+
+
+@njit
+def get_multiple_distances(locations: np.ndarray, lon: np.float, lat: np.float):
+    """
+    Calculates the distance between the array of locations and
+    the specified reference locations
 
     Parameters
     ----------
@@ -44,7 +71,6 @@ def get_distances(locations: np.ndarray, lon: np.float, lat: np.float):
         * np.sin(np.radians(np.expand_dims(locations[:, 0], axis=1) - lon) / 2.0) ** 2
     )
     d = R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
-
     return d.T
 
 
