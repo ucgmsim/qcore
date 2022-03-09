@@ -38,10 +38,10 @@ def get_distances(locations: np.ndarray, lon: np.float, lat: np.float):
         The distances, shape [n_references, n_locations]
     """
     d = (
-            np.sin(np.radians(np.expand_dims(locations[:, 1], axis=1) - lat) / 2.0) ** 2
-            + np.cos(np.radians(lat))
-            * np.cos(np.radians(np.expand_dims(locations[:, 1], axis=1)))
-            * np.sin(np.radians(np.expand_dims(locations[:, 0], axis=1) - lon) / 2.0) ** 2
+        np.sin(np.radians(np.expand_dims(locations[:, 1], axis=1) - lat) / 2.0) ** 2
+        + np.cos(np.radians(lat))
+        * np.cos(np.radians(np.expand_dims(locations[:, 1], axis=1)))
+        * np.sin(np.radians(np.expand_dims(locations[:, 0], axis=1) - lon) / 2.0) ** 2
     )
     d = R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
 
