@@ -140,7 +140,7 @@ class ProcessType(ExtendedStrEnum):
         "HF",
         True,
         True,
-        "{run_command} python $gmsim/workflow/scripts/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
+        "{run_command} python $gmsim/workflow/workflow/calculation/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         (),
     )
@@ -149,7 +149,7 @@ class ProcessType(ExtendedStrEnum):
         "BB",
         True,
         True,
-        "{run_command} python $gmsim/workflow/scripts/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
+        "{run_command} python $gmsim/workflow/workflow/calculation/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
         (1, 4),
     )
@@ -174,7 +174,14 @@ class ProcessType(ExtendedStrEnum):
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
     VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
     VM_GEN = 17, "VM_GEN", None, False, None, (16,)
-    VM_PERT = 18, "VM_PERT", None, False, None, ()  # Needs VM_params generated for REL_1
+    VM_PERT = (
+        18,
+        "VM_PERT",
+        None,
+        False,
+        None,
+        (),
+    )  # Needs VM_params generated for REL_1
     INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, (17,)
 
     def __new__(
@@ -298,7 +305,7 @@ class FaultParams(Enum):
     stat_coords = "stat_coords"
     FD_STATLIST = "FD_STATLIST"
     site_v1d_dir = "site_v1d_dir"
-    site_specific ="site_specific"
+    site_specific = "site_specific"
 
 
 class SimParams(Enum):
@@ -429,14 +436,18 @@ class PLATFORM_CONFIG(Enum):
     IM_SIM_CALC_TEMPLATE_NAME = auto()
     IM_SIM_SL_SCRIPT_NAME = auto()
     MERGE_TS_DEFAULT_NCORES = auto()
+    VM_PERT_DEFAULT_NCORES = auto()
     DEFAULT_ACCOUNT = auto()
+    PLATFORM_ACCOUNTS = auto()
     DEFAULT_MEMORY = auto()
     MACHINE_TASKS = auto()
     DEFAULT_N_RUNS = auto()
     SCHEDULER = auto()
     AVAILABLE_MACHINES = auto()
     ESTIMATION_MODELS_DIR = auto()
-    TEMPLATES_DIR = auto()
+    GMSIM_TEMPLATES_DIR = auto()
+    SCHEDULER_TEMPLATES_DIR = auto()
+    EXAMPLES_DIR = auto()
     VELOCITY_MODEL_DIR = auto()
     RUN_COMMAND = auto()
     HEADER_FILE = auto()

@@ -3,13 +3,12 @@ import datetime
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.stats import truncnorm
+import pandas as pd
 
 from qcore.uncertainties import mag_scaling
 from qcore.uncertainties.distributions import truncated_normal as sample_trunc_norm_dist
 
-
-NHM_HEADER = f"""FAULT SOURCES - New Zealand National Seismic Hazard Model 2010 (created {datetime.datetime.now().strftime("%d-%b-%Y")}) 
+NHM_HEADER = f"""FAULT SOURCES - (created {datetime.datetime.now().strftime("%d-%b-%Y")}) 
 Row 1: FaultName 
 Row 2: TectonicType , FaultType 
 Row 3: LengthMean , LengthSigma (km) 
@@ -236,3 +235,55 @@ def load_nhm(nhm_path: str, skiprows: int = len(NHM_HEADER.splitlines()) + 1):
         faults[nhm_fault.name] = nhm_fault
 
     return faults
+
+
+def load_nhm_df(nhm_ffp, erf_name=None):
+    """Creates a standardised pandas dataframe for the
+    ruptures in the given erf file.
+
+    Parameters
+    ----------
+    nhm_ffp : str
+        Path to the ERF file
+    erf_name : ERFFileType
+        name to identify faults from an ERF
+
+    Returns
+    -------
+    DataFrame
+    """
+    nhm_infos = load_nhm(nhm_ffp)
+
+    erf_suffix = ""
+    if erf_name:
+        erf_suffix = f"_{erf_name}"
+
+    rupture_dict = {
+        f"{info.name}{erf_suffix}":
+            {"name": info.name,
+             "tectonic_type": info.tectonic_type,
+             "length": info.length,
+             "length_sigma": info.length_sigma,
+             "dip": info.dip,
+             "dip_sigma": info.dip_sigma,
+             "dip_dir": info.dip_dir,
+             "rake": info.rake,
+             "dbottom": info.dbottom,
+             "dbottom_sigma": info.dbottom_sigma,
+             "dtop": info.dtop,
+             "dtop_min": info.dtop_min,
+             "dtop_max": info.dtop_max,
+             "slip_rate": info.slip_rate,
+             "slip_rate_sigma": info.slip_rate_sigma,
+             "coupling_coeff": info.coupling_coeff,
+             "coupling_coeff_sigma": info.coupling_coeff_sigma,
+             "mw": info.mw,
+             "recur_int_median": info.recur_int_median if info.recur_int_median > 0 else float("nan"),
+             "exceedance": 1 / info.recur_int_median if info.recur_int_median > 0 else float("nan"),
+             }
+        for key, info in nhm_infos.items()
+    }
+
+    return pd.DataFrame.from_dict(
+        rupture_dict, orient="index"
+    ).sort_index()
