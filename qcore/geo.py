@@ -17,34 +17,11 @@ class InputError(Exception):
     pass
 
 
-def get_distances(locations: np.ndarray, lon: float, lat: float):
+def get_distances(locations: np.ndarray, lon: np.float, lat: np.float):
     """
     Calculates the distance between the array of locations and
     the specified reference location
     Does the same as get_multiple_distances except for a single reference location
-
-    Parameters
-    ----------
-    locations : np.ndarray
-        List of locations
-        Shape [n_locations, 2], column format (lon, lat)
-    lon : float
-        Singular float of a Longitude reference location to compare
-    lat : float
-        Singular float of a Latitude reference locations to compare
-
-    Returns
-    -------
-    np.ndarray
-        The distances, shape [n_locations]
-    """
-    return get_multiple_distances(locations, lon, lat)[0]
-
-
-def get_multiple_distances(locations: np.ndarray, lon: np.float, lat: np.float):
-    """
-    Calculates the distance between the array of locations and
-    the specified reference locations
 
     Parameters
     ----------
@@ -59,7 +36,8 @@ def get_multiple_distances(locations: np.ndarray, lon: np.float, lat: np.float):
     Returns
     -------
     np.ndarray
-        The distances, shape [n_references, n_locations]
+        The distances, shape [n_locations] or shape [n_references, n_locations]
+        based on the input lon, lat values being a single float or array
     """
     d = (
         np.sin(np.radians(np.expand_dims(locations[:, 1], axis=1) - lat) / 2.0) ** 2
@@ -68,7 +46,7 @@ def get_multiple_distances(locations: np.ndarray, lon: np.float, lat: np.float):
         * np.sin(np.radians(np.expand_dims(locations[:, 0], axis=1) - lon) / 2.0) ** 2
     )
     d = R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
-    return d.T
+    return d.T[0] if d.shape[1] == 1 else d.T
 
 
 def closest_location(locations, lon, lat):
