@@ -5,6 +5,7 @@ Various tools which may be needed in various processes.
 from subprocess import Popen, PIPE
 from math import sin, asin, cos, acos, atan, atan2, degrees, radians, sqrt, pi
 from warnings import warn
+from typing import Union
 
 import numpy as np
 
@@ -17,20 +18,19 @@ class InputError(Exception):
     pass
 
 
-def get_distances(locations: np.ndarray, lon: np.float, lat: np.float):
+def get_distances(locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]):
     """
     Calculates the distance between the array of locations and
-    the specified reference location
-    Does the same as get_multiple_distances except for a single reference location
+    the specified reference location / locations
 
     Parameters
     ----------
     locations : np.ndarray
         List of locations
         Shape [n_locations, 2], column format (lon, lat)
-    lon : np.float
+    lon : Union[float, np.ndarray]
         Array or singular float of Longitude reference locations to compare
-    lat : np.float
+    lat : Union[float, np.ndarray]
         Array or singular float of Latitude reference locations to compare
 
     Returns
