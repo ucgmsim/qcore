@@ -274,7 +274,7 @@ class Status(ExtendedStrEnum):
     running = 3, "running"
     unknown = 4, "unknown"
     completed = 5, "completed"
-    WCT = 6, "WCT"
+    killed_WCT = 6, "killed_WCT"
     failed = 7, "failed"
 
 
