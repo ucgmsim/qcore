@@ -5,10 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from srf_generation.source_parameter_generation.uncertainties import mag_scaling
-from srf_generation.source_parameter_generation.uncertainties.distributions import (
-    truncated_normal as sample_trunc_norm_dist,
-)
+from qcore.uncertainties import mag_scaling
+from qcore.uncertainties.distributions import truncated_normal as sample_trunc_norm_dist
 
 NHM_HEADER = f"""FAULT SOURCES - (created {datetime.datetime.now().strftime("%d-%b-%Y")}) 
 Row 1: FaultName 
