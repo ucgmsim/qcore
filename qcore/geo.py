@@ -55,7 +55,7 @@ def closest_location(locations, lon, lat):
     """
     d = get_distances(locations, lon, lat)
     i = np.argmin(d)
-    # breakpoint()
+
     return i, d[i]
 
 
