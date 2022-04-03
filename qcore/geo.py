@@ -46,7 +46,7 @@ def get_distances(locations: np.ndarray, lon: Union[float, np.ndarray], lat: Uni
         * np.sin(np.radians(np.expand_dims(locations[:, 0], axis=1) - lon) / 2.0) ** 2
     )
     d = (R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))).T
-    return d[0] if d.shape[1] == 1 else d
+    return d[0] if d.shape[0] == 1 else d
 
 
 def closest_location(locations, lon, lat):
@@ -55,7 +55,7 @@ def closest_location(locations, lon, lat):
     """
     d = get_distances(locations, lon, lat)
     i = np.argmin(d)
-
+    # breakpoint()
     return i, d[i]
 
 
