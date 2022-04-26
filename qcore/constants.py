@@ -274,7 +274,8 @@ class Status(ExtendedStrEnum):
     running = 3, "running"
     unknown = 4, "unknown"
     completed = 5, "completed"
-    failed = 6, "failed"
+    killed_WCT = 6, "killed_WCT"
+    failed = 7, "failed"
 
 
 class RootParams(Enum):
