@@ -5,6 +5,7 @@ Various tools which may be needed in various processes.
 from subprocess import Popen, PIPE
 from math import sin, asin, cos, acos, atan, atan2, degrees, radians, sqrt, pi
 from warnings import warn
+from typing import Union
 
 import numpy as np
 
@@ -17,34 +18,35 @@ class InputError(Exception):
     pass
 
 
-def get_distances(locations: np.ndarray, lon: float, lat: float):
-    """Calculates the distance between the array of locations and
-    the specified reference location
+def get_distances(locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]):
+    """
+    Calculates the distance between the array of locations and
+    the specified reference location / locations
 
     Parameters
     ----------
     locations : np.ndarray
         List of locations
         Shape [n_locations, 2], column format (lon, lat)
-    lon : float
-        Longitude of the reference location
-    lat
-        Latitude of the reference location
+    lon : Union[float, np.ndarray]
+        Array or singular float of Longitude reference locations to compare
+    lat : Union[float, np.ndarray]
+        Array or singular float of Latitude reference locations to compare
 
     Returns
     -------
     np.ndarray
-        The distances, shape [n_locations]
+        The distances, shape [n_locations] or shape [n_references, n_locations]
+        based on the input lon, lat values being a single float or array
     """
     d = (
-        np.sin(np.radians(locations[:, 1] - lat) / 2.0) ** 2
+        np.sin(np.radians(np.expand_dims(locations[:, 1], axis=1) - lat) / 2.0) ** 2
         + np.cos(np.radians(lat))
-        * np.cos(np.radians(locations[:, 1]))
-        * np.sin(np.radians(locations[:, 0] - lon) / 2.0) ** 2
+        * np.cos(np.radians(np.expand_dims(locations[:, 1], axis=1)))
+        * np.sin(np.radians(np.expand_dims(locations[:, 0], axis=1) - lon) / 2.0) ** 2
     )
-    d = R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))
-
-    return d
+    d = (R_EARTH * 2.0 * np.arctan2(np.sqrt(d), np.sqrt(1 - d))).T
+    return d[0] if d.shape[0] == 1 else d
 
 
 def closest_location(locations, lon, lat):

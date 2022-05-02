@@ -215,7 +215,7 @@ sites_major = [
 ]
 # region to use when plotting the whole of NZ
 nz_region = (166, 179, -47.5, -34)
-
+kr_region = (125.76, 129.74, 33.05, 39)
 ###
 ### ACCESSORY FUNCTIONS
 ###
