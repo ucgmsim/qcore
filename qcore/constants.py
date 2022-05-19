@@ -452,7 +452,7 @@ class PLATFORM_CONFIG(Enum):
     VELOCITY_MODEL_DIR = auto()
     RUN_COMMAND = auto()
     HEADER_FILE = auto()
-    DEFAULT_SITE_SPECIFIC_DIR = auto()
+    DEFAULT_SITE_RESPONSE_DIR = auto()
 
 
 class SlHdrOptConsts(Enum):
