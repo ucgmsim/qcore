@@ -8,7 +8,7 @@ import qcore.constants as const
 
 def get_fault_from_realisation(realisation):
     realisation = os.path.basename(realisation)  # if realisation is a fullpath
-    return realisation.rsplit("_REL")[0]
+    return realisation.rsplit("_REL",1)[0]
 
 
 def get_realisation_name(fault_name, rel_no):
