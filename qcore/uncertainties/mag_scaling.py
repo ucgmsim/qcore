@@ -210,11 +210,11 @@ def a_to_mw_hanksbakun(a):
 
 
 def a_to_mw_skarlatoudis(a):
-    return np.log10(a) - (np.log10(1.77 * np.power(10.0, -10)) + 6.03)
+    return np.log10(a) + 3.722
 
 
 def mw_to_a_skarlatoudis(mw):
-    return 1.77 * 10 ** -10 * (10 ** ((3 * (mw + 6.03)) / 2)) ** (2 / 3)
+    return 10**(mw - 3.722)
 
 
 def lw_to_mw_stirling(l, w):
