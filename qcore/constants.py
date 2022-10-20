@@ -158,7 +158,7 @@ class ProcessType(ExtendedStrEnum):
         "IM_calc",
         False,
         False,
-        "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
+        "time {run_command} python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
         "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM} {pSA_periods}",
         ((5,), (12,), (13,)),
     )
