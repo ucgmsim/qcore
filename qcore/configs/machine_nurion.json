@@ -1,5 +1,5 @@
 {
-    "tools_dir" : "/home01/hpc11a02/gmsim/opt/nurion/hybrid_sim_tools/current",
+    "tools_dir" : "/home01/x2319a02/gmsim/opt/nurion/hybrid_sim_tools/current",
     "cores_per_node": 64,
     "MAX_NODES_PER_JOB" : 4970,
     "MAX_JOB_WCT" : 48
