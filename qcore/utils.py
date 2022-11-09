@@ -9,7 +9,7 @@ import imp
 import yaml
 from shutil import rmtree
 from collections import OrderedDict
-from collections import Mapping
+from collections.abc import Mapping
 
 
 class DotDictify(dict):
