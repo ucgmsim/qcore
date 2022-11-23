@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from datetime import datetime
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -105,6 +105,11 @@ class ExtendedStrEnum(ExtendedEnum):
             yield item.str_value
 
 
+class DependencyTarget(Enum):
+    MEDIAN = auto()
+    REL = auto()
+
+
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
 class ProcessType(ExtendedStrEnum):
     """Constants for process type. Int values are used in python workflow,
@@ -122,7 +127,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
-        (),
+        ((), (19, DependencyTarget.MEDIAN)),
     )
     merge_ts = (
         2,
@@ -130,10 +135,10 @@ class ProcessType(ExtendedStrEnum):
         True,
         False,
         "time {run_command} {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
-        (1,),
+        ((1, DependencyTarget.REL),),
     )
 
-    plot_ts = (3, "plot_ts", True, None, None, (2,))
+    plot_ts = (3, "plot_ts", True, None, None, ((2, DependencyTarget.REL),))
 
     HF = (
         4,
@@ -142,7 +147,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/workflow/calculation/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
-        (),
+        ((), (19, DependencyTarget.MEDIAN)),
     )
     BB = (
         5,
@@ -151,7 +156,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/workflow/calculation/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
-        (1, 4),
+        ((1, DependencyTarget.REL), (4, DependencyTarget.REL)),
     )
     IM_calculation = (
         6,
@@ -160,29 +165,29 @@ class ProcessType(ExtendedStrEnum):
         False,
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
         "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM} {pSA_periods}",
-        ((5,), (12,), (13,)),
+        (((5, DependencyTarget.REL),), ((12, DependencyTarget.REL),), ((13, DependencyTarget.REL),)),
     )
-    IM_plot = 7, "IM_plot", None, False, None, (6,)
-    rrup = 8, "rrup", None, False, None, ()
-    Empirical = 9, "Empirical", None, False, None, (8,)
-    Verification = 10, None, None, False, None, (9,)
-    clean_up = 11, "clean_up", None, None, None, (6,)
-    LF2BB = 12, "LF2BB", None, None, None, (1,)
-    HF2BB = 13, "HF2BB", None, None, None, (4,)
-    plot_srf = 14, "plot_srf", None, False, None, ()
+    IM_plot = 7, "IM_plot", None, False, None, ((6, DependencyTarget.REL),)
+    rrup = 8, "rrup", None, False, None, ((), (19, DependencyTarget.REL)),
+    Empirical = 9, "Empirical", None, False, None, ((8, DependencyTarget.REL),)
+    Verification = 10, None, None, False, None, ((9, DependencyTarget.REL),)
+    clean_up = 11, "clean_up", None, None, None, ((6, DependencyTarget.REL),)
+    LF2BB = 12, "LF2BB", None, None, None, ((1, DependencyTarget.REL),)
+    HF2BB = 13, "HF2BB", None, None, None, ((4, DependencyTarget.REL),)
+    plot_srf = 14, "plot_srf", None, False, None, ((), (19, DependencyTarget.REL)),
     # adv_im uses the same base code as IM_calc
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
-    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
-    VM_GEN = 17, "VM_GEN", None, False, None, (16,)
+    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ((),)
+    VM_GEN = 17, "VM_GEN", None, False, None, ((16, DependencyTarget.MEDIAN),)
     VM_PERT = (
         18,
         "VM_PERT",
         None,
         False,
         None,
-        (),
+        ((16, DependencyTarget.MEDIAN),),
     )  # Needs VM_params generated for REL_1
-    INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, (17,)
+    INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, ((17, DependencyTarget.REL),)
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
@@ -197,8 +202,8 @@ class ProcessType(ExtendedStrEnum):
         return obj
 
     def get_remaining_dependencies(
-        self, completed_dependencies: List["ProcessType"] = ()
-    ) -> List[int]:
+        self, completed_dependencies: List[("ProcessType", DependencyTarget)] = ()
+    ) -> List[Tuple["ProcessType", DependencyTarget]]:
         """Determines if the task has any unmet dependencies and returns a list of them if so. Only does single level
         dependencies, does not recurse
         :param completed_dependencies: Tasks that have been completed and therefore may contribute to this tasks
@@ -206,13 +211,13 @@ class ProcessType(ExtendedStrEnum):
         :return: A list of integers representing the unmet dependency tasks.
         """
         dependencies = self.dependencies
-        if len(self.dependencies) > 0 and not isinstance(self.dependencies[0], int):
+        if len(self.dependencies) > 0 and len(self.dependencies[0]) > 0 and not isinstance(self.dependencies[0][0], int):
             if any(
                 (
                     all(
                         (
-                            ProcessType(dependency) in completed_dependencies
-                            for dependency in multi_dependency
+                            x in completed_dependencies
+                            for x in multi_dependency
                         )
                     )
                     for multi_dependency in self.dependencies
@@ -222,19 +227,20 @@ class ProcessType(ExtendedStrEnum):
                 return []
             # Otherwise the first dependency list is the default
             dependencies = self.dependencies[0]
-        return [x for x in dependencies if ProcessType(x) not in completed_dependencies]
+        return [x for x in dependencies if x not in completed_dependencies]
 
     @staticmethod
-    def check_mutually_exclusive_tasks(tasks):
+    def check_mutually_exclusive_tasks(tasks: List[Tuple["ProcessType", DependencyTarget]]):
         """If multiple tasks from any of the given groups are specified, then the simulation cannot run
         :param tasks: The list of tasks to be run
         :return: A string containing any errors found during the check"""
         mutually_exclusive_tasks = (
             (ProcessType.BB, ProcessType.LF2BB, ProcessType.HF2BB),
         )
+        raw_tasks = [x for x, _ in tasks]
         message = []
         for task_group in mutually_exclusive_tasks:
-            if len([x for x in task_group if x in tasks]) > 1:
+            if len([x for x in task_group if x in raw_tasks]) > 1:
                 message.append(
                     "The tasks {} are mutually exclusive and cannot be run at the same time.\n".format(
                         (x.str_value for x in task_group)
