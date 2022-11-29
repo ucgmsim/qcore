@@ -121,11 +121,11 @@ class Dependency:
 
     def __init__(
         self,
-        proc_id: Union[int, "ProcessType"],
-        median: Union[bool, DependencyTarget] = False,
+        proc_id: Union[int, tuple, "ProcessType"],
+        dependency_target: DependencyTarget = DependencyTarget.REL,
     ):
         self._process = proc_id
-        self._dependency = median
+        self._dependency = dependency_target
 
     @property
     def process(self):
@@ -137,10 +137,6 @@ class Dependency:
 
     @property
     def dependency(self):
-        if self._dependency is True:
-            self._dependency = DependencyTarget.MEDIAN
-        elif self._dependency is False:
-            self._dependency = DependencyTarget.REL
         return self._dependency
 
     def __str__(self):
@@ -350,9 +346,7 @@ class ProcessType(ExtendedStrEnum):
         return [x for x in self.dependencies[0] if x not in completed_dependencies]
 
     @staticmethod
-    def check_mutually_exclusive_tasks(
-        tasks: List["ProcessType"]
-    ):
+    def check_mutually_exclusive_tasks(tasks: List["ProcessType"]):
         """If multiple tasks from any of the given groups are specified, then the simulation cannot run
         TODO: Add in more complex handling so that only mutually exclusive tasks with overlapping SQL matches get caught
         :param tasks: The list of tasks to be run
