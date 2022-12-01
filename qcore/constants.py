@@ -322,10 +322,10 @@ class ProcessType(ExtendedStrEnum):
         obj.is_hyperth = is_hyperth
         obj.uses_acc = uses_acc
         obj.command_template = command_template
-        obj.dependencies = (
+        obj.dependencies = [
             [Dependency(proc, DependencyTarget[dep]) for proc, dep in dependency_set]
             for dependency_set in dependencies
-        )
+        ]
         return obj
 
     def get_remaining_dependencies(
