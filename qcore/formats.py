@@ -105,7 +105,7 @@ def load_z_file(z_file: str):
 
 
 def load_station_ll_vs30(station_file: str, vs30_file: str):
-    """ Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
+    """Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
 
     :param station_file: Path to the station file
     :param vs30_file: Path to the vs30 file
@@ -144,7 +144,7 @@ def load_fault_selection_file(fault_selection_file):
     faults = {}
     with open(fault_selection_file) as fault_file:
         for lineno, line in enumerate(fault_file.readlines()):
-            if len(line) == 0 or len(line.lstrip()) == 0 or line.lstrip()[0] == '#':
+            if len(line) == 0 or len(line.lstrip()) == 0 or line.lstrip()[0] == "#":
                 # Line is either empty only whitespace or commented out
                 continue
             try:

@@ -14,8 +14,8 @@ OUT_PY = "out_array_srf2llv_py.bin"
 
 def srf2bin(srf_file, out_file, py_method=False):
     """srffile: path to input srf file
-       islist: srffile function return a numpy array or a list(of numpy array(s))
-       islist is true for srf2llv_py; false for srfllv. default false
+    islist: srffile function return a numpy array or a list(of numpy array(s))
+    islist is true for srf2llv_py; false for srfllv. default false
     """
 
     # load data
