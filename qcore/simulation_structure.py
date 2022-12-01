@@ -8,7 +8,8 @@ import qcore.constants as const
 
 def get_fault_from_realisation(realisation):
     realisation = os.path.basename(realisation)  # if realisation is a fullpath
-    return realisation.rsplit("_REL",1)[0]
+    return realisation.rsplit("_REL", 1)[0]
+
 
 def get_realisation_name(fault_name, rel_no):
     return "{}_REL{:0>2}".format(fault_name, rel_no)
@@ -25,7 +26,9 @@ def get_VM_dir(cybershake_root):
 
 
 def get_vm_params_path(cybershake_root, realisation):
-    return os.path.join(get_fault_VM_dir(cybershake_root, realisation), "vm_params.yaml")
+    return os.path.join(
+        get_fault_VM_dir(cybershake_root, realisation), "vm_params.yaml"
+    )
 
 
 def get_realisation_VM_dir(cybershake_root, realisation):

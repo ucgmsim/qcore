@@ -4,6 +4,7 @@ Functions that work on numpy objects.
 
 import numpy as np
 
+
 def argsearch(needles, haystack):
     """
     Allows mapping 2 arrays like DB tables to get index of one in another.
@@ -13,8 +14,9 @@ def argsearch(needles, haystack):
     """
 
     index = np.argsort(haystack)
-    needle_index = np.take(index, np.searchsorted(haystack[index], needles), \
-                           mode="clip")
+    needle_index = np.take(
+        index, np.searchsorted(haystack[index], needles), mode="clip"
+    )
 
     # unfound values are np.ma.masked
     return np.ma.array(needle_index, mask=haystack[needle_index] != needles)

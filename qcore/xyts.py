@@ -47,9 +47,16 @@ class XYTSFile:
         xytf.seek(0)
 
         # read header
-        self.x0, self.y0, self.z0, self.t0, self.nx, self.ny, self.nz, self.nt = np.fromfile(
-            xytf, dtype="%si4" % (endian), count=8
-        )
+        (
+            self.x0,
+            self.y0,
+            self.z0,
+            self.t0,
+            self.nx,
+            self.ny,
+            self.nz,
+            self.nt,
+        ) = np.fromfile(xytf, dtype="%si4" % (endian), count=8)
         self.dx, self.dy, self.hh, dt, self.mrot, self.mlat, self.mlon = np.fromfile(
             xytf, dtype="%sf4" % (endian), count=7
         )
@@ -168,7 +175,7 @@ class XYTSFile:
         z = self.data[step, 2, :, :] * -1
 
         if comp < 0:
-            wanted = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+            wanted = np.sqrt(x**2 + y**2 + z**2)
         elif comp == 0:
             wanted = x
         elif comp == 1:

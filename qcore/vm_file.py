@@ -74,7 +74,9 @@ class VelocityModelFile:
 
     _data: np.ndarray = None
 
-    def __init__(self, nx: int, ny: int, nz: int, file_loc=None, writable=False, memmap=False):
+    def __init__(
+        self, nx: int, ny: int, nz: int, file_loc=None, writable=False, memmap=False
+    ):
         """
         Creates a object that represents a velocity model binary file as used by EMOD3D
         These files contain nx*ny*nz single precision floats, stored in the order ny, nz, nx
@@ -131,9 +133,13 @@ class VelocityModelFile:
 
         if self._memmap:
             mode = "r" if self.read_only else "r+"
-            self._data = np.memmap(self.file_path, dtype=DISK_DTYPE, mode=mode, shape=self.emod_shape)
+            self._data = np.memmap(
+                self.file_path, dtype=DISK_DTYPE, mode=mode, shape=self.emod_shape
+            )
         else:
-            self._data = np.fromfile(self.file_path, DISK_DTYPE).reshape(self.emod_shape)
+            self._data = np.fromfile(self.file_path, DISK_DTYPE).reshape(
+                self.emod_shape
+            )
         self._data_state = DataState.EMOD3D
         self._change_data_state(DataState.NUMPY)
 
@@ -152,7 +158,9 @@ class VelocityModelFile:
                 self.file_path = filepath
             if self.file_path is None:
                 raise AttributeError("filepath must be set for memmap mode to be used")
-            self._data = np.memmap(filepath, shape=self.shape, dtype=DISK_DTYPE, mode="w+")
+            self._data = np.memmap(
+                filepath, shape=self.shape, dtype=DISK_DTYPE, mode="w+"
+            )
             self._data.fill(0)
         else:
             self._data = np.zeros(self.shape, dtype=SINGLE_DTYPE)

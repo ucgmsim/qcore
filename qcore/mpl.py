@@ -31,9 +31,9 @@ def save_figure(fig, out_dir, basename, png=True, eps=False, close=False):
                 raise
 
     if png:
-        fig.savefig('%s.png' % (path))
+        fig.savefig("%s.png" % (path))
     if eps:
-        fig.savefig('%s.eps' % (path))
+        fig.savefig("%s.eps" % (path))
 
     if close:
         plt.close(fig)
@@ -51,11 +51,18 @@ def show_legend(centre=False, extra_labels={}):
     by_label.update(extra_labels)
 
     if centre:
-        plt.legend(by_label.values(), by_label.keys(), loc='upper center', \
-                   bbox_to_anchor=(0.5, 1.05), mode='expand', \
-                   ncol=3, fancybox=True, shadow=True)
+        plt.legend(
+            by_label.values(),
+            by_label.keys(),
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.05),
+            mode="expand",
+            ncol=3,
+            fancybox=True,
+            shadow=True,
+        )
     else:
-        plt.legend(by_label.values(), by_label.keys(), loc='best', fontsize=9)
+        plt.legend(by_label.values(), by_label.keys(), loc="best", fontsize=9)
 
 
 def convert_strings_to_floats(string_list):
@@ -70,7 +77,7 @@ def convert_strings_to_floats(string_list):
         """
         Returns all floats in comma seperated number string.
         """
-        floats = map(float, number_string.split(','))
+        floats = map(float, number_string.split(","))
         if len(floats) == 1:
             return floats[0]
         return floats

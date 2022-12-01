@@ -72,7 +72,7 @@ DIR_NAME = os.path.join(
 
 
 def setup_module(scope="module"):
-    """ create a tmp directory for storing output from test"""
+    """create a tmp directory for storing output from test"""
     print("----------setup_module----------")
     try:
         os.mkdir(DIR_NAME)
@@ -82,7 +82,7 @@ def setup_module(scope="module"):
 
 
 def teardown_module():
-    """ delete the tmp directory if it is empty"""
+    """delete the tmp directory if it is empty"""
     print("---------teardown_module------------")
     if len(os.listdir(DIR_NAME)) == 0:
         try:
@@ -120,7 +120,7 @@ def teardown_module():
     ],
 )
 def test_plane(plane, expected_values):
-    """ Tests for the header lines  """
+    """Tests for the header lines"""
     for i in range(len(HEADERS)):
         assert plane[HEADERS[i]] == expected_values[i]
 
@@ -173,11 +173,12 @@ def test_read_latlondepth(
     points = srf.read_latlondepth(test_srf)
     assert points[9] == expected_latlondepth  # 10th point in the srf file
 
+
 @pytest.mark.parametrize(
     "test_srf, expected_result",
     [
         (SRF_1_PATH, np.array([176.2414, -38.3354, 0.0431])),
-        (SRF_2_PATH, np.array([176.7958, -37.1105, 0.0381]))
+        (SRF_2_PATH, np.array([176.7958, -37.1105, 0.0381])),
     ],
 )
 def test_read_srf_points(test_srf, expected_result):
