@@ -121,11 +121,11 @@ class Dependency:
 
     def __init__(
         self,
-        proc_id: Union[int, "ProcessType"],
-        median: Union[bool, DependencyTarget] = False,
+        proc_id: Union[int, tuple, "ProcessType"],
+        dependency_target: DependencyTarget = DependencyTarget.REL,
     ):
         self._process = proc_id
-        self._dependency = median
+        self._dependency = dependency_target
 
     @property
     def process(self):
@@ -137,10 +137,6 @@ class Dependency:
 
     @property
     def dependency(self):
-        if self._dependency is True:
-            self._dependency = DependencyTarget.MEDIAN
-        elif self._dependency is False:
-            self._dependency = DependencyTarget.REL
         return self._dependency
 
     def __str__(self):
@@ -168,14 +164,14 @@ class ProcessType(ExtendedStrEnum):
     # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
-    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ((),)
+    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ([],)
     VM_GEN = (
         17,
         "VM_GEN",
         None,
         False,
         None,
-        ((Dependency(VM_PARAMS, DependencyTarget.MEDIAN),),),
+        ([(VM_PARAMS, "MEDIAN")],),
     )
     VM_PERT = (
         18,
@@ -183,7 +179,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ((Dependency(VM_PARAMS, DependencyTarget.MEDIAN),),),
+        ([(VM_PARAMS, "MEDIAN")],),
     )  # Needs VM_params generated for REL_1
     INSTALL_FAULT = (
         19,
@@ -191,7 +187,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ((Dependency(VM_GEN, DependencyTarget.MEDIAN),),),
+        ([(VM_GEN, "MEDIAN")],),
     )
 
     EMOD3D = (
@@ -200,7 +196,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
-        ((), (Dependency(INSTALL_FAULT, DependencyTarget.MEDIAN),)),
+        ([], [(INSTALL_FAULT, "MEDIAN")]),
     )
     merge_ts = (
         2,
@@ -208,7 +204,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         False,
         "time {run_command} {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
-        ((Dependency(EMOD3D, DependencyTarget.REL),),),
+        ([(EMOD3D, "REL")],),
     )
 
     plot_ts = (
@@ -217,7 +213,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         None,
         None,
-        ((Dependency(merge_ts, DependencyTarget.REL),),),
+        ([(merge_ts, "REL")],),
     )
 
     HF = (
@@ -227,7 +223,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/workflow/calculation/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
-        ((), (Dependency(INSTALL_FAULT, DependencyTarget.MEDIAN),)),
+        ([], [(INSTALL_FAULT, "MEDIAN")]),
     )
     BB = (
         5,
@@ -237,10 +233,10 @@ class ProcessType(ExtendedStrEnum):
         "{run_command} python $gmsim/workflow/workflow/calculation/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
         (
-            (
-                Dependency(EMOD3D, DependencyTarget.REL),
-                Dependency(HF, DependencyTarget.REL),
-            ),
+            [
+                (EMOD3D, "REL"),
+                (HF, "REL"),
+            ],
         ),
     )
     LF2BB = (
@@ -249,9 +245,9 @@ class ProcessType(ExtendedStrEnum):
         None,
         None,
         None,
-        ((Dependency(EMOD3D, DependencyTarget.REL),),),
+        ([(EMOD3D, "REL")],),
     )
-    HF2BB = 13, "HF2BB", None, None, None, ((Dependency(HF, DependencyTarget.REL),),)
+    HF2BB = 13, "HF2BB", None, None, None, ([(HF, "REL")],)
     IM_calculation = (
         6,
         "IM_calc",
@@ -260,9 +256,9 @@ class ProcessType(ExtendedStrEnum):
         "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
         "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM} {pSA_periods}",
         (
-            (Dependency(BB, DependencyTarget.REL),),
-            (Dependency(LF2BB, DependencyTarget.REL),),
-            (Dependency(HF2BB, DependencyTarget.REL),),
+            [(BB, "REL")],
+            [(LF2BB, "REL")],
+            [(HF2BB, "REL")],
         ),
     )
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
@@ -272,7 +268,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ((Dependency(IM_calculation, DependencyTarget.REL),),),
+        ([(IM_calculation, "REL")],),
     )
     rrup = (
         8,
@@ -280,7 +276,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ((), (Dependency(INSTALL_FAULT, DependencyTarget.REL),)),
+        ([], [(INSTALL_FAULT, "REL")]),
     )
     Empirical = (
         9,
@@ -288,7 +284,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ((Dependency(rrup, DependencyTarget.REL),),),
+        ([(rrup, "REL")],),
     )
     Verification = (
         10,
@@ -296,7 +292,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ((Dependency(Empirical, DependencyTarget.REL),),),
+        ([(Empirical, "REL")],),
     )
     clean_up = (
         11,
@@ -304,7 +300,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         None,
         None,
-        ((Dependency(IM_calculation, DependencyTarget.REL),),),
+        ([(IM_calculation, "REL")],),
     )
 
     plot_srf = (
@@ -313,7 +309,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ((), (Dependency(INSTALL_FAULT, DependencyTarget.REL),)),
+        ([], [(INSTALL_FAULT, "REL")]),
     )
     # adv_im uses the same base code as IM_calc
 
@@ -326,7 +322,10 @@ class ProcessType(ExtendedStrEnum):
         obj.is_hyperth = is_hyperth
         obj.uses_acc = uses_acc
         obj.command_template = command_template
-        obj.dependencies = dependencies
+        obj.dependencies = [
+            [Dependency(proc, DependencyTarget[dep]) for proc, dep in dependency_set]
+            for dependency_set in dependencies
+        ]
         return obj
 
     def get_remaining_dependencies(
@@ -350,9 +349,7 @@ class ProcessType(ExtendedStrEnum):
         return [x for x in self.dependencies[0] if x not in completed_dependencies]
 
     @staticmethod
-    def check_mutually_exclusive_tasks(
-        tasks: List["ProcessType"]
-    ):
+    def check_mutually_exclusive_tasks(tasks: List["ProcessType"]):
         """If multiple tasks from any of the given groups are specified, then the simulation cannot run
         TODO: Add in more complex handling so that only mutually exclusive tasks with overlapping SQL matches get caught
         :param tasks: The list of tasks to be run

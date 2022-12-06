@@ -144,12 +144,22 @@ def load_fault_selection_file(fault_selection_file):
     faults = {}
     with open(fault_selection_file) as fault_file:
         for lineno, line in enumerate(fault_file.readlines()):
+            if len(line) == 0 or len(line.lstrip()) == 0 or line.lstrip()[0] == "#":
+                # Line is either empty only whitespace or commented out
+                continue
             try:
-                fault, count = line.split()
-                if count.endswith("r"):
-                    count = int(count[:-1])
+                line_parts = line.split()
+                fault = line_parts[0]
+                if len(line_parts) == 1:
+                    count = 0
+                elif len(line_parts) == 2:
+                    count = line_parts[1]
+                    if count.endswith("r"):
+                        count = int(count[:-1])
+                    else:
+                        count = int(count)
                 else:
-                    count = int(count)
+                    raise ValueError()
             except ValueError:
                 raise ValueError(
                     "Error encountered on line {lineno} when loading fault selection file {fault_selection_file}. "
