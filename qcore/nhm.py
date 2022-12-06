@@ -25,7 +25,7 @@ Row 13+: Location Coordinates (Long, Lat)
 """
 
 # This mu is used to calculated Moment Rate
-MU = 3.0 * 10.0 ** 10.0
+MU = 3.0 * 10.0**10.0
 
 
 @dataclass
@@ -259,31 +259,33 @@ def load_nhm_df(nhm_ffp, erf_name=None):
         erf_suffix = f"_{erf_name}"
 
     rupture_dict = {
-        f"{info.name}{erf_suffix}":
-            {"name": info.name,
-             "tectonic_type": info.tectonic_type,
-             "length": info.length,
-             "length_sigma": info.length_sigma,
-             "dip": info.dip,
-             "dip_sigma": info.dip_sigma,
-             "dip_dir": info.dip_dir,
-             "rake": info.rake,
-             "dbottom": info.dbottom,
-             "dbottom_sigma": info.dbottom_sigma,
-             "dtop": info.dtop,
-             "dtop_min": info.dtop_min,
-             "dtop_max": info.dtop_max,
-             "slip_rate": info.slip_rate,
-             "slip_rate_sigma": info.slip_rate_sigma,
-             "coupling_coeff": info.coupling_coeff,
-             "coupling_coeff_sigma": info.coupling_coeff_sigma,
-             "mw": info.mw,
-             "recur_int_median": info.recur_int_median if info.recur_int_median > 0 else float("nan"),
-             "exceedance": 1 / info.recur_int_median if info.recur_int_median > 0 else float("nan"),
-             }
+        f"{info.name}{erf_suffix}": {
+            "name": info.name,
+            "tectonic_type": info.tectonic_type,
+            "length": info.length,
+            "length_sigma": info.length_sigma,
+            "dip": info.dip,
+            "dip_sigma": info.dip_sigma,
+            "dip_dir": info.dip_dir,
+            "rake": info.rake,
+            "dbottom": info.dbottom,
+            "dbottom_sigma": info.dbottom_sigma,
+            "dtop": info.dtop,
+            "dtop_min": info.dtop_min,
+            "dtop_max": info.dtop_max,
+            "slip_rate": info.slip_rate,
+            "slip_rate_sigma": info.slip_rate_sigma,
+            "coupling_coeff": info.coupling_coeff,
+            "coupling_coeff_sigma": info.coupling_coeff_sigma,
+            "mw": info.mw,
+            "recur_int_median": info.recur_int_median
+            if info.recur_int_median > 0
+            else float("nan"),
+            "exceedance": 1 / info.recur_int_median
+            if info.recur_int_median > 0
+            else float("nan"),
+        }
         for key, info in nhm_infos.items()
     }
 
-    return pd.DataFrame.from_dict(
-        rupture_dict, orient="index"
-    ).sort_index()
+    return pd.DataFrame.from_dict(rupture_dict, orient="index").sort_index()

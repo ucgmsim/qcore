@@ -57,9 +57,7 @@ def get_corners(model_params, gmt_format=False):
     return corners, cnr_str
 
 
-def non_blocking_exe(
-    cmd, debug=True, shell=False, stdout=True, stderr=True, **kwargs
-):
+def non_blocking_exe(cmd, debug=True, shell=False, stdout=True, stderr=True, **kwargs):
     # always split for consistency
     if type(cmd) == str:
         cmd = cmd.split(" ")
