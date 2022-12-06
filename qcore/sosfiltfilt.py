@@ -5,14 +5,25 @@ Functions copied from scipy git 13/07/2016 9AM NZST.
 
 from numpy import atleast_2d
 from scipy.signal import sosfilt, sosfilt_zi
-from scipy.signal._arraytools import axis_slice, axis_reverse, odd_ext, even_ext, const_ext
+from scipy.signal._arraytools import (
+    axis_slice,
+    axis_reverse,
+    odd_ext,
+    even_ext,
+    const_ext,
+)
+
 
 def _validate_pad(padtype, padlen, x, axis, ntaps):
     """Helper to validate padding for filtfilt"""
-    if padtype not in ['even', 'odd', 'constant', None]:
-        raise ValueError(("Unknown value '%s' given to padtype.  padtype "
-                          "must be 'even', 'odd', 'constant', or None.") %
-                         padtype)
+    if padtype not in ["even", "odd", "constant", None]:
+        raise ValueError(
+            (
+                "Unknown value '%s' given to padtype.  padtype "
+                "must be 'even', 'odd', 'constant', or None."
+            )
+            % padtype
+        )
 
     if padtype is None:
         padlen = 0
@@ -25,15 +36,17 @@ def _validate_pad(padtype, padlen, x, axis, ntaps):
 
     # x's 'axis' dimension must be bigger than edge.
     if x.shape[axis] <= edge:
-        raise ValueError("The length of the input vector x must be at least "
-                         "padlen, which is %d." % edge)
+        raise ValueError(
+            "The length of the input vector x must be at least "
+            "padlen, which is %d." % edge
+        )
 
     if padtype is not None and edge > 0:
         # Make an extension of length `edge` at each
         # end of the input array.
-        if padtype == 'even':
+        if padtype == "even":
             ext = even_ext(x, edge, axis=axis)
-        elif padtype == 'odd':
+        elif padtype == "odd":
             ext = odd_ext(x, edge, axis=axis)
         else:
             ext = const_ext(x, edge, axis=axis)
@@ -41,7 +54,8 @@ def _validate_pad(padtype, padlen, x, axis, ntaps):
         ext = x
     return edge, ext
 
-def sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
+
+def sosfiltfilt(sos, x, axis=-1, padtype="odd", padlen=None):
     """
     A forward-backward filter using cascaded second-order sections.
     See `filtfilt` for more complete information about this method.
@@ -90,8 +104,7 @@ def sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
     # `method` is "pad"...
     ntaps = 2 * n_sections + 1
     ntaps -= min((sos[:, 2] == 0).sum(), (sos[:, 5] == 0).sum())
-    edge, ext = _validate_pad(padtype, padlen, x, axis,
-                              ntaps=ntaps)
+    edge, ext = _validate_pad(padtype, padlen, x, axis, ntaps=ntaps)
 
     # These steps follow the same form as filtfilt with modifications
     zi = sosfilt_zi(sos)  # shape (n_sections, 2) --> (n_sections, ..., 2, ...)
@@ -107,14 +120,15 @@ def sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
         y = axis_slice(y, start=edge, stop=-edge, axis=axis)
     return y
 
+
 def _validate_sos(sos):
     """Helper to validate a SOS input"""
     sos = atleast_2d(sos)
     if sos.ndim != 2:
-        raise ValueError('sos array must be 2D')
+        raise ValueError("sos array must be 2D")
     n_sections, m = sos.shape
     if m != 6:
-        raise ValueError('sos array must be shape (n_sections, 6)')
+        raise ValueError("sos array must be shape (n_sections, 6)")
     if not (sos[:, 3] == 1).all():
-        raise ValueError('sos[:, 3] should be all ones')
+        raise ValueError("sos[:, 3] should be all ones")
     return sos, n_sections

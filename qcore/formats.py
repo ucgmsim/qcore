@@ -105,7 +105,7 @@ def load_z_file(z_file: str):
 
 
 def load_station_ll_vs30(station_file: str, vs30_file: str):
-    """ Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
+    """Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
 
     :param station_file: Path to the station file
     :param vs30_file: Path to the vs30 file

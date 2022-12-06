@@ -18,7 +18,9 @@ class InputError(Exception):
     pass
 
 
-def get_distances(locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]):
+def get_distances(
+    locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
+):
     """
     Calculates the distance between the array of locations and
     the specified reference location / locations
@@ -382,7 +384,7 @@ def ll_mid(lon1, lat1, lon2, lat2):
     Bx = cos(lat2) * cos(dlon)
     By = cos(lat2) * sin(dlon)
 
-    lat3 = atan2(sin(lat1) + sin(lat2), sqrt((cos(lat1) + Bx) ** 2 + By ** 2))
+    lat3 = atan2(sin(lat1) + sin(lat2), sqrt((cos(lat1) + Bx) ** 2 + By**2))
     lon3 = lon1 + atan2(By, cos(lat1) + Bx)
 
     return degrees(lon3), degrees(lat3)
@@ -632,15 +634,15 @@ def wgs_nztm2000x(points):
     es = (f + f) - (f * f)
 
     # conversion specific
-    A_0 = 1 - es / 4.0 - 3 * es ** 2 / 64.0 - 5 * es ** 3 / 256.0
-    A_2 = 3 / 8.0 * (es + es ** 2 / 4.0 + 15 * es ** 3 / 128.0)
-    A_4 = 15 / 256.0 * (es ** 2 + 3 * es ** 3 / 4.0)
-    A_6 = 35 * es ** 3 / 3072.0
+    A_0 = 1 - es / 4.0 - 3 * es**2 / 64.0 - 5 * es**3 / 256.0
+    A_2 = 3 / 8.0 * (es + es**2 / 4.0 + 15 * es**3 / 128.0)
+    A_4 = 15 / 256.0 * (es**2 + 3 * es**3 / 4.0)
+    A_6 = 35 * es**3 / 3072.0
     m_0 = a * (
         A_0 * lat_0 - A_2 * sin(2 * lat_0) + A_4 * sin(4 * lat_0) - A_6 * sin(6 * lat_0)
     )
     n = (a - b) / (a + b)
-    G = a * (1 - n) * (1 - n ** 2) * radians(1 + 9 * n ** 2 / 4.0 + 225 * n ** 4 / 64.0)
+    G = a * (1 - n) * (1 - n**2) * radians(1 + 9 * n**2 / 4.0 + 225 * n**4 / 64.0)
 
     ###
     ### process all points
@@ -652,10 +654,10 @@ def wgs_nztm2000x(points):
         sigma = np.radians(m_prime) * 1 / G
         phi_prime = (
             sigma
-            + (3 * n / 2.0 - 27 * n ** 3 / 32.0) * np.sin(2 * sigma)
-            + (21 * n ** 2 / 16.0 - 55 * n ** 4 / 32.0) * np.sin(4 * sigma)
-            + (151 * n ** 3 / 96.0) * np.sin(6 * sigma)
-            + (1097 * n ** 4 / 512.0) * np.sin(8 * sigma)
+            + (3 * n / 2.0 - 27 * n**3 / 32.0) * np.sin(2 * sigma)
+            + (21 * n**2 / 16.0 - 55 * n**4 / 32.0) * np.sin(4 * sigma)
+            + (151 * n**3 / 96.0) * np.sin(6 * sigma)
+            + (1097 * n**4 / 512.0) * np.sin(8 * sigma)
         )
         y_factors = phi_prime
     else:
@@ -675,7 +677,7 @@ def wgs_nztm2000x(points):
     psi = nu / rho
     t = np.tan(y_factors)
     if wgs_out:
-        rs = rho * nu * k_0 ** 2
+        rs = rho * nu * k_0**2
         x = E_prime / (k_0 * nu)
 
         # terms for the north coordinates
@@ -684,56 +686,56 @@ def wgs_nztm2000x(points):
             t
             / (k_0 * rho)
             * E_prime
-            * x ** 3
+            * x**3
             / 24.0
-            * (-4 * psi ** 2 + 9 * psi * (1 - t ** 2) + 12 * t ** 2)
+            * (-4 * psi**2 + 9 * psi * (1 - t**2) + 12 * t**2)
         )
         T3_N = (
             t
             / (k_0 * rho)
             * E_prime
-            * x ** 5
+            * x**5
             / 720.0
             * (
-                8 * psi ** 4 * (11 - 24 * t ** 2)
-                - 12 * psi ** 3 * (21 - 7 * t ** 2)
-                + 15 * psi ** 2 * (15 - 98 * t ** 2 + 15 * t ** 4)
-                + 180 * psi * (5 * t ** 2 - 3 * t ** 4)
-                + 360 * t ** 4
+                8 * psi**4 * (11 - 24 * t**2)
+                - 12 * psi**3 * (21 - 7 * t**2)
+                + 15 * psi**2 * (15 - 98 * t**2 + 15 * t**4)
+                + 180 * psi * (5 * t**2 - 3 * t**4)
+                + 360 * t**4
             )
         )
         T4_N = (
             t
             / (k_0 * rho)
             * E_prime
-            * x ** 7
+            * x**7
             / 40320.0
-            * (1385 + 3633 * t ** 2 + 4095 * t ** 4 + 1575 * t ** 6)
+            * (1385 + 3633 * t**2 + 4095 * t**4 + 1575 * t**6)
         )
         # north coordinates
         y = y_factors - T1_N + T2_N - T3_N + T4_N
 
         # terms for the east coordinates
         T1_E = x * 1 / np.cos(y_factors)
-        T2_E = x ** 3 * 1 / np.cos(y_factors) / 6 * (psi + 2 * t ** 2)
+        T2_E = x**3 * 1 / np.cos(y_factors) / 6 * (psi + 2 * t**2)
         T3_E = (
-            x ** 5
+            x**5
             * 1
             / np.cos(y_factors)
             / 120
             * (
-                -4 * psi ** 3 * (1 - 6 * t ** 2)
-                + psi ** 2 * (9 - 68 * t ** 2)
-                + 72 * psi * t ** 2
-                + 24 * t ** 4
+                -4 * psi**3 * (1 - 6 * t**2)
+                + psi**2 * (9 - 68 * t**2)
+                + 72 * psi * t**2
+                + 24 * t**4
             )
         )
         T4_E = (
-            x ** 7
+            x**7
             * 1
             / np.cos(y_factors)
             / 5040
-            * (61 + 662 * t ** 2 + 1320 * t ** 4 + 720 * t ** 6)
+            * (61 + 662 * t**2 + 1320 * t**4 + 720 * t**6)
         )
         # east coordinates
         x = lon_0 + T1_E - T2_E + T3_E - T4_E
@@ -741,53 +743,53 @@ def wgs_nztm2000x(points):
         return np.dstack((np.degrees(x), np.degrees(y)))[0]
 
     # terms for the north coordinates
-    T1_N = (omega ** 2 / 2.0) * nu * np.sin(y_factors) * np.cos(y_factors)
+    T1_N = (omega**2 / 2.0) * nu * np.sin(y_factors) * np.cos(y_factors)
     T2_N = (
-        (omega ** 4 / 24.0)
+        (omega**4 / 24.0)
         * nu
         * np.sin(y_factors)
         * np.cos(y_factors) ** 3
-        * (4 * psi ** 2 + psi - t ** 2)
+        * (4 * psi**2 + psi - t**2)
     )
     T3_N = (
-        (omega ** 6 / 720.0)
+        (omega**6 / 720.0)
         * nu
         * np.sin(y_factors)
         * np.cos(y_factors) ** 5
         * (
-            8 * psi ** 4 * (11 - 24 * t ** 2)
-            - 28 * psi ** 3 * (1 - 6 * t ** 2)
-            + psi ** 2 * (1 - 32 * t ** 2)
-            - psi * (2 * t ** 2)
-            + t ** 4
+            8 * psi**4 * (11 - 24 * t**2)
+            - 28 * psi**3 * (1 - 6 * t**2)
+            + psi**2 * (1 - 32 * t**2)
+            - psi * (2 * t**2)
+            + t**4
         )
     )
     T4_N = (
-        (omega ** 8 / 40320.0)
+        (omega**8 / 40320.0)
         * nu
         * np.sin(y_factors)
         * np.cos(y_factors) ** 7
-        * (1385 - 3111 * t ** 2 + 543 * t ** 4 - t ** 6)
+        * (1385 - 3111 * t**2 + 543 * t**4 - t**6)
     )
     # north coordinates
     lat = y_0 + k_0 * (m - m_0 + T1_N + T2_N + T3_N + T4_N)
 
     # terms for the east coordinates
-    T1_E = (omega ** 2 / 6.0) * np.cos(y_factors) ** 2 * (psi - t ** 2)
+    T1_E = (omega**2 / 6.0) * np.cos(y_factors) ** 2 * (psi - t**2)
     T2_E = (
-        (omega ** 4 / 120.0)
+        (omega**4 / 120.0)
         * np.cos(y_factors) ** 4
         * (
-            4 * psi ** 3 * (1 - 6 * t ** 2)
-            + psi ** 2 * (1 + 8 * t ** 2)
-            - psi * 2 * t ** 2
-            + t ** 4
+            4 * psi**3 * (1 - 6 * t**2)
+            + psi**2 * (1 + 8 * t**2)
+            - psi * 2 * t**2
+            + t**4
         )
     )
     T3_E = (
-        (omega ** 6 / 5040.0)
+        (omega**6 / 5040.0)
         * np.cos(y_factors) ** 6
-        * (61 - 479 * t ** 2 + 179 * t ** 4 - t ** 6)
+        * (61 - 479 * t**2 + 179 * t**4 - t**6)
     )
     # east coordinates
     lon = x_0 + k_0 * nu * omega * np.cos(y_factors) * (1 + T1_E + T2_E + T3_E)

@@ -344,9 +344,7 @@ def ba18_amp(
     :return:
     """
     if vs > 1000:
-        vs = (
-            999
-        )  # maximum vs30 supported by the model is 999, so caps the vsite to that value
+        vs = 999  # maximum vs30 supported by the model is 999, so caps the vsite to that value
 
     # overwrite these two values to their default value, so changes by the caller function do not override this
     fmin = 0.00001
@@ -472,7 +470,7 @@ def hashash_get_pgv(fnorm, mag, rrup, ztor):
     lnfasrock5Hz += coefs.b4[i5] * np.log(
         rrup + coefs.b5[i5] * np.cosh(coefs.b6[i5] * max(mag - coefs.bhm[i5], 0))
     )
-    lnfasrock5Hz += (b4a - coefs.b4[i5]) * np.log(np.sqrt(rrup ** 2 + 50 ** 2))
+    lnfasrock5Hz += (b4a - coefs.b4[i5]) * np.log(np.sqrt(rrup**2 + 50**2))
     lnfasrock5Hz += coefs.b7[i5] * rrup
     lnfasrock5Hz += coefs.b9[i5] * min(ztor, 20)
     lnfasrock5Hz += coefs.b10[i5] * fnorm

@@ -169,14 +169,14 @@ def add_buffer_handler(
     file_name: str = None,
 ):
     """
-        Adds a buffer handler to the logger.
-        Useful for log files that are written to the output directory if that directory does not exist yet
-        :param logger: The logger object
-        :param buffer_size: The number of messages to buffer before a flush is forced
-        :param flush_level: The minimum level of a message to cause the handler to be flushed early.
-        Defaults to a value that won't be reached by normal log levels to prevent premature flushing
-        :param file_name: The name of the log file to be used when it is available
-        """
+    Adds a buffer handler to the logger.
+    Useful for log files that are written to the output directory if that directory does not exist yet
+    :param logger: The logger object
+    :param buffer_size: The number of messages to buffer before a flush is forced
+    :param flush_level: The minimum level of a message to cause the handler to be flushed early.
+    Defaults to a value that won't be reached by normal log levels to prevent premature flushing
+    :param file_name: The name of the log file to be used when it is available
+    """
     # Flush level should be high enough that flush is not called for regular messages
     buffer_handler = MemoryHandler(buffer_size, flushLevel=flush_level)
     if logger.name.startswith(THREADED):
