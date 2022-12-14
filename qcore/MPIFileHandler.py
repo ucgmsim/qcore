@@ -55,10 +55,10 @@ class MPIFileHandler(logging.FileHandler):
         traceback.print_exception and appended to the stream.  If the stream
         has an 'encoding' attribute, it is used to determine how to do the
         output to the stream.
-        
+
         Modification:
             stream is MPI.File, so it must use `Write_shared` method rather
-            than `write` method. And `Write_shared` method only accept 
+            than `write` method. And `Write_shared` method only accept
             bytestring, so `encode` is used. `Write_shared` should be invoked
             only once in each all of this emit function to keep atomicity.
         """

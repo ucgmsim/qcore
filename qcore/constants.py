@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from datetime import datetime
-from typing import List
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -105,6 +105,54 @@ class ExtendedStrEnum(ExtendedEnum):
             yield item.str_value
 
 
+class DependencyTarget(Enum):
+    MEDIAN = auto()
+    REL = auto()
+
+
+class Dependency:
+    """
+    A ProcessType, DependencyTarget pair.
+    With just in time generation to prevent circular declarations with the ProcessType enum
+    """
+
+    _process: "ProcessType"
+    _dependency: DependencyTarget
+
+    def __init__(
+        self,
+        proc_id: Union[int, tuple, "ProcessType"],
+        dependency_target: DependencyTarget = DependencyTarget.REL,
+    ):
+        self._process = proc_id
+        self._dependency = dependency_target
+
+    @property
+    def process(self):
+        if isinstance(self._process, int):
+            self._process = ProcessType(self._process)
+        elif isinstance(self._process, tuple):
+            self._process = ProcessType(self._process[0])
+        return self._process
+
+    @property
+    def dependency(self):
+        return self._dependency
+
+    def __str__(self):
+        return f"{self.process.name}_{self.dependency.name}"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Dependency)
+            and self.process == other.process
+            and self.dependency == other.dependency
+        )
+
+
 # Process 1-5 are simulation 6-7 are Intensity Measure and 8-10 are simulation verification
 class ProcessType(ExtendedStrEnum):
     """Constants for process type. Int values are used in python workflow,
@@ -116,13 +164,39 @@ class ProcessType(ExtendedStrEnum):
     # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
+    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ([],)
+    VM_GEN = (
+        17,
+        "VM_GEN",
+        None,
+        False,
+        None,
+        ([(VM_PARAMS, "MEDIAN")],),
+    )
+    VM_PERT = (
+        18,
+        "VM_PERT",
+        None,
+        False,
+        None,
+        ([(VM_PARAMS, "MEDIAN")],),
+    )  # Needs VM_params generated for REL_1
+    INSTALL_FAULT = (
+        19,
+        "INSTALL_FAULT",
+        None,
+        False,
+        None,
+        ([(VM_GEN, "MEDIAN")],),
+    )
+
     EMOD3D = (
         1,
         "EMOD3D",
         False,
         False,
         '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
-        (),
+        ([], [(INSTALL_FAULT, "MEDIAN")]),
     )
     merge_ts = (
         2,
@@ -130,10 +204,17 @@ class ProcessType(ExtendedStrEnum):
         True,
         False,
         "time {run_command} {merge_ts_path} filelist=$filelist outfile=$OUTFILE nfiles=$NFILES",
-        (1,),
+        ([(EMOD3D, "REL")],),
     )
 
-    plot_ts = (3, "plot_ts", True, None, None, (2,))
+    plot_ts = (
+        3,
+        "plot_ts",
+        True,
+        None,
+        None,
+        ([(merge_ts, "REL")],),
+    )
 
     HF = (
         4,
@@ -142,7 +223,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/workflow/calculation/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
-        (),
+        ([], [(INSTALL_FAULT, "MEDIAN")]),
     )
     BB = (
         5,
@@ -151,8 +232,22 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/workflow/calculation/bb_sim.py {outbin_dir} {vel_mod_dir} {hf_bin_path} {stat_vs_est} "
         "{bb_bin_path} --flo {flo}",
-        (1, 4),
+        (
+            [
+                (EMOD3D, "REL"),
+                (HF, "REL"),
+            ],
+        ),
     )
+    LF2BB = (
+        12,
+        "LF2BB",
+        None,
+        None,
+        None,
+        ([(EMOD3D, "REL")],),
+    )
+    HF2BB = 13, "HF2BB", None, None, None, ([(HF, "REL")],)
     IM_calculation = (
         6,
         "IM_calc",
@@ -160,29 +255,63 @@ class ProcessType(ExtendedStrEnum):
         False,
         "time {run_command} python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
         "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM} {pSA_periods}",
-        ((5,), (12,), (13,)),
+        (
+            [(BB, "REL")],
+            [(LF2BB, "REL")],
+            [(HF2BB, "REL")],
+        ),
     )
-    IM_plot = 7, "IM_plot", None, False, None, (6,)
-    rrup = 8, "rrup", None, False, None, ()
-    Empirical = 9, "Empirical", None, False, None, (8,)
-    Verification = 10, None, None, False, None, (9,)
-    clean_up = 11, "clean_up", None, None, None, (6,)
-    LF2BB = 12, "LF2BB", None, None, None, (1,)
-    HF2BB = 13, "HF2BB", None, None, None, (4,)
-    plot_srf = 14, "plot_srf", None, False, None, ()
-    # adv_im uses the same base code as IM_calc
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
-    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ()
-    VM_GEN = 17, "VM_GEN", None, False, None, (16,)
-    VM_PERT = (
-        18,
-        "VM_PERT",
+    IM_plot = (
+        7,
+        "IM_plot",
         None,
         False,
         None,
-        (),
-    )  # Needs VM_params generated for REL_1
-    INSTALL_FAULT = 19, "INSTALL_FAULT", None, False, None, (17,)
+        ([(IM_calculation, "REL")],),
+    )
+    rrup = (
+        8,
+        "rrup",
+        None,
+        False,
+        None,
+        ([], [(INSTALL_FAULT, "REL")]),
+    )
+    Empirical = (
+        9,
+        "Empirical",
+        None,
+        False,
+        None,
+        ([(rrup, "REL")],),
+    )
+    Verification = (
+        10,
+        None,
+        None,
+        False,
+        None,
+        ([(Empirical, "REL")],),
+    )
+    clean_up = (
+        11,
+        "clean_up",
+        None,
+        None,
+        None,
+        ([(IM_calculation, "REL")],),
+    )
+
+    plot_srf = (
+        14,
+        "plot_srf",
+        None,
+        False,
+        None,
+        ([], [(INSTALL_FAULT, "REL")]),
+    )
+    # adv_im uses the same base code as IM_calc
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
@@ -193,40 +322,36 @@ class ProcessType(ExtendedStrEnum):
         obj.is_hyperth = is_hyperth
         obj.uses_acc = uses_acc
         obj.command_template = command_template
-        obj.dependencies = dependencies
+        obj.dependencies = [
+            [Dependency(proc, DependencyTarget[dep]) for proc, dep in dependency_set]
+            for dependency_set in dependencies
+        ]
         return obj
 
     def get_remaining_dependencies(
-        self, completed_dependencies: List["ProcessType"] = ()
-    ) -> List[int]:
+        self, completed_dependencies: List[Dependency] = ()
+    ) -> List[Dependency]:
         """Determines if the task has any unmet dependencies and returns a list of them if so. Only does single level
         dependencies, does not recurse
         :param completed_dependencies: Tasks that have been completed and therefore may contribute to this tasks
         dependencies
         :return: A list of integers representing the unmet dependency tasks.
         """
-        dependencies = self.dependencies
-        if len(self.dependencies) > 0 and not isinstance(self.dependencies[0], int):
-            if any(
-                (
-                    all(
-                        (
-                            ProcessType(dependency) in completed_dependencies
-                            for dependency in multi_dependency
-                        )
-                    )
-                    for multi_dependency in self.dependencies
-                )
-            ):
-                # At least one of the dependency conditions for the task is fulfilled, no need to add any more tasks
-                return []
-            # Otherwise the first dependency list is the default
-            dependencies = self.dependencies[0]
-        return [x for x in dependencies if ProcessType(x) not in completed_dependencies]
+        if any(
+            (
+                all((x in completed_dependencies for x in multi_dependency))
+                for multi_dependency in self.dependencies
+            )
+        ):
+            # At least one of the dependency conditions for the task is fulfilled, no need to add any more tasks
+            return []
+        # Otherwise the first dependency list is the default
+        return [x for x in self.dependencies[0] if x not in completed_dependencies]
 
     @staticmethod
-    def check_mutually_exclusive_tasks(tasks):
+    def check_mutually_exclusive_tasks(tasks: List["ProcessType"]):
         """If multiple tasks from any of the given groups are specified, then the simulation cannot run
+        TODO: Add in more complex handling so that only mutually exclusive tasks with overlapping SQL matches get caught
         :param tasks: The list of tasks to be run
         :return: A string containing any errors found during the check"""
         mutually_exclusive_tasks = (

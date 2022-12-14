@@ -49,7 +49,7 @@ TMP_DIR_NAME = os.path.join(
 
 
 def setup_module(scope="module"):
-    """ create a tmp directory for storing output from test"""
+    """create a tmp directory for storing output from test"""
     print("----------setup_module----------")
     try:
         os.mkdir(TMP_DIR_NAME)
@@ -59,7 +59,7 @@ def setup_module(scope="module"):
 
 
 def teardown_module():
-    """ delete the symbolic link 
+    """delete the symbolic link
     delete the tmp directory if it is empty"""
     print("---------teardown_module------------")
     if os.path.isfile(XYTS_FILE):

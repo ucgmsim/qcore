@@ -62,7 +62,7 @@ def bwfilter(data, dt, freq, band, match_powersb=True):
         if band == "highpass":
             freq *= highpass_shift
         elif band == "bandpass" or band == "bandstop":
-            freq = np.asarray((freq*highpass_shift, freq*lowpass_shift))
+            freq = np.asarray((freq * highpass_shift, freq * lowpass_shift))
         elif band == "lowpass":
             freq *= lowpass_shift
     return sosfiltfilt(
@@ -97,7 +97,18 @@ def ampdeamp(timeseries, ampf, amp=True):
     return irfft(fourier)[:nt]
 
 
-def transf(vs_soil, rho_soil, damp_soil, height_soil, vs_rock, rho_rock, damp_rock, nt, dt, ft_freq=None):
+def transf(
+    vs_soil,
+    rho_soil,
+    damp_soil,
+    height_soil,
+    vs_rock,
+    rho_rock,
+    damp_rock,
+    nt,
+    dt,
+    ft_freq=None,
+):
     """
     Used in deconvolution. Made by Chris de la Torre.
     vs = shear wave velocity (upper soil or rock)
@@ -108,18 +119,21 @@ def transf(vs_soil, rho_soil, damp_soil, height_soil, vs_rock, rho_rock, damp_ro
     dt = delta time in timestep (seconds)
     """
     if ft_freq is None:
-        ft_len = int(2.0 ** math.ceil(math.log(nt)/math.log(2)))
+        ft_len = int(2.0 ** math.ceil(math.log(nt) / math.log(2)))
         ft_freq = np.arange(0, ft_len / 2 + 1) / (ft_len * dt)
     omega = 2.0 * math.pi * ft_freq
-    Gs = rho_soil * vs_soil ** 2.0
-    Gr = rho_rock * vs_rock ** 2.0
+    Gs = rho_soil * vs_soil**2.0
+    Gr = rho_rock * vs_rock**2.0
 
     kS = omega / (vs_soil * (1.0 + 1j * damp_soil))
     kR = omega / (vs_rock * (1.0 + 1j * damp_rock))
 
     alpha = Gs * kS / (Gr * kR)
 
-    H = 2.0 / ((1.0 + alpha) * np.exp(1j * kS * height_soil) + (1.0 - alpha) * np.exp(-1j * kS * height_soil))
+    H = 2.0 / (
+        (1.0 + alpha) * np.exp(1j * kS * height_soil)
+        + (1.0 - alpha) * np.exp(-1j * kS * height_soil)
+    )
     H[0] = 1
     return H
 
@@ -551,18 +565,56 @@ class HFSeis:
         hff.seek(0)
 
         # read header - integers
-        self.nstat, self.nt, self.seed, siteamp, self.pdur_model, nrayset, rayset1, rayset2, rayset3, rayset4, self.nbu, self.ift, self.nlskip, icflag, same_seed, site_specific_vm = np.fromfile(
-            hff, dtype="%si4" % (endian), count=16
-        )
+        (
+            self.nstat,
+            self.nt,
+            self.seed,
+            siteamp,
+            self.pdur_model,
+            nrayset,
+            rayset1,
+            rayset2,
+            rayset3,
+            rayset4,
+            self.nbu,
+            self.ift,
+            self.nlskip,
+            icflag,
+            same_seed,
+            site_specific_vm,
+        ) = np.fromfile(hff, dtype="%si4" % (endian), count=16)
         self.siteamp = bool(siteamp)
         self.rayset = [rayset1, rayset2, rayset3, rayset4][:nrayset]
         self.icflag = bool(icflag)
         self.seed_inc = not bool(same_seed)
         self.site_specific_vm = bool(site_specific_vm)
         # read header - floats
-        self.duration, self.dt, self.start_sec, self.sdrop, self.kappa, self.qfexp, self.fmax, self.flo, self.fhi, self.rvfac, self.rvfac_shal, self.rvfac_deep, self.czero, self.calpha, self.mom, self.rupv, self.vs_moho, self.vp_sig, self.vsh_sig, self.rho_sig, self.qs_sig, self.fa_sig1, self.fa_sig2, self.rv_sig1 = np.fromfile(
-            hff, dtype="%sf4" % (endian), count=24
-        )
+        (
+            self.duration,
+            self.dt,
+            self.start_sec,
+            self.sdrop,
+            self.kappa,
+            self.qfexp,
+            self.fmax,
+            self.flo,
+            self.fhi,
+            self.rvfac,
+            self.rvfac_shal,
+            self.rvfac_deep,
+            self.czero,
+            self.calpha,
+            self.mom,
+            self.rupv,
+            self.vs_moho,
+            self.vp_sig,
+            self.vsh_sig,
+            self.rho_sig,
+            self.qs_sig,
+            self.fa_sig1,
+            self.fa_sig2,
+            self.rv_sig1,
+        ) = np.fromfile(hff, dtype="%sf4" % (endian), count=24)
         # read header - strings
         self.stoch_file, self.velocity_model = np.fromfile(hff, dtype="|S64", count=2)
 
@@ -802,12 +854,10 @@ class BBSeis:
         np.savetxt(path, self.stations[["lon", "lat", "name"]], fmt="%f %f %s")
 
 
-
-
 def get_observed_stations(observed_data_folder: Union[str, Path]) -> Set[str]:
     """
     returns a list of station names that can be found in the observed data folder
-    
+
     :param observed_data_folder: path to the record folder, e.g. observed/events/vol1/data/accBB/
     :type observed_data_folder: str/os.path
     :return: list of unique station names

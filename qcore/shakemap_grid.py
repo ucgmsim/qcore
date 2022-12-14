@@ -1,18 +1,32 @@
 from datetime import datetime
 
+
 class shakemapGrid:
-
     def __init__(self, filename):
-        self.fp = open(filename, 'w')
+        self.fp = open(filename, "w")
 
-    def write_shakemap_grid_header(self, event_id, event_type, mag, dep, \
-            hlat, hlon, origin_time, run_name, x_min, x_max, y_min, y_max, \
-            grd_nx, grd_ny):
+    def write_shakemap_grid_header(
+        self,
+        event_id,
+        event_type,
+        mag,
+        dep,
+        hlat,
+        hlon,
+        origin_time,
+        run_name,
+        x_min,
+        x_max,
+        y_min,
+        y_max,
+        grd_nx,
+        grd_ny,
+    ):
         """
         Adds shakemap header using given values.
         """
         self.fp.write(
-'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <shakemap_grid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\
  xmlns="http://earthquake.usgs.gov/eqcenter/shakemap"\
  xsi:schemaLocation="http://earthquake.usgs.gov\
@@ -35,20 +49,33 @@ class shakemapGrid:
 <grid_field index="3" name="PGV" units="cms" />
 <grid_field index="4" name="MMI" units="intensity" />
 <grid_data>
-''' \
-                % (event_id, event_id, \
-                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"), \
-                event_type, \
-                event_id, mag, \
-                dep, hlat, hlon, origin_time, \
-                run_name.split('_')[0], \
-                x_min, y_min, x_max, y_max, \
-                abs(x_max - x_min) / grd_nx, abs(y_max - y_min) / grd_ny, \
-                grd_nx, grd_ny))
+"""
+            % (
+                event_id,
+                event_id,
+                datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                event_type,
+                event_id,
+                mag,
+                dep,
+                hlat,
+                hlon,
+                origin_time,
+                run_name.split("_")[0],
+                x_min,
+                y_min,
+                x_max,
+                y_max,
+                abs(x_max - x_min) / grd_nx,
+                abs(y_max - y_min) / grd_ny,
+                grd_nx,
+                grd_ny,
+            )
+        )
 
     def write(self, string):
         self.fp.write(string)
 
     def write_shakemap_grid_footer(self):
-        self.fp.write('</grid_data>\n</shakemap_grid>\n')
+        self.fp.write("</grid_data>\n</shakemap_grid>\n")
         self.fp.close()
