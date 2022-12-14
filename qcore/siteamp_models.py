@@ -40,8 +40,13 @@ def amplification_uncertainty(amplification_factors, frequencies, seed=None):
     :return: amplification factors with uncertainty applied
     """
     rng = np.random.default_rng(seed)
-    sigma_x = 0.6167 + -0.1495/(1 + np.exp(-3.6985 * np.log(frequencies / 0.7248)))
-    amp_function_output = rng.lognormal(np.log(amplification_factors), sigma_x)
+    sigma_x = (
+        0.6167
+        - 0.1495 / (1 + np.exp(-3.6985 * np.log(frequencies / 0.7248)))
+        + 0.3640 / (1 + np.exp(-2.2497 * np.log(frequencies / 13.457)))
+    )
+    amp_function_output = np.ones_like(amplification_factors)
+    amp_function_output[1:] = rng.lognormal(np.log(amplification_factors[1:]), sigma_x)
     return amp_function_output
 
 
