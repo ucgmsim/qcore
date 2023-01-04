@@ -28,10 +28,14 @@ import os
 import numpy as np
 import pandas as pd
 
+from qcore.uncertainties import distributions
+
 ba18_coefs_df = None
 
 
-def amplification_uncertainty(amplification_factors, frequencies, seed=None):
+def amplification_uncertainty(
+    amplification_factors, frequencies, seed=None, std_dev_limit=2
+):
     """
     Applies an uncertainty factor to each value in an amplification spectrum
     :param amplification_factors: numpy array of amplification factors
@@ -39,14 +43,18 @@ def amplification_uncertainty(amplification_factors, frequencies, seed=None):
     :param seed: Seed to use for the prng. None for a random seed
     :return: amplification factors with uncertainty applied
     """
-    rng = np.random.default_rng(seed)
     sigma_x = (
         0.6167
         - 0.1495 / (1 + np.exp(-3.6985 * np.log(frequencies / 0.7248)))
         + 0.3640 / (1 + np.exp(-2.2497 * np.log(frequencies / 13.457)))
     )
     amp_function_output = np.ones_like(amplification_factors)
-    amp_function_output[1:] = rng.lognormal(np.log(amplification_factors[1:]), sigma_x)
+    amp_function_output[1:] = distributions.truncated_log_normal(
+        amplification_factors[1:],
+        sigma_x,
+        std_dev_limit=std_dev_limit,
+        seed=seed,
+    )
     return amp_function_output
 
 

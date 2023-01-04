@@ -71,14 +71,14 @@ def proper_truncated_weibull(
     return val
 
 
-def truncated_log_normal(mean, std_dev, std_dev_limit=2) -> float:
+def truncated_log_normal(mean, std_dev, std_dev_limit=2, seed=None) -> float:
     return np.exp(
         truncnorm(
             -std_dev_limit,
             std_dev_limit,
             loc=np.log(np.asarray(mean).astype(np.float)),
             scale=std_dev,
-        ).rvs()
+        ).rvs(random_state=seed)
     )
 
 
