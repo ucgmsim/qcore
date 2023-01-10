@@ -161,20 +161,35 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
     :param load_vm: to load vm_params.yaml or not
     :return: a DotDictify object that contains all necessary params for a single simulation
     """
-    sim_params = load_yaml(sim_yaml_path)
+    sim_params = {}
     fault_params = {}
     root_params = {}
     vm_params = {}
+
     if load_root or load_vm and not load_fault:
         load_fault = True  # root/vm_yamlpath in fault_yaml
-    if load_fault:
+
+    if sim_yaml_path:
+        sim_params = load_yaml(sim_yaml_path)
+    elif load_fault is True:
+        raise ValueError("For automated fault_params loading, sim_params must be set")
+
+    if load_fault is True:
         fault_params = load_yaml(sim_params["fault_yaml_path"])
-    if load_root:
+    elif load_fault:
+        fault_params = load_yaml(fault_params)
+
+    if load_root is True:
         root_params = load_yaml(fault_params["root_yaml_path"])
-    if load_vm:
+    elif root_params:
+        root_params = load_yaml(root_params)
+
+    if load_vm is True:
         vm_params = load_yaml(
             os.path.join(fault_params["vel_mod_dir"], "vm_params.yaml")
         )
+    elif load_vm:
+        vm_params = load_yaml(vm_params)
     return DotDictify(_update_params(vm_params, root_params, fault_params, sim_params))
 
 

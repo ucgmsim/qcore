@@ -1,6 +1,7 @@
 import logging
 from logging.handlers import MemoryHandler
 import sys
+from pathlib import Path
 from typing import Union
 
 from qcore.constants import ProcessType
@@ -146,7 +147,7 @@ def get_task_logger(
     return new_logger
 
 
-def add_general_file_handler(logger: logging.Logger, file_path: str):
+def add_general_file_handler(logger: logging.Logger, file_path: Union[str, Path]):
     """
     Adds a file handler to the logger using the given file_path
     If there are any Memory handler attached to the logger they are automatically drained in to the new file handler

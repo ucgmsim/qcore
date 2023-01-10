@@ -164,12 +164,33 @@ class ProcessType(ExtendedStrEnum):
     # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
-    GCMT_2_REL = 20, "GCMT_2_REL", None, False, None, ([],)
-    NHM_2_REL = 21, "NHM_2_REL", None, False, None, ([],)
-    SRF_GEN = 22, "SRF_GEN", None, False, None, ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
-    INSTALL_REALISATION = 23, "INSTALL_REALISATION", None, False, None, ([(SRF_GEN, "REL")],)
+    # GCMT_2_REL = 24, "GCMT_2_REL", None, False, None, ([],)
+    # NHM_2_REL = 23, "NHM_2_REL", None, False, None, ([],)
+    SRF_GEN = (
+        22,
+        "SRF_GEN",
+        None,
+        False,
+        None,
+        (),
+    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
+    INSTALL_REALISATION = (
+        21,
+        "INSTALL_REALISATION",
+        None,
+        False,
+        None,
+        ([(SRF_GEN, "REL")],),
+    )
 
-    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
+    VM_PARAMS = (
+        16,
+        "VM_PARAMS",
+        None,
+        False,
+        None,
+        (),
+    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
     VM_GEN = (
         17,
         "VM_GEN",
@@ -184,7 +205,15 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ([(VM_PARAMS, "MEDIAN")],),
+        ([(VM_PARAMS, "MEDIAN"), (INSTALL_REALISATION, "REL")],),
+    )  # Needs VM_params generated for REL_1
+    NO_VM_PERT = (
+        20,
+        "NO_VM_PERT",
+        None,
+        False,
+        None,
+        ([(INSTALL_REALISATION, "REL")],),
     )  # Needs VM_params generated for REL_1
     INSTALL_FAULT = (
         19,
@@ -201,7 +230,10 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
-        ([], [(INSTALL_FAULT, "MEDIAN")]),
+        (
+            [(INSTALL_FAULT, "MEDIAN"), (VM_PERT, "REL")],
+            [(INSTALL_FAULT, "MEDIAN"), (NO_VM_PERT, "REL")],
+        ),
     )
     merge_ts = (
         2,
@@ -228,7 +260,7 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/workflow/calculation/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
-        ([], [(INSTALL_FAULT, "MEDIAN")]),
+        ([(INSTALL_FAULT, "MEDIAN"), (INSTALL_REALISATION, "REL")],),
     )
     BB = (
         5,
@@ -361,7 +393,8 @@ class ProcessType(ExtendedStrEnum):
         :return: A string containing any errors found during the check"""
         mutually_exclusive_tasks = (
             (ProcessType.BB, ProcessType.LF2BB, ProcessType.HF2BB),
-            (ProcessType.GCMT_2_REL, ProcessType.NHM_2_REL)
+            (ProcessType.GCMT_2_REL, ProcessType.NHM_2_REL),
+            (ProcessType.VM_PERT, ProcessType.NO_VM_PERT),
         )
         message = []
         for task_group in mutually_exclusive_tasks:
@@ -425,6 +458,7 @@ class RootParams(Enum):
     seed = "seed"
     extended_period = "extended_period"
     component = "component"
+    keep_dup_station = "keep_dup_stations"
 
 
 class FaultParams(Enum):
