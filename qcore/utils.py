@@ -128,7 +128,7 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
     root_params = {}
     vm_params = {}
 
-    if load_root or load_vm and not load_fault:
+    if load_root is True or load_vm is True and not load_fault:
         load_fault = True  # root/vm_yamlpath in fault_yaml
 
     if sim_yaml_path:

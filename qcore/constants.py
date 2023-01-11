@@ -172,7 +172,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        (),
+        ([],),
     )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
     INSTALL_REALISATION = (
         21,
@@ -189,7 +189,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        (),
+        ([],),
     )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
     VM_GEN = (
         17,
@@ -313,7 +313,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ([], [(INSTALL_FAULT, "REL")]),
+        ([(INSTALL_REALISATION, "REL"), (INSTALL_FAULT, "MEDIAN")],),
     )
     Empirical = (
         9,
@@ -346,7 +346,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ([], [(INSTALL_FAULT, "REL")]),
+        ([(INSTALL_REALISATION, "MEDIAN")],),
     )
     # adv_im uses the same base code as IM_calc
 
@@ -393,7 +393,7 @@ class ProcessType(ExtendedStrEnum):
         :return: A string containing any errors found during the check"""
         mutually_exclusive_tasks = (
             (ProcessType.BB, ProcessType.LF2BB, ProcessType.HF2BB),
-            (ProcessType.GCMT_2_REL, ProcessType.NHM_2_REL),
+            # (ProcessType.GCMT_2_REL, ProcessType.NHM_2_REL),
             (ProcessType.VM_PERT, ProcessType.NO_VM_PERT),
         )
         message = []
@@ -453,6 +453,7 @@ class RootParams(Enum):
     stat_file = "stat_file"
     stat_vs_est = "stat_vs_est"
     stat_vs_ref = "stat_vs_ref"
+    v_1d_mod = "v_1d_mod"
     v_mod_1d_name = "v_mod_1d_name"
     mgmt_db_location = "mgmt_db_location"
     seed = "seed"
