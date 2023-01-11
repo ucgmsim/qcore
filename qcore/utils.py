@@ -12,44 +12,6 @@ from collections import OrderedDict
 from collections.abc import Mapping
 
 
-class DotDictify(dict):
-    """
-    Construct an dictionary object whose values can also be accessed by 'dot'
-    eg. d.k; d.k1.k2
-    """
-
-    MARKER = object()
-
-    def __init__(self, value=None):
-        if value is None:
-            pass
-        elif isinstance(value, dict):
-            for key in value:
-                self.__setitem__(key, value[key])
-        else:
-            raise TypeError("expected dict")
-
-    def __setitem__(self, key, value):
-        if isinstance(value, dict) and not isinstance(value, DotDictify):
-            value = DotDictify(value)
-        super(DotDictify, self).__setitem__(key, value)
-
-    def __getitem__(self, key):
-        found = self.get(key, DotDictify.MARKER)
-        if found is DotDictify.MARKER:
-            found = DotDictify()
-            super(DotDictify, self).__setitem__(key, found)
-        return found
-
-    def __call__(self, *args, **kwargs):
-        return self
-
-    def __getstate__(self):
-        return self.__dict__
-
-    __setattr__, __getattr__ = __setitem__, __getitem__
-
-
 def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
     """
     :param stream: yaml file path
@@ -190,7 +152,7 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
         )
     elif load_vm:
         vm_params = load_yaml(vm_params)
-    return DotDictify(_update_params(vm_params, root_params, fault_params, sim_params))
+    return _update_params(vm_params, root_params, fault_params, sim_params)
 
 
 def setup_dir(directory, empty=False):
