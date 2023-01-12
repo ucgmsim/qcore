@@ -139,19 +139,20 @@ def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True
     if load_fault is True:
         fault_params = load_yaml(sim_params["fault_yaml_path"])
     elif load_fault:
-        fault_params = load_yaml(fault_params)
+        fault_params = load_yaml(load_fault)
 
     if load_root is True:
         root_params = load_yaml(fault_params["root_yaml_path"])
-    elif root_params:
-        root_params = load_yaml(root_params)
+    elif load_root:
+        root_params = load_yaml(load_root)
 
     if load_vm is True:
         vm_params = load_yaml(
             os.path.join(fault_params["vel_mod_dir"], "vm_params.yaml")
         )
     elif load_vm:
-        vm_params = load_yaml(vm_params)
+        vm_params = load_yaml(load_vm)
+
     return _update_params(vm_params, root_params, fault_params, sim_params)
 
 
