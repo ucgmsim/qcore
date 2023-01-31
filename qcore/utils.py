@@ -114,13 +114,13 @@ def _update_params(d, *u):
     return d
 
 
-def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True):
+def load_sim_params(sim_yaml_path=False, load_fault=True, load_root=True, load_vm=True):
     """
     load all necessary params for a single simulation
-    :param sim_yaml_path: path to sim_params.yaml
-    :param load_fault: to load fault_params.yaml or not
-    :param load_root: to load root_params.yaml or not
-    :param load_vm: to load vm_params.yaml or not
+    :param sim_yaml_path: path to sim_params.yaml or a falsy value to not load it
+    :param load_fault: Either True, the path to fault_params.yaml or a falsy value to not load it
+    :param load_root: Either True, the path to root_params.yaml or a false value to not load it
+    :param load_vm: Either True, the path to vm_params.yaml or a false value to not load it
     :return: a DotDictify object that contains all necessary params for a single simulation
     """
     sim_params = {}

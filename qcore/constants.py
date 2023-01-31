@@ -164,6 +164,7 @@ class ProcessType(ExtendedStrEnum):
     # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
+    # Drafted but not yet implemented
     # GCMT_2_REL = 24, "GCMT_2_REL", None, False, None, ([],)
     # NHM_2_REL = 23, "NHM_2_REL", None, False, None, ([],)
     SRF_GEN = (
@@ -173,7 +174,8 @@ class ProcessType(ExtendedStrEnum):
         False,
         None,
         ([],),
-    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
+    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)  # Pending inclusion of GCMT_2_REL and NHM_2_REL
+
     INSTALL_REALISATION = (
         21,
         "INSTALL_REALISATION",
@@ -190,7 +192,7 @@ class ProcessType(ExtendedStrEnum):
         False,
         None,
         ([],),
-    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)
+    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)  # Pending inclusion of GCMT_2_REL and NHM_2_REL
     VM_GEN = (
         17,
         "VM_GEN",
@@ -206,7 +208,8 @@ class ProcessType(ExtendedStrEnum):
         False,
         None,
         ([(VM_PARAMS, "MEDIAN"), (INSTALL_REALISATION, "REL")],),
-    )  # Needs VM_params generated for REL_1
+    )
+
     NO_VM_PERT = (
         20,
         "NO_VM_PERT",
@@ -214,7 +217,8 @@ class ProcessType(ExtendedStrEnum):
         False,
         None,
         ([(INSTALL_REALISATION, "REL")],),
-    )  # Needs VM_params generated for REL_1
+    )  # Alternate task so EMDOD can have VM_PERT as a dependency
+
     INSTALL_FAULT = (
         19,
         "INSTALL_FAULT",
@@ -235,6 +239,7 @@ class ProcessType(ExtendedStrEnum):
             [(INSTALL_FAULT, "MEDIAN"), (NO_VM_PERT, "REL")],
         ),
     )
+
     merge_ts = (
         2,
         "merge_ts",
@@ -262,6 +267,7 @@ class ProcessType(ExtendedStrEnum):
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
         ([(INSTALL_FAULT, "MEDIAN"), (INSTALL_REALISATION, "REL")],),
     )
+
     BB = (
         5,
         "BB",
@@ -276,6 +282,7 @@ class ProcessType(ExtendedStrEnum):
             ],
         ),
     )
+
     LF2BB = (
         12,
         "LF2BB",
@@ -284,7 +291,9 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(EMOD3D, "REL")],),
     )
+
     HF2BB = 13, "HF2BB", None, None, None, ([(HF, "REL")],)
+
     IM_calculation = (
         6,
         "IM_calc",
@@ -298,7 +307,10 @@ class ProcessType(ExtendedStrEnum):
             [(HF2BB, "REL")],
         ),
     )
+
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
+    # adv_im uses the same base code as IM_calc
+
     IM_plot = (
         7,
         "IM_plot",
@@ -307,6 +319,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(IM_calculation, "REL")],),
     )
+
     rrup = (
         8,
         "rrup",
@@ -315,6 +328,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(INSTALL_REALISATION, "REL"), (INSTALL_FAULT, "MEDIAN")],),
     )
+
     Empirical = (
         9,
         "Empirical",
@@ -323,6 +337,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(rrup, "REL")],),
     )
+
     Verification = (
         10,
         None,
@@ -331,6 +346,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(Empirical, "REL")],),
     )
+
     clean_up = (
         11,
         "clean_up",
@@ -348,7 +364,6 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(INSTALL_REALISATION, "MEDIAN")],),
     )
-    # adv_im uses the same base code as IM_calc
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
