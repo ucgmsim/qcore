@@ -265,6 +265,10 @@ def get_verification_dir(sim_root):
     return os.path.join(sim_root, "verification")
 
 
+def get_im_plot_dir(sim_root):
+    return os.path.join(get_verification_dir(sim_root), "IM_PLOT")
+
+
 def get_sources_plot_dir(cybershake_root, realisation):
     """
     Gets the folder for storing plots that can be generated

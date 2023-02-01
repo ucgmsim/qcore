@@ -114,29 +114,45 @@ def _update_params(d, *u):
     return d
 
 
-def load_sim_params(sim_yaml_path, load_fault=True, load_root=True, load_vm=True):
+def load_sim_params(sim_yaml_path=False, load_fault=True, load_root=True, load_vm=True):
     """
     load all necessary params for a single simulation
-    :param sim_yaml_path: path to sim_params.yaml
-    :param load_fault: to load fault_params.yaml or not
-    :param load_root: to load root_params.yaml or not
-    :param load_vm: to load vm_params.yaml or not
+    :param sim_yaml_path: path to sim_params.yaml or a falsy value to not load it
+    :param load_fault: Either True, the path to fault_params.yaml or a falsy value to not load it
+    :param load_root: Either True, the path to root_params.yaml or a false value to not load it
+    :param load_vm: Either True, the path to vm_params.yaml or a false value to not load it
     :return: a DotDictify object that contains all necessary params for a single simulation
     """
-    sim_params = load_yaml(sim_yaml_path)
+    sim_params = {}
     fault_params = {}
     root_params = {}
     vm_params = {}
-    if load_root or load_vm and not load_fault:
+
+    if load_root is True or load_vm is True and not load_fault:
         load_fault = True  # root/vm_yamlpath in fault_yaml
-    if load_fault:
+
+    if sim_yaml_path:
+        sim_params = load_yaml(sim_yaml_path)
+    elif load_fault is True:
+        raise ValueError("For automated fault_params loading, sim_params must be set")
+
+    if load_fault is True:
         fault_params = load_yaml(sim_params["fault_yaml_path"])
-    if load_root:
+    elif load_fault:
+        fault_params = load_yaml(load_fault)
+
+    if load_root is True:
         root_params = load_yaml(fault_params["root_yaml_path"])
-    if load_vm:
+    elif load_root:
+        root_params = load_yaml(load_root)
+
+    if load_vm is True:
         vm_params = load_yaml(
             os.path.join(fault_params["vel_mod_dir"], "vm_params.yaml")
         )
+    elif load_vm:
+        vm_params = load_yaml(load_vm)
+
     return _update_params(vm_params, root_params, fault_params, sim_params)
 
 
