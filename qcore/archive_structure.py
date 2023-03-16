@@ -3,7 +3,7 @@ Gives access to the folder structure of archived cybershake directories
 """
 from pathlib import Path
 
-from simulation_structure import get_fault_from_realisation
+from .simulation_structure import get_fault_from_realisation
 
 
 def get_IM_csv_from_root(archive_root: Path, realisation: str):
