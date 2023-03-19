@@ -12,19 +12,19 @@ def get_IM_csv_from_root(archive_root: Path, realisation: str):
     return (
         archive_root
         / fault_name
-        / f"{fault_name}_IM"
+        / "IM"
         / f"{realisation}.csv"
     )
 
 
 def get_fault_source_dir(fault_dir: Path):
     """Gets the Source directory for the given fault directory"""
-    return fault_dir / f"{fault_dir.stem}_Source"
+    return fault_dir / "Source"
 
 def get_fault_im_dir(fault_dir: Path):
     """Gets the IM directory for the given fault directory"""
-    return fault_dir / f"{fault_dir.stem}_IM"
+    return fault_dir / "IM"
 
 def get_fault_bb_dir(fault_dir: Path):
     """Gets the BB directory for the given fault directory"""
-    return fault_dir / f"{fault_dir.stem}_BB"
+    return fault_dir / "BB"
