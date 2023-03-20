@@ -58,6 +58,7 @@ class ConfigKeys(Enum):
     cores_per_node = auto()
     MAX_JOB_WCT = auto()
     MAX_NODES_PER_JOB = auto()
+    MAX_CH_PER_JOB = auto()
 
 
 host, host_config_path = determine_machine_config()
