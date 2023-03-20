@@ -3,5 +3,6 @@
     "OpenSees" : "/nesi/project/nesi00213/opt/maui/software/OpenSees/3.2.0-CrayGNU-19.04/OpenSees",
     "cores_per_node" : 40,
     "MAX_NODES_PER_JOB" : 66,
-    "MAX_JOB_WCT" : 24
+    "MAX_JOB_WCT" : 24,
+    "MAX_CH_PER_JOB": 48000
 }
