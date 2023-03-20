@@ -221,6 +221,13 @@ def get_IM_csv(sim_root):
     )
 
 
+def get_IM_csv_from_root(cybershake_root, realisation):
+    return os.path.join(
+        get_im_calc_dir(get_sim_dir(cybershake_root, realisation)),
+        "{}.{}".format(realisation, "csv"),
+    )
+
+
 def get_IM_info(sim_root):
     return os.path.join(
         get_im_calc_dir(sim_root),
