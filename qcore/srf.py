@@ -460,7 +460,7 @@ def get_hypo(srf, lonlat=True, depth=False, join_minor=False):
     """
     Return hypocentre.
     srf: srf source file path
-    lonlat: in tearms of longitude and latitude (True), raw km offsets (False)
+    lonlat: in terms of longitude and latitude (True), raw km offsets (False)
     depth: return longitude, latitude and depth. False to only return 2 values
     """
     # complexity increased by:
