@@ -306,3 +306,7 @@ def get_rrup_location(cybershake_root, realisation):
 # empiricals
 def get_empirical_dir(cybershake_root, realisation):
     return os.path.join(get_sim_dir(cybershake_root, realisation), "empirical")
+
+
+def get_database_path(cybershake_root):
+    return os.path.join(cybershake_root, "slurm_mgmt.db")
