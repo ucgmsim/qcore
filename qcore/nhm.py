@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, Union, Dict
 import datetime
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -7,6 +8,7 @@ import pandas as pd
 
 from qcore.uncertainties import mag_scaling
 from qcore.uncertainties.distributions import truncated_normal as sample_trunc_norm_dist
+from qcore import geo
 
 NHM_HEADER = f"""FAULT SOURCES - (created {datetime.datetime.now().strftime("%d-%b-%Y")}) 
 Row 1: FaultName 
@@ -26,6 +28,10 @@ Row 13+: Location Coordinates (Long, Lat)
 
 # This mu is used to calculated Moment Rate
 MU = 3.0 * 10.0**10.0
+
+POINTS_PER_KILOMETER = (
+    1 / 0.1
+)  # 1km divided by distance between points (1km/0.1km gives 100m grid)
 
 
 @dataclass
@@ -289,3 +295,79 @@ def load_nhm_df(nhm_ffp, erf_name=None):
     }
 
     return pd.DataFrame.from_dict(rupture_dict, orient="index").sort_index()
+
+
+def get_fault_header_points(fault: NHMFault):
+    """
+    Calculates and produces fault information such as the entire trace and fault header info per plane
+
+    Parameters
+    ----------
+    fault: NHMFault
+        A fault object from an NHM file
+    """
+    srf_points = []
+    srf_header: List[Dict[str, Union[int, float]]] = []
+    lon1, lat1 = fault.trace[0]
+    lon2, lat2 = fault.trace[1]
+    strike = geo.ll_bearing(lon1, lat1, lon2, lat2, midpoint=True)
+
+    # If the dip direction is not to the right of the strike, turn the fault around
+    indexes = (
+        np.arange(len(fault.trace))
+        if 180 > fault.dip_dir - strike >= 0
+        else np.flip(np.arange(len(fault.trace)))
+    )
+
+    plane_offset = 0
+    for i, i2 in zip(indexes[:-1], indexes[1:]):
+        lon1, lat1 = fault.trace[i]
+        lon2, lat2 = fault.trace[i2]
+
+        strike = geo.ll_bearing(lon1, lat1, lon2, lat2, midpoint=True)
+        plane_point_distance = geo.ll_dist(lon1, lat1, lon2, lat2)
+
+        nstrike = round(plane_point_distance * POINTS_PER_KILOMETER)
+        strike_dist = plane_point_distance / nstrike
+
+        end_strike = geo.ll_bearing(lon1, lat1, lon2, lat2)
+        for j in range(nstrike):
+            top_lat, top_lon = geo.ll_shift(lat1, lon1, strike_dist * j, end_strike)
+            srf_points.append([top_lon, top_lat, fault.dtop])
+
+        height = fault.dbottom - fault.dtop
+
+        width = abs(height / np.tan(np.deg2rad(fault.dip)))
+        dip_dist = height / np.sin(np.deg2rad(fault.dip))
+
+        ndip = int(round(dip_dist * POINTS_PER_KILOMETER))
+        hdip_dist = width / ndip
+        vdip_dist = height / ndip
+
+        for j in range(1, ndip):
+            hdist = j * hdip_dist
+            vdist = j * vdip_dist + fault.dtop
+            for local_lon, local_lat, local_depth in srf_points[
+                plane_offset : plane_offset + nstrike
+            ]:
+                new_lat, new_lon = geo.ll_shift(
+                    local_lat, local_lon, hdist, fault.dip_dir
+                )
+                srf_points.append([new_lon, new_lat, vdist])
+
+        plane_offset += nstrike * ndip
+        srf_header.append(
+            {
+                "nstrike": nstrike,
+                "ndip": ndip,
+                "strike": strike,
+                "length": plane_point_distance,
+                "dip": fault.dip,
+                "dtop": fault.dtop,
+                "width": fault.dbottom / math.sin(math.radians(fault.dip)),
+                "dhyp": -999.9,
+                "shyp": -999.9,
+            }
+        )
+
+    return srf_header, np.asarray(srf_points)

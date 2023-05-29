@@ -115,7 +115,7 @@ def cb_amp(
         exp(fs_auto(T, vsite)(T, vsite, a1100) - fs_auto(T, vref)(T, vref, a1100))
         for T in range(freqs.size)
     )
-    ampf0 = np.fromiter(it, dtype=np.float)
+    ampf0 = np.fromiter(it, dtype=np.float64)
     try:
         # T is the first occurance of a value <= flowcap
         T = np.flatnonzero((freqs <= flowcap))[0]
@@ -171,7 +171,7 @@ def get_ft_freq(dt, n):
 
 def amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq):
     # default amplification is 1.0 (keeping values the same)
-    ampf = np.ones(ftfreq.size + 1, dtype=np.float)
+    ampf = np.ones(ftfreq.size + 1, dtype=np.float64)
     # amplification factors applied differently at different bands
     ampf[1:] += (
         np.where(
@@ -251,7 +251,7 @@ def cb_amp_old(
     fs1100 = fs_high(0)
 
     # default amplification is 1.0 (keeping values the same)
-    ampf = np.ones(n / 2, np.float)
+    ampf = np.ones(n / 2, np.float64)
 
     fs_vpga = fs_auto(0, vpga)(0, vpga, pga)
     a1100 = pga * exp(fs1100 - fs_vpga)
@@ -261,7 +261,7 @@ def cb_amp_old(
         exp(fs_auto(T, vsite)(T, vsite, a1100) - fs_auto(T, vref)(T, vref, a1100))
         for T in range(n_per)
     )
-    ampf0 = np.fromiter(it, np.float, count=n_per)
+    ampf0 = np.fromiter(it, np.float64, count=n_per)
 
     try:
         # T is the first occurance of a value <= flowcap
