@@ -130,7 +130,7 @@ def get_region(lon, lat):
     Returns closest region.
     """
     rcode = np.loadtxt(
-        resource_filename("qcore", "data/regions.ll"), usecols=0, dtype="U2"
+        resource_filename("qcore", "data/regions.ll"), usecols=0, dtype="U"
     )
     rloc = np.loadtxt(resource_filename("qcore", "data/regions.ll"), usecols=(1, 2))
     return rcode[geo.closest_location(rloc, lon, lat)[0]]
@@ -216,6 +216,13 @@ sites_major = [
 # region to use when plotting the whole of NZ
 nz_region = (166, 179, -47.5, -34)
 kr_region = (125.76, 129.74, 33.05, 39)
+cascadia_region = (-130, -120, 38, 52)
+region_dict = {
+    "NZ": nz_region,
+    "KR": kr_region,
+    "CASCADIA": cascadia_region,
+}
+
 ###
 ### ACCESSORY FUNCTIONS
 ###

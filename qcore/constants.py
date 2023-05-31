@@ -164,7 +164,35 @@ class ProcessType(ExtendedStrEnum):
     # ProcessID, ProcessName, "Does this task use Hyperthreading?", "Does this use an Acc directory?", command, dependancies (tuple),
     """
 
-    VM_PARAMS = 16, "VM_PARAMS", None, False, None, ([],)
+    # Drafted but not yet implemented
+    # GCMT_2_REL = 24, "GCMT_2_REL", None, False, None, ([],)
+    # NHM_2_REL = 23, "NHM_2_REL", None, False, None, ([],)
+    SRF_GEN = (
+        22,
+        "SRF_GEN",
+        None,
+        False,
+        None,
+        ([],),
+    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)  # Pending inclusion of GCMT_2_REL and NHM_2_REL
+
+    INSTALL_REALISATION = (
+        21,
+        "INSTALL_REALISATION",
+        None,
+        False,
+        None,
+        ([(SRF_GEN, "REL")],),
+    )
+
+    VM_PARAMS = (
+        16,
+        "VM_PARAMS",
+        None,
+        False,
+        None,
+        ([],),
+    )  # ([(GCMT_2_REL, "REL")], [(NHM_2_REL, "REL")],)  # Pending inclusion of GCMT_2_REL and NHM_2_REL
     VM_GEN = (
         17,
         "VM_GEN",
@@ -179,8 +207,18 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ([(VM_PARAMS, "MEDIAN")],),
-    )  # Needs VM_params generated for REL_1
+        ([(VM_PARAMS, "MEDIAN"), (INSTALL_REALISATION, "REL")],),
+    )
+
+    NO_VM_PERT = (
+        20,
+        "NO_VM_PERT",
+        None,
+        False,
+        None,
+        ([(INSTALL_REALISATION, "REL")],),
+    )  # Alternate task so EMDOD can have VM_PERT as a dependency
+
     INSTALL_FAULT = (
         19,
         "INSTALL_FAULT",
@@ -196,8 +234,12 @@ class ProcessType(ExtendedStrEnum):
         False,
         False,
         '{run_command} {emod3d_bin} -args "par={lf_sim_dir}/e3d.par"',
-        ([], [(INSTALL_FAULT, "MEDIAN")]),
+        (
+            [(INSTALL_FAULT, "MEDIAN"), (VM_PERT, "REL")],
+            [(INSTALL_FAULT, "MEDIAN"), (NO_VM_PERT, "REL")],
+        ),
     )
+
     merge_ts = (
         2,
         "merge_ts",
@@ -223,8 +265,9 @@ class ProcessType(ExtendedStrEnum):
         True,
         "{run_command} python $gmsim/workflow/workflow/calculation/hf_sim.py {fd_statlist} {hf_bin_path} --duration "
         "{duration} --dt {dt} --sim_bin {sim_bin_path}",
-        ([], [(INSTALL_FAULT, "MEDIAN")]),
+        ([(INSTALL_FAULT, "MEDIAN"), (INSTALL_REALISATION, "REL")],),
     )
+
     BB = (
         5,
         "BB",
@@ -239,6 +282,7 @@ class ProcessType(ExtendedStrEnum):
             ],
         ),
     )
+
     LF2BB = (
         12,
         "LF2BB",
@@ -247,13 +291,15 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(EMOD3D, "REL")],),
     )
+
     HF2BB = 13, "HF2BB", None, None, None, ([(HF, "REL")],)
+
     IM_calculation = (
         6,
         "IM_calc",
         False,
         False,
-        "time python $IMPATH/calculate_ims.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -np {np} -i "
+        "time {run_command} python $IMPATH/calculate_ims_mpi.py {sim_dir}/BB/Acc/BB.bin b -o {sim_dir}/IM_calc/ -i "
         "{sim_name} -r {fault_name} -t s {component} {extended} {simple} {advanced_IM} {pSA_periods}",
         (
             [(BB, "REL")],
@@ -261,7 +307,10 @@ class ProcessType(ExtendedStrEnum):
             [(HF2BB, "REL")],
         ),
     )
+
     advanced_IM = (15, "advanced_IM") + IM_calculation[2:]
+    # adv_im uses the same base code as IM_calc
+
     IM_plot = (
         7,
         "IM_plot",
@@ -270,14 +319,16 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(IM_calculation, "REL")],),
     )
+
     rrup = (
         8,
         "rrup",
         None,
         False,
         None,
-        ([], [(INSTALL_FAULT, "REL")]),
+        ([(INSTALL_REALISATION, "REL"), (INSTALL_FAULT, "MEDIAN")],),
     )
+
     Empirical = (
         9,
         "Empirical",
@@ -286,6 +337,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(rrup, "REL")],),
     )
+
     Verification = (
         10,
         None,
@@ -294,6 +346,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         ([(Empirical, "REL")],),
     )
+
     clean_up = (
         11,
         "clean_up",
@@ -309,9 +362,8 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ([], [(INSTALL_FAULT, "REL")]),
+        ([(INSTALL_REALISATION, "MEDIAN")],),
     )
-    # adv_im uses the same base code as IM_calc
 
     def __new__(
         cls, value, str_value, is_hyperth, uses_acc, command_template, dependencies
@@ -356,6 +408,8 @@ class ProcessType(ExtendedStrEnum):
         :return: A string containing any errors found during the check"""
         mutually_exclusive_tasks = (
             (ProcessType.BB, ProcessType.LF2BB, ProcessType.HF2BB),
+            # (ProcessType.GCMT_2_REL, ProcessType.NHM_2_REL),
+            (ProcessType.VM_PERT, ProcessType.NO_VM_PERT),
         )
         message = []
         for task_group in mutually_exclusive_tasks:
@@ -414,11 +468,13 @@ class RootParams(Enum):
     stat_file = "stat_file"
     stat_vs_est = "stat_vs_est"
     stat_vs_ref = "stat_vs_ref"
+    v_1d_mod = "v_1d_mod"
     v_mod_1d_name = "v_mod_1d_name"
     mgmt_db_location = "mgmt_db_location"
     seed = "seed"
     extended_period = "extended_period"
     component = "component"
+    keep_dup_station = "keep_dup_stations"
 
 
 class FaultParams(Enum):

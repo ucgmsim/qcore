@@ -76,7 +76,7 @@ def truncated_log_normal(mean, std_dev, std_dev_limit=2, seed=None) -> float:
         truncnorm(
             -std_dev_limit,
             std_dev_limit,
-            loc=np.log(np.asarray(mean).astype(np.float)),
+            loc=np.log(np.asarray(mean).astype(np.float64)),
             scale=std_dev,
         ).rvs(random_state=seed)
     )
@@ -88,7 +88,7 @@ def bounded_truncated_log_normal(mean, upper_limit, lower_limit) -> float:
         truncnorm(
             (mean - lower_limit) / dist_range,
             (upper_limit - mean) / dist_range,
-            loc=np.log(np.asarray(mean).astype(np.float)),
+            loc=np.log(np.asarray(mean).astype(np.float64)),
             scale=dist_range,
         ).rvs()
     )

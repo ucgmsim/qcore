@@ -221,6 +221,13 @@ def get_IM_csv(sim_root):
     )
 
 
+def get_IM_csv_from_root(cybershake_root, realisation):
+    return os.path.join(
+        get_im_calc_dir(get_sim_dir(cybershake_root, realisation)),
+        "{}.{}".format(realisation, "csv"),
+    )
+
+
 def get_IM_info(sim_root):
     return os.path.join(
         get_im_calc_dir(sim_root),
@@ -265,6 +272,10 @@ def get_verification_dir(sim_root):
     return os.path.join(sim_root, "verification")
 
 
+def get_im_plot_dir(sim_root):
+    return os.path.join(get_verification_dir(sim_root), "IM_PLOT")
+
+
 def get_sources_plot_dir(cybershake_root, realisation):
     """
     Gets the folder for storing plots that can be generated
@@ -295,3 +306,7 @@ def get_rrup_location(cybershake_root, realisation):
 # empiricals
 def get_empirical_dir(cybershake_root, realisation):
     return os.path.join(get_sim_dir(cybershake_root, realisation), "empirical")
+
+
+def get_database_path(cybershake_root):
+    return os.path.join(cybershake_root, "slurm_mgmt.db")
