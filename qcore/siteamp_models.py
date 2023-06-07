@@ -34,7 +34,7 @@ import pandas as pd
 from qcore.uncertainties import distributions
 
 ba18_coefs_df = None
-bssa14_coefs_file = None
+bssa14_coefs_df = None
 
 def amplification_uncertainty(
     amplification_factors, frequencies, seed=None, std_dev_limit=2
@@ -285,7 +285,7 @@ def ba18_amp(
     return ampfi
 
 
-def ba_18_site_response_factor(vs, pga, vpga, include_fZ1, f=None):
+def ba_18_site_response_factor(vs, pga, vpga, with_fZ1, f=None):
     vsref = 1000
 
     if ba18_coefs_df is None:
@@ -344,7 +344,7 @@ def ba_18_site_response_factor(vs, pga, vpga, include_fZ1, f=None):
         coefs.c11 = coefs.c11d
     Z1ref = (1/1000) * np.exp((-7.67/4) * np.log((vs**4 + 610**4)/(1360**4 + 610**4)))
 
-    if include_fZ1:
+    if with_fZ1:
         fZ1 = coefs.c11 * np.log((min(Z1,2)+0.01)/(Z1ref+0.01))
     else:
         fZ1 = 0
@@ -381,6 +381,84 @@ def ba_18_site_response_factor(vs, pga, vpga, include_fZ1, f=None):
         return np.interp(f, coefs.freq, result), f
     else:
         return result, coefs.freq
+
+def bsaa14_amp(
+    dt,
+    n,
+    vref,
+    vs30,
+    vpga,
+    pga,
+    flowcap=0.0,
+    fmin=0.00001,
+    fmidbot=0.0001,
+    fmid=1.0,
+    fhigh=10 / 3.0,
+    fhightop=999.0,
+    fmax=1000,
+    with_fZ1=False,
+):
+    """
+    :param dt:
+    :param n:
+    :param vref: Reference vs used for waveform
+    :param vs30: Actual vs30 value of the site
+    :param vpga: Reference vs for HF
+    :param pga: PGA value from HF
+    :param version: unused
+    :param flowcap: unused
+    :param fmin:
+    :param fmidbot:
+    :param fmid:
+    :param fhigh:
+    :param fhightop:
+    :param fmax:
+    :param kwargs: to pass optional arguments such as include_fZ1=True
+    :return:
+    """
+    vc = 100 # TODO: fix this value
+    c = 0.3 # TODO: fix this value
+
+    vsref = 1000
+
+    if bssa14_coefs_df is None:
+        print(
+            "You need to call the init_ba18 function before using the site_amp functions"
+        )
+        exit()
+    coefs = type("coefs", (object,), {})  # creates a custom object for coefs
+
+    if f is None:
+        period_indices = ...
+        coefs.period= bssa14_coefs_df.index.values
+    else:
+        period_index = np.argmin(np.abs(bssa14_coefs_df.index.values - f))
+        if period_index > f:
+            period_indices = [period_index - 1, period_index]
+        else:
+            period_indices = [period_index, period_index + 1]
+        coefs.period = bssa14_coefs_df.index.values[period_indices]
+
+    # Non-linear site parameters
+    coefs.c = bssa14_coefs_df.c.values[period_indices]
+    coefs.vc = bssa14_coefs_df.vc.values[period_indices]
+    coefs.vref = bssa14_coefs_df.vref.values[period_indices]
+    coefs.f1 = bssa14_coefs_df.f1.values[period_indices]
+    coefs.f3 = bssa14_coefs_df.f3.values[period_indices]
+    coefs.f4 = bssa14_coefs_df.f4.values[period_indices]
+    coefs.f5 = bssa14_coefs_df.f5.values[period_indices]
+    
+
+
+    lnFlin = coefs.c*np.log(np.min(vs30,coefs.vc)/coefs.vref)
+
+    # eq 8.
+    f2 =
+    # eq 1. with vs30=760 
+    PGA = ...
+
+    lnFnl = coefs.f1 + f2 * np.log((PGA+coefs.f3)/coefs.f3)
+
 
 
 def hashash_get_pgv(fnorm, mag, rrup, ztor):
