@@ -15,6 +15,9 @@ cb_amp (version = "2014"):
 ba18_amp (version 2018):
     Based on Bayless Fourier Amplitude Spectra Empirical Model - added 11 June 2020
 
+bssa14_amp (version 2014):
+    Based on Boore et all 2014  - added 7 June 2023
+
 Usage
 ==============================
 from siteamp_models import cb_amp (or *)
@@ -31,7 +34,7 @@ import pandas as pd
 from qcore.uncertainties import distributions
 
 ba18_coefs_df = None
-
+bssa14_coefs_file = None
 
 def amplification_uncertainty(
     amplification_factors, frequencies, seed=None, std_dev_limit=2
@@ -65,6 +68,14 @@ def init_ba18():
         __location__, "siteamp_coefs_files", "Bayless_ModelCoefs.csv"
     )
     ba18_coefs_df = pd.read_csv(ba18_coefs_file, index_col=0)
+
+def init_bssa14():
+    global bssa14_coefs_df
+    __location__ = os.path.realpath(os.path.dirname(__file__))
+    bssa14_coefs_file = os.path.join(
+        __location__, "siteamp_coefs_files", "Boore_ModelCoefs.csv"
+    )
+    bssa14_coefs_df = pd.read_csv(bssa14_coefs_file, index_col=0)
 
 
 def nt2n(nt):
@@ -223,7 +234,6 @@ def ba18_amp(
     vs,
     vpga,
     pga,
-    version=None,
     flowcap=0.0,
     fmin=0.00001,
     fmidbot=0.0001,
@@ -231,6 +241,7 @@ def ba18_amp(
     fhigh=10 / 3.0,
     fhightop=999.0,
     fmax=1000,
+    with_fZ1=False,
 ):
     """
 
@@ -248,6 +259,7 @@ def ba18_amp(
     :param fhigh:
     :param fhightop:
     :param fmax:
+    :param kwargs: to pass optional arguments such as include_fZ1=True
     :return:
     """
     if vs > 1000:
@@ -257,8 +269,9 @@ def ba18_amp(
     fmin = 0.00001
     fmidbot = 0.0001
 
-    ref, __ = ba_18_site_response_factor(vref, pga, vpga)
-    vsite, freqs = ba_18_site_response_factor(vs, pga, vpga)
+
+    ref, __ = ba_18_site_response_factor(vref, pga, vpga, with_fZ1)
+    vsite, freqs = ba_18_site_response_factor(vs, pga, vpga, with_fZ1)
 
     amp = np.exp(vsite - ref)
     ftfreq = get_ft_freq(dt, n)
@@ -272,7 +285,7 @@ def ba18_amp(
     return ampfi
 
 
-def ba_18_site_response_factor(vs, pga, vpga, f=None):
+def ba_18_site_response_factor(vs, pga, vpga, include_fZ1, f=None):
     vsref = 1000
 
     if ba18_coefs_df is None:
@@ -298,6 +311,11 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
     coefs.f4 = ba18_coefs_df.f4.values[freq_indices]
     coefs.f5 = ba18_coefs_df.f5.values[freq_indices]
     coefs.b8 = ba18_coefs_df.c8.values[freq_indices]
+    coefs.c11a = ba18_coefs_df.c11a.values[freq_indices]
+    coefs.c11b = ba18_coefs_df.c11b.values[freq_indices]
+    coefs.c11c = ba18_coefs_df.c11c.values[freq_indices]
+    coefs.c11d = ba18_coefs_df.c11d.values[freq_indices]
+
 
     lnfas = coefs.b8 * np.log(min(vs, 1000) / vsref)
 
@@ -315,6 +333,23 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
 
         fas_lin = np.append(fas_lin[:imax], fas_maxfreq * D)
         lnfas = np.log(fas_lin)
+
+    if vs <= 200:
+        coefs.c11 = coefs.c11a
+    elif 200 < vs <= 300:
+        coefs.c11 = coefs.c11b
+    elif 300 < vs <= 500:
+        coefs.c11 = coefs.c11c
+    elif vs > 500:
+        coefs.c11 = coefs.c11d
+    Z1ref = (1/1000) * np.exp((-7.67/4) * np.log((vs**4 + 610**4)/(1360**4 + 610**4)))
+
+    if include_fZ1:
+        fZ1 = coefs.c11 * np.log((min(Z1,2)+0.01)/(Z1ref+0.01))
+    else:
+        fZ1 = 0
+
+
 
     # Compute non-linear site response
     if pga is not None:
@@ -336,9 +371,11 @@ def ba_18_site_response_factor(vs, pga, vpga, f=None):
         fnl0 = coefs.f2 * np.log((IR + coefs.f3) / coefs.f3)
 
         fnl0[np.where(fnl0 == min(fnl0))[0][0] :] = min(fnl0)
-        result = fnl0 + lnfas
+
     else:
-        result = lnfas
+        fnl0 = 0
+
+    result = fnl0 + lnfas + fZ1
 
     if f is not None:
         return np.interp(f, coefs.freq, result), f
