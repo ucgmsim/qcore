@@ -357,9 +357,9 @@ def ba_18_site_response_factor(vs, pga, vpga, with_fZ1, f=None):
         if vpga != v_model_ref:
             IR = pga * exp(
                 ba_18_site_response_factor(
-                    vs=v_model_ref, pga=None, vpga=v_model_ref, f=5
+                    vs=v_model_ref, pga=None, vpga=v_model_ref, with_fZ1=with_fZ1, f=5
                 )[0]
-                - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=v_model_ref, f=5)[0]
+                - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=v_model_ref, with_fZ1=with_fZ1, f=5)[0]
             )
         else:
             IR = pga
@@ -382,7 +382,7 @@ def ba_18_site_response_factor(vs, pga, vpga, with_fZ1, f=None):
     else:
         return result, coefs.freq
 
-def bsaa14_amp(
+def bssa14_amp(
     dt,
     n,
     vref,
@@ -423,7 +423,7 @@ def bsaa14_amp(
 
     if bssa14_coefs_df is None:
         print(
-            "You need to call the init_ba18 function before using the site_amp functions"
+            "You need to call the init_bssa18 function before using the site_amp functions"
         )
         exit()
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
@@ -453,7 +453,7 @@ def bsaa14_amp(
     lnFlin = coefs.c*np.log(np.min(vs30,coefs.vc)/coefs.vref)
 
     # eq 8.
-    f2 =
+    f2 = ...
     # eq 1. with vs30=760 
     PGA = ...
 
