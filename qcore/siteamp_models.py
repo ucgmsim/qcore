@@ -404,7 +404,7 @@ def bssa14_amp(
     :param vref: Reference vs used for waveform
     :param vs30: Actual vs30 value of the site
     :param vpga: Reference vs for HF
-    :param pga: PGA value from HF
+    :param pga: PGA value from HF 
     :param version: unused
     :param flowcap: unused
     :param fmin:
@@ -413,7 +413,7 @@ def bssa14_amp(
     :param fhigh:
     :param fhightop:
     :param fmax:
-    :param kwargs: to pass optional arguments such as include_fZ1=True
+    :param with_fZ1: 
     :return:
     """
     vc = 100 # TODO: fix this value
@@ -428,21 +428,14 @@ def bssa14_amp(
         exit()
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
 
-    if f is None:
-        period_indices = ...
-        coefs.period= bssa14_coefs_df.index.values
-    else:
-        period_index = np.argmin(np.abs(bssa14_coefs_df.index.values - f))
-        if period_index > f:
-            period_indices = [period_index - 1, period_index]
-        else:
-            period_indices = [period_index, period_index + 1]
-        coefs.period = bssa14_coefs_df.index.values[period_indices]
-
+    
+    period_indices = ...
+    coefs.period= bssa14_coefs_df.index.values
+    
     # Non-linear site parameters
     coefs.c = bssa14_coefs_df.c.values[period_indices]
     coefs.vc = bssa14_coefs_df.vc.values[period_indices]
-    coefs.vref = bssa14_coefs_df.vref.values[period_indices]
+    #coefs.vref = bssa14_coefs_df.vref.values[period_indices]
     coefs.f1 = bssa14_coefs_df.f1.values[period_indices]
     coefs.f3 = bssa14_coefs_df.f3.values[period_indices]
     coefs.f4 = bssa14_coefs_df.f4.values[period_indices]
@@ -450,14 +443,15 @@ def bssa14_amp(
     
 
 
-    lnFlin = coefs.c*np.log(np.min(vs30,coefs.vc)/coefs.vref)
+    lnFlin = coefs.c*np.log(np.min(vs30,coefs.vc)/ vref)
 
     # eq 8.
-    f2 = ...
-    # eq 1. with vs30=760 
-    PGA = ...
+    f2 = coefs.f4*(np.exp(coefs.f5*(np.min(vs30,760)-360))-np.exp(coefs.f5*(760-360)))
 
-    lnFnl = coefs.f1 + f2 * np.log((PGA+coefs.f3)/coefs.f3)
+    # pga from function argument or computed with eq1. with vs30=760?
+    pga_r = ...
+    
+    lnFnl = coefs.f1 + f2 * np.log((pga_r+coefs.f3)/coefs.f3)
 
 
 
