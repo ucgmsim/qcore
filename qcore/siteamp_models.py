@@ -241,7 +241,6 @@ def ba18_amp(
     fhigh=10 / 3.0,
     fhightop=999.0,
     fmax=1000,
-    with_fZ1=False,
     z1=None,
 ):
     """
@@ -271,8 +270,8 @@ def ba18_amp(
     fmidbot = 0.0001
 
 
-    ref, __ = ba_18_site_response_factor(vref, pga, vpga, with_fZ1)
-    vsite, freqs = ba_18_site_response_factor(vs, pga, vpga, with_fZ1)
+    ref, __ = ba_18_site_response_factor(vref, pga, vpga, z1)
+    vsite, freqs = ba_18_site_response_factor(vs, pga, vpga, z1)
 
     amp = np.exp(vsite - ref)
     ftfreq = get_ft_freq(dt, n)
@@ -286,7 +285,7 @@ def ba18_amp(
     return ampfi
 
 
-def ba_18_site_response_factor(vs, pga, vpga, with_fZ1, f=None):
+def ba_18_site_response_factor(vs, pga, vpga, z1=None, f=None):
     vsref = 1000
 
     if ba18_coefs_df is None:
@@ -343,10 +342,10 @@ def ba_18_site_response_factor(vs, pga, vpga, with_fZ1, f=None):
         coefs.c11 = coefs.c11c
     elif vs > 500:
         coefs.c11 = coefs.c11d
-    Z1ref = (1/1000) * np.exp((-7.67/4) * np.log((vs**4 + 610**4)/(1360**4 + 610**4)))
+    z1ref = (1/1000) * np.exp((-7.67/4) * np.log((vs**4 + 610**4)/(1360**4 + 610**4)))
 
-    if with_fZ1:
-        fZ1 = coefs.c11 * np.log((min(Z1,2)+0.01)/(Z1ref+0.01))
+    if z1 is not None:
+        fZ1 = coefs.c11 * np.log((min(z1,2)+0.01)/(z1ref+0.01))
     else:
         fZ1 = 0
 
@@ -358,9 +357,9 @@ def ba_18_site_response_factor(vs, pga, vpga, with_fZ1, f=None):
         if vpga != v_model_ref:
             IR = pga * exp(
                 ba_18_site_response_factor(
-                    vs=v_model_ref, pga=None, vpga=v_model_ref, with_fZ1=with_fZ1, f=5
+                    vs=v_model_ref, pga=None, vpga=v_model_ref, z1=z1, f=5
                 )[0]
-                - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=v_model_ref, with_fZ1=with_fZ1, f=5)[0]
+                - ba_18_site_response_factor(vs=vpga, pga=pga, vpga=v_model_ref, z1=z1, f=5)[0]
             )
         else:
             IR = pga
