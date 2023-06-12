@@ -242,6 +242,7 @@ def ba18_amp(
     fhightop=999.0,
     fmax=1000,
     with_fZ1=False,
+    z1=None,
 ):
     """
 
@@ -428,14 +429,14 @@ def bssa14_amp(
         exit()
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
 
+    period_indices = bssa14_coefs_df.index.values
     
-    period_indices = ...
-    coefs.period= bssa14_coefs_df.index.values
-    
-    # Non-linear site parameters
+
+    # Lnear site parameters
     coefs.c = bssa14_coefs_df.c.values[period_indices]
     coefs.vc = bssa14_coefs_df.vc.values[period_indices]
-    #coefs.vref = bssa14_coefs_df.vref.values[period_indices]
+    coefs.vref = bssa14_coefs_df.vref.values[period_indices]
+    # Non-linear site parameters
     coefs.f1 = bssa14_coefs_df.f1.values[period_indices]
     coefs.f3 = bssa14_coefs_df.f3.values[period_indices]
     coefs.f4 = bssa14_coefs_df.f4.values[period_indices]
@@ -452,6 +453,25 @@ def bssa14_amp(
     pga_r = ...
     
     lnFnl = coefs.f1 + f2 * np.log((pga_r+coefs.f3)/coefs.f3)
+
+
+
+    Mju_z1 = np.exp(-7.15/4*np.log((vs30**4+570.94**4)/(1360**4+570.94**4))-np.log(1000))
+
+    d1 = z1 - Mju_z1
+
+    Fdz1 = np.zeros(len(bssa14_coefs_df))
+    Fdz1[np.where((period_indices>=0.65) & (dz1<=f7/f6))] = f6*dz1
+    Fdz1[np.where((period_indices>=0.65) & (dz1>f7/f6))] = f7
+
+
+    
+
+
+    result = lnFlin + lnFnl + Fdz1
+
+
+
 
 
 
