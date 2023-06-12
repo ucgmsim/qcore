@@ -396,7 +396,7 @@ def bssa14_amp(
     fhigh=10 / 3.0,
     fhightop=999.0,
     fmax=1000,
-    with_fZ1=False,
+    z1=None,
 ):
     """
     :param dt:
@@ -413,7 +413,7 @@ def bssa14_amp(
     :param fhigh:
     :param fhightop:
     :param fmax:
-    :param with_fZ1: 
+    :param z1: 
     :return:
     """
     vc = 100 # TODO: fix this value
@@ -454,18 +454,16 @@ def bssa14_amp(
     lnFnl = coefs.f1 + f2 * np.log((pga_r+coefs.f3)/coefs.f3)
 
 
+    Mu_z1 = np.exp(-7.15/4*np.log((vs30**4+570.94**4)/(1360**4+570.94**4))-np.log(1000))
 
-    Mju_z1 = np.exp(-7.15/4*np.log((vs30**4+570.94**4)/(1360**4+570.94**4))-np.log(1000))
-
-    d1 = z1 - Mju_z1
+    dZ1 = z1 - Mu_z1
 
     Fdz1 = np.zeros(len(bssa14_coefs_df))
-    Fdz1[np.where((period_indices>=0.65) & (dz1<=f7/f6))] = f6*dz1
-    Fdz1[np.where((period_indices>=0.65) & (dz1>f7/f6))] = f7
+    Fdz1[np.where((period_indices>=0.65) & (dZ1<=f7/f6))] = f6*dZ1
+    Fdz1[np.where((period_indices>=0.65) & (dZ1>f7/f6))] = f7
 
 
     
-
 
     result = lnFlin + lnFnl + Fdz1
 
