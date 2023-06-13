@@ -416,10 +416,10 @@ def bssa14_amp(
     :param z1: 
     :return:
     """
-    vc = 100 # TODO: fix this value
-    c = 0.3 # TODO: fix this value
 
-    vsref = 1000
+
+
+def bssa_14_site_response_factor(vs, pga, vpga, z1=None):
 
     if bssa14_coefs_df is None:
         print(
@@ -442,31 +442,37 @@ def bssa14_amp(
     coefs.f5 = bssa14_coefs_df.f5.values[period_indices]
     
 
-
-    lnFlin = coefs.c*np.log(np.min(vs30,coefs.vc)/ vref)
+    lnFlin = coefs.c*np.log(np.min(vs,coefs.vc)/ coefs.vref)
 
     # eq 8.
-    f2 = coefs.f4*(np.exp(coefs.f5*(np.min(vs30,760)-360))-np.exp(coefs.f5*(760-360)))
+    f2 = coefs.f4*(np.exp(coefs.f5*(np.min(vs,760)-360))-np.exp(coefs.f5*(760-360)))
 
     # pga from function argument or computed with eq1. with vs30=760?
-    pga_r = ...
+    if pga is not None:
+        v_model_ref = 760
+        if vpga != v_model_ref:
+            pga_r = pga*np.exp(bssa_14_site_response_factor(v_model_ref, None, v_model_ref, z1)-bssa_14_site_response_factor(vpga, pga, v_model_ref, z1))
+        else:
+            pga_r = pga
+        
+        lnFnl = coefs.f1 + f2 * np.log((pga_r+coefs.f3)/coefs.f3)
+    else:        
+        lnFnl = coefs.f1
     
-    lnFnl = coefs.f1 + f2 * np.log((pga_r+coefs.f3)/coefs.f3)
+    Mu_z1 = np.exp(-7.15/4*np.log((vs**4+570.94**4)/(1360**4+570.94**4))-np.log(1000))
 
+    if z1 is not None:
+        dZ1 = z1 - Mu_z1
 
-    Mu_z1 = np.exp(-7.15/4*np.log((vs30**4+570.94**4)/(1360**4+570.94**4))-np.log(1000))
-
-    dZ1 = z1 - Mu_z1
-
-    Fdz1 = np.zeros(len(bssa14_coefs_df))
-    Fdz1[np.where((period_indices>=0.65) & (dZ1<=f7/f6))] = f6*dZ1
-    Fdz1[np.where((period_indices>=0.65) & (dZ1>f7/f6))] = f7
-
-
-    
+        Fdz1 = np.zeros(len(bssa14_coefs_df))
+        Fdz1[np.where((period_indices>=0.65) & (dZ1<=f7/f6))] = f6*dZ1
+        Fdz1[np.where((period_indices>=0.65) & (dZ1>f7/f6))] = f7
+    else:
+        Fdz1 = 0
 
     result = lnFlin + lnFnl + Fdz1
 
+    return result
 
 
 
