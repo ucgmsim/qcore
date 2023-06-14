@@ -73,9 +73,9 @@ def init_bssa14():
     global bssa14_coefs_df
     __location__ = os.path.realpath(os.path.dirname(__file__))
     bssa14_coefs_file = os.path.join(
-        __location__, "siteamp_coefs_files", "Boore_ModelCoefs.csv"
+        __location__, "siteamp_coefs_files", "05_eqs-070113eqs184m_suppl_es1_030915.csv"
     )
-    bssa14_coefs_df = pd.read_csv(bssa14_coefs_file, index_col=0)
+    bssa14_coefs_df = pd.read_csv(bssa14_coefs_file, index_col=0, skiprows=1)
 
 
 def nt2n(nt):
@@ -386,7 +386,7 @@ def bssa14_amp(
     dt,
     n,
     vref,
-    vs30,
+    vs,
     vpga,
     pga,
     flowcap=0.0,
@@ -402,7 +402,7 @@ def bssa14_amp(
     :param dt:
     :param n:
     :param vref: Reference vs used for waveform
-    :param vs30: Actual vs30 value of the site
+    :param vs: Actual vs30 value of the site
     :param vpga: Reference vs for HF
     :param pga: PGA value from HF 
     :param version: unused
@@ -416,7 +416,27 @@ def bssa14_amp(
     :param z1: 
     :return:
     """
+    if vs > 1000:
+        vs = 999  # maximum vs30 supported by the model is 999, so caps the vsite to that value
 
+    # overwrite these two values to their default value, so changes by the caller function do not override this
+    fmin = 0.00001
+    fmidbot = 0.0001
+
+
+    ref, __ = bssa_14_site_response_factor(vref, pga, vpga, z1)
+    vsite, freqs = bssa_14_site_response_factor(vs, pga, vpga, z1)
+
+    amp = np.exp(vsite - ref)
+    ftfreq = get_ft_freq(dt, n)
+
+    ampi = np.interp(ftfreq, freqs, amp)
+    ampfi = amp_bandpass(
+        ampi, fhightop, fmax, fmidbot, fmin, ftfreq
+    )  # With these values it is effectively no filtering
+    ampfi[0] = ampfi[1]  # Copies the first value, which isn't necessarily 1
+
+    return ampfi
 
 
 def bssa_14_site_response_factor(vs, pga, vpga, z1=None):
@@ -432,45 +452,57 @@ def bssa_14_site_response_factor(vs, pga, vpga, z1=None):
     
 
     # Lnear site parameters
-    coefs.c = bssa14_coefs_df.c.values[period_indices]
-    coefs.vc = bssa14_coefs_df.vc.values[period_indices]
-    coefs.vref = bssa14_coefs_df.vref.values[period_indices]
-    # Non-linear site parameters
-    coefs.f1 = bssa14_coefs_df.f1.values[period_indices]
-    coefs.f3 = bssa14_coefs_df.f3.values[period_indices]
-    coefs.f4 = bssa14_coefs_df.f4.values[period_indices]
-    coefs.f5 = bssa14_coefs_df.f5.values[period_indices]
+    coefs.c = bssa14_coefs_df.c
+    coefs.vc = bssa14_coefs_df.vc
+    coefs.vref = bssa14_coefs_df.vref
     
+    # Non-linear site parameters
+    coefs.f1 = bssa14_coefs_df.f1
+    coefs.f3 = bssa14_coefs_df.f3
+    coefs.f4 = bssa14_coefs_df.f4
+    coefs.f5 = bssa14_coefs_df.f5
 
-    lnFlin = coefs.c*np.log(np.min(vs,coefs.vc)/ coefs.vref)
+    # basin depth
+    coefs.f6 = bssa14_coefs_df.f6
+    coefs.f7 = bssa14_coefs_df.f7
+
+    min_vc_vs=coefs.vc.copy()
+    min_vc_vs.loc[min_vc_vs>=vs]=vs # minimum of vc and vs is taken
+
+    lnFlin = coefs.c*np.log(min_vc_vs/ coefs.vref)
 
     # eq 8.
-    f2 = coefs.f4*(np.exp(coefs.f5*(np.min(vs,760)-360))-np.exp(coefs.f5*(760-360)))
+    f2 = coefs.f4*(np.exp(coefs.f5*(min(vs,760)-360))-np.exp(coefs.f5*(760-360)))
 
-    # pga from function argument or computed with eq1. with vs30=760?
-    if pga is not None:
+    if pga is not None: # 
         v_model_ref = 760
         if vpga != v_model_ref:
-            pga_r = pga*np.exp(bssa_14_site_response_factor(v_model_ref, None, v_model_ref, z1)-bssa_14_site_response_factor(vpga, pga, v_model_ref, z1))
+            fs760 = bssa_14_site_response_factor(vs=v_model_ref, pga=None, vpga=v_model_ref, z1=z1)
+            fs_vpga = bssa_14_site_response_factor(vs=vpga, pga=pga, vpga=v_model_ref, z1=z1)
+            pga_r = pga*np.exp(fs760[0] - fs_vpga[0]) #for period 0
+                               
         else:
             pga_r = pga
         
         lnFnl = coefs.f1 + f2 * np.log((pga_r+coefs.f3)/coefs.f3)
     else:        
         lnFnl = coefs.f1
-    
+
+    # prediction of an empirical model relating z1 to vs30. Using Califorrnia model    
     Mu_z1 = np.exp(-7.15/4*np.log((vs**4+570.94**4)/(1360**4+570.94**4))-np.log(1000))
 
     if z1 is not None:
         dZ1 = z1 - Mu_z1
+        f7_f6_ratio = coefs.f7 / coefs.f6
 
-        Fdz1 = np.zeros(len(bssa14_coefs_df))
-        Fdz1[np.where((period_indices>=0.65) & (dZ1<=f7/f6))] = f6*dZ1
-        Fdz1[np.where((period_indices>=0.65) & (dZ1>f7/f6))] = f7
+        fdz1=pd.Series(0,index=coefs.f7.index)
+        fdz1.loc[(fdz1.index>0.65) & (f7_f6_ratio >= dZ1)] = coefs.f6*dZ1
+        fdz1.loc[(fdz1.index>0.65) & (f7_f6_ratio < dZ1)] = coefs.f7
+        
     else:
-        Fdz1 = 0
+        fdz1 = 0
 
-    result = lnFlin + lnFnl + Fdz1
+    result = lnFlin + lnFnl + fdz1
 
     return result
 
