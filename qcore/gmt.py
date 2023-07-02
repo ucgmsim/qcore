@@ -348,19 +348,19 @@ def perspective_fill(width, height, view=180, tilt=90, zlevel=0):
     # bottom and top edge segments
     bs = width * s_view
     bsx = bs * s_view
-    by = math.sqrt(bs**2 - bsx**2) * s_tilt
-    bs = math.sqrt(bsx**2 + by**2)
-    bl = math.sqrt((width - bsx) ** 2 + by**2)
+    by = math.sqrt(bs ** 2 - bsx ** 2) * s_tilt
+    bs = math.sqrt(bsx ** 2 + by ** 2)
+    bl = math.sqrt((width - bsx) ** 2 + by ** 2)
     # side segments
     ss = height * s_view
     sx = ss * c_view
-    ssy = math.sqrt(ss**2 - sx**2)
+    ssy = math.sqrt(ss ** 2 - sx ** 2)
     try:
         sx = ssy / math.tan(math.atan((ssy * s_tilt) / sx))
     except ZeroDivisionError:
         sx = 0
-    ss = math.sqrt(ssy**2 + sx**2)
-    sl = math.sqrt((height - ssy) ** 2 + sx**2)
+    ss = math.sqrt(ssy ** 2 + sx ** 2)
+    sl = math.sqrt((height - ssy) ** 2 + sx ** 2)
     # result sizes
     page_x_size = abs(bl) + abs(ss)
     page_y_size = abs(bs) + abs(sl)
@@ -564,7 +564,7 @@ def abs_max(x_file, y_file, z_file, out_file, native=True):
     y = np.fromfile(y_file, dtype=fmt)[:, 2]
     z = np.fromfile(z_file, dtype=fmt)[:, 2]
 
-    result[:, 2] = np.sqrt(result[:, 2] ** 2 + y**2 + z**2)
+    result[:, 2] = np.sqrt(result[:, 2] ** 2 + y ** 2 + z ** 2)
     result.astype("f4").tofile(out_file)
 
 
@@ -2135,8 +2135,9 @@ def intersections(
         if containing is None or containing in line.split()[4:6]:
             points.append(list(map(float, line.split()[:2])))
         chunks = line.split()
-        chunks = [x.rstrip("-0") for x in
-                  chunks]  # FIX: GMT-6.3 places unnecessary -0 suffix to the file name, causing the string match below to fail
+        chunks = [
+            x.rstrip("-0") for x in chunks
+        ]  # FIX: GMT-6.3 places unnecessary -0 suffix to the file name, causing the string match below to fail
         if containing is None or containing in chunks[4:6]:
             points.append(list(map(float, chunks[:2])))
             if items:
