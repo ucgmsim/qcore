@@ -2134,8 +2134,13 @@ def intersections(
     for line in so.rstrip().split("\n"):
         if containing is None or containing in line.split()[4:6]:
             points.append(list(map(float, line.split()[:2])))
+        chunks = line.split()
+        chunks = [x.rstrip("-0") for x in
+                  chunks]  # FIX: GMT-6.3 places unnecessary -0 suffix to the file name, causing the string match below to fail
+        if containing is None or containing in chunks[4:6]:
+            points.append(list(map(float, chunks[:2])))
             if items:
-                comps.append(line.split()[-2:])
+                comps.append(chunks[-2:])
     if not items:
         return points
     else:
