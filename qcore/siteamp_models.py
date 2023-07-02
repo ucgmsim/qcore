@@ -77,6 +77,14 @@ def init_bssa14():
     )
     bssa14_coefs_df = pd.read_csv(bssa14_coefs_file, index_col=0, skiprows=1)
 
+def init_bcs19():
+    global bcs19_coefs_df
+    __location__ = os.path.realpath(os.path.dirname(__file__))
+    bcs19_coefs_file = os.path.join(
+        __location__, "siteamp_coefs_files", "BCS19_ModelCoefs.csv"
+    )
+    bssa14_coefs_df = pd.read_csv(bcs19_coefs_file, index_col=0)
+
 
 def nt2n(nt):
     """
@@ -449,6 +457,7 @@ def bssa_14_site_response_factor(vs, pga, vpga, z1=None):
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
 
     period_indices = bssa14_coefs_df.index.values
+    freq = 1/period_indices
     
 
     # Lnear site parameters
@@ -504,9 +513,80 @@ def bssa_14_site_response_factor(vs, pga, vpga, z1=None):
 
     result = lnFlin + lnFnl + fdz1
 
-    return result
+    return result, freq
+
+def bcs19_amp(
+    dt,
+    n,
+    vref,
+    vs,
+    vpga,
+    pga,
+    flowcap=0.0,
+    fmin=0.00001,
+    fmidbot=0.0001,
+    fmid=1.0,
+    fhigh=10 / 3.0,
+    fhightop=999.0,
+    fmax=1000,
+):
+    """
+    :param dt:
+    :param n:
+    :param vref: Reference vs used for waveform
+    :param vs: Actual vs30 value of the site
+    :param vpga: Reference vs for HF
+    :param pga: PGA value from HF 
+    :param version: unused
+    :param flowcap: unused
+    :param fmin:
+    :param fmidbot:
+    :param fmid:
+    :param fhigh:
+    :param fhightop:
+    :param fmax:
+    :return:
+    """
+    if vs > 1000:
+        vs = 999  # maximum vs30 supported by the model is 999, so caps the vsite to that value
+
+    # overwrite these two values to their default value, so changes by the caller function do not override this
+    fmin = 0.00001
+    fmidbot = 0.0001
 
 
+    ref, __ = bcs_19_site_response_factor(vref)
+    vsite, freqs = bcs_19_site_response_factor(vs)
+
+    amp = np.exp(vsite - ref)
+    ftfreq = get_ft_freq(dt, n)
+
+    ampi = np.interp(ftfreq, freqs, amp)
+    ampfi = amp_bandpass(
+        ampi, fhightop, fmax, fmidbot, fmin, ftfreq
+    )  # With these values it is effectively no filtering
+    ampfi[0] = ampfi[1]  # Copies the first value, which isn't necessarily 1
+
+    return ampfi
+
+def bcs_19_site_response_factor(vs):
+
+    vc=1100
+    vref=800
+
+    if bcs19_coefs_df is None:
+        print(
+            "You need to call the init_ba18 function before using the site_amp functions"
+        )
+        exit()
+    coefs = type("coefs", (object,), {})  # creates a custom object for coefs
+
+    coefs.c6 = bcs19_coefs_df.c6
+
+    min_vc_vs = min(vc,vs)
+    fs = coefs.c6 * np.log(min_vc_vs / vref)
+
+    return fs
 
 
 
