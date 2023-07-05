@@ -18,6 +18,9 @@ ba18_amp (version 2018):
 bssa14_amp (version 2014):
     Based on Boore et all 2014  - added 7 June 2023
 
+bcs19_amp (version 2019):
+    Based on Bora, Cotton, Scherbaum - added 5 July 2023
+
 Usage
 ==============================
 from siteamp_models import cb_amp (or *)
