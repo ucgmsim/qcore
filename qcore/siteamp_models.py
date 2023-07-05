@@ -35,6 +35,8 @@ from qcore.uncertainties import distributions
 
 ba18_coefs_df = None
 bssa14_coefs_df = None
+bcs19_coefs_df = None
+
 
 def amplification_uncertainty(
     amplification_factors, frequencies, seed=None, std_dev_limit=2
