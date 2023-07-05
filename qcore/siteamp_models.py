@@ -76,6 +76,7 @@ def init_bssa14():
         __location__, "siteamp_coefs_files", "05_eqs-070113eqs184m_suppl_es1_030915.csv"
     )
     bssa14_coefs_df = pd.read_csv(bssa14_coefs_file, index_col=0, skiprows=1)
+    bssa14_coefs_df = bssa14_coefs_df.iloc[2:] # The first 2 periods -1 and 0 are reserved for PGV and PGA respectively
 
 def init_bcs19():
     global bcs19_coefs_df
@@ -83,7 +84,7 @@ def init_bcs19():
     bcs19_coefs_file = os.path.join(
         __location__, "siteamp_coefs_files", "BCS19_ModelCoefs.csv"
     )
-    bssa14_coefs_df = pd.read_csv(bcs19_coefs_file, index_col=0)
+    bcs19_coefs_df = pd.read_csv(bcs19_coefs_file, index_col=0)
 
 
 def nt2n(nt):
@@ -451,12 +452,12 @@ def bssa_14_site_response_factor(vs, pga, vpga, z1=None):
 
     if bssa14_coefs_df is None:
         print(
-            "You need to call the init_bssa18 function before using the site_amp functions"
+            "You need to call the init_bssa14 function before using the site_amp functions"
         )
         exit()
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
 
-    period_indices = bssa14_coefs_df.index.values
+    period_indices = bssa14_coefs_df.index.values # T= -1, 0 are for PGV and PGA respectively
     freq = 1/period_indices
     
 
@@ -576,17 +577,18 @@ def bcs_19_site_response_factor(vs):
 
     if bcs19_coefs_df is None:
         print(
-            "You need to call the init_ba18 function before using the site_amp functions"
+            "You need to call the init_bcs19 function before using the site_amp functions"
         )
         exit()
     coefs = type("coefs", (object,), {})  # creates a custom object for coefs
 
     coefs.c6 = bcs19_coefs_df.c6
+    freqs = bcs19_coefs_df.index.values
 
     min_vc_vs = min(vc,vs)
     fs = coefs.c6 * np.log(min_vc_vs / vref)
 
-    return fs
+    return fs, freqs
 
 
 
