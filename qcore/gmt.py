@@ -2132,8 +2132,6 @@ def intersections(
     points = []
     comps = []
     for line in so.rstrip().split("\n"):
-        if containing is None or containing in line.split()[4:6]:
-            points.append(list(map(float, line.split()[:2])))
         chunks = line.split()
         chunks = [
             x.rstrip("-0") for x in chunks
