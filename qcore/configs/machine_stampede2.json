@@ -1,6 +1,7 @@
 {
     "tools_dir": "/work/06833/sungbae/stampede2/tools",
     "cores_per_node": 64,
+    "memory_per_node" : 1.4,
     "MAX_NODES_PER_JOB" : 256,
     "MAX_JOB_WCT" : 48,
     "MAX_CH_PER_JOB": Infinity
