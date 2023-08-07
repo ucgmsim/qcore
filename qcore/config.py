@@ -20,7 +20,6 @@ def determine_machine_config(hostname=node()):
     Determines the machine name eg: nodes ni0002 and maui01 belong to maui.
     :return: machine name, config file
     """
-
     if (hostname.startswith("ni") and len(hostname) == 8) or hostname.startswith(
         __KnownMachines.maui.name
     ):
@@ -56,6 +55,7 @@ def get_machine_config(hostname=node(), config_path=None):
 class ConfigKeys(Enum):
     tools_dir = auto()
     cores_per_node = auto()
+    memory_per_core = auto()
     MAX_JOB_WCT = auto()
     MAX_NODES_PER_JOB = auto()
     MAX_CH_PER_JOB = auto()
