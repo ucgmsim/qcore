@@ -55,7 +55,7 @@ def get_machine_config(hostname=node(), config_path=None):
 class ConfigKeys(Enum):
     tools_dir = auto()
     cores_per_node = auto()
-    memory_per_node = auto()
+    memory_per_core = auto()
     MAX_JOB_WCT = auto()
     MAX_NODES_PER_JOB = auto()
     MAX_CH_PER_JOB = auto()
