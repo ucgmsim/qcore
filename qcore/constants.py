@@ -335,7 +335,7 @@ class ProcessType(ExtendedStrEnum):
         None,
         False,
         None,
-        ([(rrup, "REL")],),
+        ([(INSTALL_REALISATION, "REL"), (INSTALL_FAULT, "MEDIAN")],),
     )
 
     Verification = (
