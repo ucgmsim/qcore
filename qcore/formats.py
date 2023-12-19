@@ -67,8 +67,7 @@ def station_file_argparser(parser=None):
     Return a parser object with formatting information of a generic station file. To facilitate the use of load_generic_station_file()
 
     Example:
-    In your script, X.py, you already have some arguments parsed by ArgumentParser(),
-    but wish to handle extra arguments to handle a station file in a random format
+    In your script, X.py, you already have some arguments parsed by ArgumentParser(), but if you wish to handle extra arguments related to the format of a station file
 
     def get_args():
         parser = argparse.ArgumentParser()
