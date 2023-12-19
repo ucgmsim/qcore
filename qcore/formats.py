@@ -180,8 +180,10 @@ def load_generic_station_file(
 
     return pd.read_csv(
         stat_file,
-        usecols=cols.values(),
-        names=sorted(cols, key=cols.get),
+        usecols=cols.values(),  # we will be loading columns of these indices (order doesn't matter)
+        names=sorted(
+            cols, key=cols.get
+        ),  # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"]
         index_col=stat_name_col,
         sep=sep,
         header=None,
