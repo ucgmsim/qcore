@@ -7,6 +7,8 @@ import numpy as np
 def is_inside_postgis(polygon: np.ndarray, point: np.ndarray):
     """
     Function that checks if a point is inside a polygon
+    Based on solutions found here
+    (https://stackoverflow.com/questions/36399381/whats-the-fastest-way-of-checking-if-a-point-is-inside-a-polygon-in-python)
 
     Parameters
     ----------
