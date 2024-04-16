@@ -901,6 +901,9 @@ def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
     # equivalently (2, 0, 0, 0). We need to choose one of these coordinates
     # deterministically. This is usually done by rescaling the coordinates such
     # that the last non-zero coordinate is one (a process called normalisation).
+    #
+    # NOTE: This choice to normalise by the last coordinate is arbitrary. Any
+    # method of normalisation would work.
     null_space = null_space.reshape((1, -1))[0]
     c = next(x for x in reversed(null_space) if not np.isclose(x, 0))
     return null_space / c
