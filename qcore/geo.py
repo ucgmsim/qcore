@@ -833,9 +833,10 @@ def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
 
 
 def homogenise_point(p: np.ndarray) -> np.ndarray:
-    """Express a point in homogenous coordinates
+    """Express a point in homogenous coordinates.
 
-    Given a point p in R^3 return the affine point in PG(3, R) associated with p.
+    Given a point p in R^3 return the affine point in PG(3, R) associated with p. Informally, it maps
+    (x, y, z) -> (x, y, z, 1).
 
     Parameters
     ----------
@@ -857,16 +858,16 @@ def homogenise_point(p: np.ndarray) -> np.ndarray:
 
 
 def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
-    """Find the projective plane spanned by p, q, and r
+    """Find the projective plane spanned by p, q, and r.
 
     Parameters
     ----------
     p : np.ndarray
-        The homogenous coordinates of p
+        The homogenous coordinates of p.
     q : np.ndarray
-        The homogenous coordinates of q
+        The homogenous coordinates of q.
     r : np.ndarray
-        The homogenous coordinates of r
+        The homogenous coordinates of r.
 
     Returns
     -------
@@ -901,7 +902,7 @@ def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
 
 
 def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray):
-    """Find the plane spanning three points
+    """Find the plane spanning three points.
 
     Returns the coefficient vector of the affine plane spanning three points.
 
@@ -928,7 +929,7 @@ def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray):
 
 
 def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray:
-    """Find the orthogonal plane to pi through p and q
+    """Find the orthogonal plane to pi through p and q.
 
     Given two points p and q, find the unique orthogonal plane that meets pi at
     p and q.
@@ -936,16 +937,16 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
     Parameters
     ----------
     pi : np.ndarray
-        Dual coordinates of the plane
+        Dual coordinates of the plane.
     p : np.ndarray
-        Coordinates of the point p
+        Coordinates of the point p.
     q : np.ndarray
         Coordinates of the point q
 
     Returns
     -------
     np.ndarray
-        The dual coordinates of the homogenous plane
+        The dual coordinates of the homogenous plane.
 
     Examples
     --------
@@ -1020,7 +1021,7 @@ def closest_points_between_planes(
         for i in range(len(p1_corners))
     ]
 
-    # The dual coordinates of a plane are defined up to scalar multiples. Here
+    # The dual coordinates of a plane are defined up to scalar multiples. Here we
     # scale the coordinates to ensure that the normal vectors point towards the
     # centre.
     #
@@ -1035,7 +1036,7 @@ def closest_points_between_planes(
     #   | /   c    /
     #    x--------x
     #
-    # Where p1 is the plane, p1' the plane orthogonal to p1, norm the normal vector pointing towards c, the centroid.
+    # Where p1 is the plane, p1' the plane orthogonal to p1, and norm the normal vector pointing towards c, the centroid.
     # This ensures that the inequality norm * x >= 0 describes all points on the same side of p1' as c.
     # Adding a condition like this for each edge of p1 bounds our search to just points on p1.
     for i, norm in enumerate(p1_ortho_planes):
@@ -1073,7 +1074,7 @@ def closest_points_between_planes(
     ]
 
     def distance(x):
-        # x is a numpy array 6-tuple containing the position of the points p and q.
+        # x is a numpy array of length 6 containing the position of the points p in x[:3] and q in x[3:].
         # returns ||p - q||^2
         return sp.spatial.distance.cdist(
             x[:3].reshape((1, 3)), x[3:].reshape((1, 3)), metric="sqeuclidean"
@@ -1101,7 +1102,7 @@ def closest_points_between_planes(
 def closest_points_between_plane_sequences(
     sequence1_planes: np.ndarray, sequence2_planes: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Find the closest points between two sequences of planes
+    """Find the closest points between two sequences of planes.
 
     Parameters
     ----------
@@ -1113,7 +1114,7 @@ def closest_points_between_plane_sequences(
     Returns
     -------
     (np.ndarray, np.ndarray)
-        Points (p, q) minimising ||p - q|| such that p lies on sequence1_planes and
+        Points (p, q) minimising ||p - q||, such that p lies on sequence1_planes and
         q lies on sequence2_planes.
 
     """
