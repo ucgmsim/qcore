@@ -887,18 +887,18 @@ def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
     ValueError: Points supplied do not span a plane. # NOTE: these points lie on the line x = y.
     """
     M = np.vstack([p, q, r])
-    ns = sp.linalg.null_space(M)
+    null_space = sp.linalg.null_space(M)
     # If the null space does not have dimension 1 then the points supplied do
     # not span a unique plane. This could happen if the points supplied are
     # collinear.
-    if ns.shape[1] != 1:
+    if null_space.shape[1] != 1:
         raise ValueError("Points supplied do not span a plane.")
     # Otherwise we just rescale the homogenous vector. It is now mathematically
     # impossible that the vector is zero, so we can safely assume that c != 0 in the following code.
     # We normalise by the last non-zero coordinate of the point.
-    ns = ns.reshape((1, -1))[0]
-    c = next(x for x in reversed(ns) if not np.isclose(x, 0))
-    return ns / c
+    null_space = null_space.reshape((1, -1))[0]
+    c = next(x for x in reversed(null_space) if not np.isclose(x, 0))
+    return null_space / c
 
 
 def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
