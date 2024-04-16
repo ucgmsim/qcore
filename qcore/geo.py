@@ -3,6 +3,7 @@ Various tools which may be needed in various processes.
 """
 
 import functools
+import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
 from typing import Tuple, Union
@@ -1095,3 +1096,33 @@ def closest_points_between_planes(
 
     solution = result.x
     return (solution[:3], solution[3:])
+
+
+def closest_points_between_plane_sequences(
+    sequence1_planes: np.ndarray, sequence2_planes: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Find the closest points between two sequences of planes
+
+    Parameters
+    ----------
+    sequence1_planes : np.ndarray
+        A sequence of planes (tensor of shape (n x 4 x 3)).
+    sequence2_planes : np.ndarray
+        A sequence of planes (tensor of shape (n x 4 x 3)).
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        Points (p, q) minimising ||p - q|| such that p lies on sequence1_planes and
+        q lies on sequence2_planes.
+
+    """
+    return min(
+        (
+            closest_points_between_planes(p1, p2)
+            for (p1, p2) in itertools.product(sequence1_planes, sequence2_planes)
+        ),
+        key=lambda pq: sp.spatial.distance.cdist(
+            pq[0].reshape((1, 3)), pq[1].reshape((1, 3)), metric="sqeuclidean"
+        ),
+    )
