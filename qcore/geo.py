@@ -5,7 +5,7 @@ Various tools which may be needed in various processes.
 import functools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Union
+from typing import Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -973,7 +973,7 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
 
 def closest_points_between_planes(
     p1_corners: np.ndarray, p2_corners: np.ndarray
-) -> (np.ndarray, np.ndarray):
+) -> Tuple[np.ndarray, np.ndarray]:
     """Compute the closest points between two finite planes.
 
     This function solves the closest point problem by phrasing it as a
