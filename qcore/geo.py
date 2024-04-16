@@ -852,7 +852,7 @@ def homogenise_point(p: np.ndarray) -> np.ndarray:
     array([1,0,0,1])
     """
 
-    return np.concatenate((p, [1]))
+    return np.concatenate((p, np.array([1])))
 
 
 def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
