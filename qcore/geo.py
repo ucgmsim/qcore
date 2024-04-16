@@ -8,6 +8,8 @@ from warnings import warn
 from typing import Union
 
 import numpy as np
+import scipy as sp
+import functools
 
 from qcore.binary_version import get_unversioned_bin
 
@@ -827,3 +829,267 @@ def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
             / (np.cos(lat1) * np.cos(lat2) * np.sin(lon1 - lon2))
         )
     ) / conversion_factor
+
+
+def homogenise_point(p: np.ndarray) -> np.ndarray:
+    """Express a point in homogenous coordinates
+
+    Given a point p in R^3 return the affine point in PG(3, R) associated with p.
+
+    Parameters
+    ----------
+    p : np.ndarray
+        A point in R^3.
+
+    Returns
+    -------
+    np.ndarray
+        The associated point in PG(3, R).
+
+    Examples
+    --------
+    >>> homogenise_point(np.array([1, 0, 0]))
+    array([1,0,0,1])
+    """
+
+    return np.concatenate((p, [1]))
+
+
+def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
+    """Find the projective plane spanned by p, q, and r
+
+    Parameters
+    ----------
+    p : np.ndarray
+        The homogenous coordinates of p
+    q : np.ndarray
+        The homogenous coordinates of q
+    r : np.ndarray
+        The homogenous coordinates of r
+
+    Returns
+    -------
+    np.ndarray
+        The dual coordinates of the plane spanning p, q, and r
+
+    Raises
+    ------
+    ValueError
+        If the supplied points don't span a plane in PG(3, R)
+
+    Examples
+    --------
+    >>> projective_span(np.array([1, 0, 0, 1]), np.array([1, 1, 0, 1]), np.array([0, 0, 0, 1]))
+    np.array([0, 0, 1, 0])
+    >>> projective_span(np.array([0, 0, 0, 1]), np.array([1, 1, 0, 1]), np.array([0.5, 0.5, 0, 1]))
+    ValueError: Points supplied do not span a plane. # NOTE: these points lie on the line x = y.
+    """
+    M = np.vstack([p, q, r])
+    ns = sp.linalg.null_space(M)
+    # If the null space does not have dimension 1 then the points supplied do
+    # not span a unique plane. This could happen if the points supplied are
+    # collinear.
+    if ns.shape[1] != 1:
+        raise ValueError("Points supplied do not span a plane.")
+    # Otherwise we just rescale the homogenous vector. It is now mathematically
+    # impossible that the vector is zero, so we can safely assume that c != 0 in the following code.
+    # We normalise by the last non-zero coordinate of the point.
+    ns = ns.reshape((1, -1))[0]
+    c = next(x for x in reversed(ns) if not np.isclose(x, 0))
+    return ns / c
+
+
+def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray):
+    """Find the plane spanning three points
+
+    Returns the coefficient vector of the affine plane spanning three points.
+
+    Parameters
+    ----------
+    p : np.ndarray
+        a point on the plane.
+    q : np.ndarray
+        a point on the plane.
+    r : np.ndarray
+        a point on the plane.
+
+    Examples
+    --------
+    >>> plane_from_three_points(np.array([0, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    array([ 1., -0., -0., -0.]) # Plane x = 0
+    >>> plane_from_three_points(np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    array([-1., -1., -1.,  1.]) # Plane x + y + z = 1
+    """
+    p = homogenise_point(p)
+    q = homogenise_point(q)
+    r = homogenise_point(r)
+    return projective_span(p, q, r)
+
+
+def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray:
+    """Find the orthogonal plane to pi through p and q
+
+    Given two points p and q, find the unique orthogonal plane that meets pi at
+    p and q.
+
+    Parameters
+    ----------
+    pi : np.ndarray
+        Dual coordinates of the plane
+    p : np.ndarray
+        Coordinates of the point p
+    q : np.ndarray
+        Coordinates of the point q
+
+    Returns
+    -------
+    np.ndarray
+        The dual coordinates of the homogenous plane
+
+    Examples
+    --------
+    >>> pi = plane_from_three_points(np.array([0, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    >>> orthogonal_plane(pi, np.array([0, 0, 0]), np.array([0, 1, 0]))
+    array([0., 0., 1., 0.]) # The orthogonal plane z = 0
+    >>> pi = np.array([0, 0, 1, 0])
+    >>> orthogonal_plane(pi, np.array([1, 0, 0]), np.array([0, 1, 0]))
+    array([-1., -1.,  0.,  1.]) # The plane x + y = 1. You should check that it is orthogonal, and it contains the points [1, 0, 0] and [0, 1, 0]
+    """
+    # We can do this efficiently with some projective geometry.
+    # We are looking for a plane gamma with dual coordinates x such that:
+    # - The plane pi is orthogonal to x: pi * x = 0
+    # - The plane x contains p: p * x = 0
+    # - The plane x contains q: q * x = 0
+    # (assuming pi is a row vector, and x a column vector)
+    # So we want the null space of [pi; p; q]
+    # This will be a one-dimensional subspace of R^4 (i.e. a projective point).
+    # So we again have to normalise like in plane_from_three_points.
+    # ...actually, this is exactly identical to asking for projective_span(pi, p', q'),
+    # where p' and q' are the homogenised equivalent of p and q!
+    p = homogenise_point(p)
+    q = homogenise_point(q)
+    return projective_span(pi, p, q)
+
+
+def closest_points_between_planes(
+    p1_corners: np.ndarray, p2_corners: np.ndarray
+) -> (np.ndarray, np.ndarray):
+    """Compute the closest points between two finite planes.
+
+    This function solves the closest point problem by phrasing it as a
+    constrained quadratic optimisation problem, and then solving using scipy's
+    optimisation package.
+
+    Parameters
+    ----------
+    p1_corners : np.ndarray
+        The corners of the first plane.
+        p1_corners[i] and p1_corners[( i + 1 ) % 4] must be adjacent corners.
+    p2_corners : np.ndarray
+        The corners of the second plane.
+        p1_corners[i] and p1_corners[( i + 1 ) % 4] must be adjacent corners.
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        The point pair (p, q) with p in p1 and q in p2 such that ||p - q|| is minimised.
+    """
+    # These dual coordinates are used to enforce the condition that the found
+    # points lie within p1 and p2 respectively.
+    p1_dual_coordinates = plane_from_three_points(*p1_corners[:3])
+    p2_dual_coordinates = plane_from_three_points(*p2_corners[:3])
+
+    p1_in_plane_constraint = {
+        "type": "eq",
+        "fun": lambda x: p1_dual_coordinates.dot(homogenise_point(x[:3])),
+    }
+
+    p2_in_plane_constraint = {
+        "type": "eq",
+        "fun": lambda x: p2_dual_coordinates.dot(homogenise_point(x[3:])),
+    }
+
+    p1_centroid = np.average(p1_corners, axis=0)
+    # For each side of the plane p1, we construct a plane orthogonal to p1
+    # passing through the side.
+    p1_ortho_planes = [
+        orthogonal_plane(
+            p1_dual_coordinates, p1_corners[i], p1_corners[(i + 1) % len(p1_corners)]
+        )
+        for i in range(len(p1_corners))
+    ]
+
+    # The dual coordinates of a plane are defined up to scalar multiples. Here
+    # scale the coordinates to ensure that the normal vectors point towards the
+    # centre.
+    #
+    # The picture should look like
+    #
+    #      x
+    #     / \
+    # p1'/  |
+    #   /    x--------x
+    #  X  ---> norm  /
+    #   \  /   .    / p1
+    #   | /   c    /
+    #    x--------x
+    #
+    # Where p1 is the plane, p1' the plane orthogonal to p1, norm the normal vector pointing towards c, the centroid.
+    # This ensures that the inequality norm * x >= 0 describes all points on the same side of p1' as c.
+    # Adding a condition like this for each edge of p1 bounds our search to just points on p1.
+    for i, norm in enumerate(p1_ortho_planes):
+        if norm.dot(homogenise_point(p1_centroid)) < 0:
+            p1_ortho_planes[i] *= -1
+
+    # We now repeat this process for p2.
+    p2_centroid = np.average(p2_corners, axis=0)
+    p2_ortho_planes = [
+        orthogonal_plane(
+            p2_dual_coordinates, p2_corners[i], p2_corners[(i + 1) % len(p2_corners)]
+        )
+        for i in range(len(p2_corners))
+    ]
+    for i, norm in enumerate(p2_ortho_planes):
+        if norm.dot(homogenise_point(p2_centroid)) < 0:
+            p2_ortho_planes[i] *= -1
+
+    def p1_constraint(ortho_coords, x):
+        return ortho_coords.dot(homogenise_point(x[:3]))
+
+    def p2_constraint(ortho_coords, x):
+        return ortho_coords.dot(homogenise_point(x[3:]))
+
+    p1_bounds_constraints = [
+        {
+            "type": "ineq",
+            "fun": functools.partial(p1_constraint, ortho_coords),
+        }  # we use functools.partial because we want to copy ortho_coords by value rather than by reference.
+        for ortho_coords in p1_ortho_planes
+    ]
+    p2_bounds_constraints = [
+        {"type": "ineq", "fun": functools.partial(p2_constraint, ortho_coords)}
+        for ortho_coords in p2_ortho_planes
+    ]
+
+    def distance(x):
+        # x is a numpy array 6-tuple containing the position of the points p and q.
+        # returns ||p - q||^2
+        return np.sum(np.square(x[:3] - x[3:]))
+
+    # Our initial guess is just the centroid of each plane.
+    x0 = [*p1_centroid, *p2_centroid]
+
+    result = sp.optimize.minimize(
+        distance,
+        x0,
+        constraints=[
+            p1_in_plane_constraint,
+            p2_in_plane_constraint,
+        ]
+        + p1_bounds_constraints
+        + p2_bounds_constraints,
+        options={"ftol": 1e-10},
+    )
+
+    solution = result.x
+    return (solution[:3], solution[3:])

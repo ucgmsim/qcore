@@ -1,6 +1,7 @@
-from qcore import geo
-import pytest
 import numpy as np
+import pytest
+
+from qcore import geo
 from qcore.test.tool import utils
 
 
@@ -106,3 +107,135 @@ def test_wgs_nztm2000x(test_lonlat, output_points):
     test_points = geo.wgs_nztm2000x(test_lonlat)
     sample_output_points = np.array(output_points)
     utils.compare_np_array(test_points, sample_output_points)
+
+
+@pytest.mark.parametrize(
+    "p, expected_p", [(np.array([1, 0, 0]), np.array([1, 0, 0, 1]))]
+)
+def test_homogenise_point(p, expected_p):
+    assert np.allclose(geo.homogenise_point(p), expected_p)
+
+
+@pytest.mark.parametrize(
+    "p, q, r, dual",
+    [
+        (
+            np.array([1, 0, 0, 1]),
+            np.array([1, 1, 0, 1]),
+            np.array([0, 0, 0, 1]),
+            np.array([0, 0, 1, 0]),
+        )
+    ],
+)
+def test_projective_span(p, q, r, dual):
+    assert np.allclose(geo.projective_span(p, q, r), dual)
+
+
+@pytest.mark.parametrize(
+    "p, q, r, dual",
+    [
+        (
+            np.array([0, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([0, 0, 1]),
+            np.array([1, 0, 0, 0]),
+        ),
+        (
+            np.array([1, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([0, 0, 1]),
+            np.array([-1, -1, -1, 1]),
+        ),
+    ],
+)
+def test_plane_from_three_points(p, q, r, dual):
+    assert np.allclose(geo.plane_from_three_points(p, q, r), dual)
+
+
+@pytest.mark.parametrize(
+    "pi, p, q, dual",
+    [
+        (
+            np.array([1, 0, 0, 0]),
+            np.array([0, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([0, 0, 1, 0]),
+        ),
+        (
+            np.array([0, 0, 1, 0]),
+            np.array([1, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([-1, -1, 0, 1]),
+        ),
+    ],
+)
+def test_orthogonal_plane(pi, p, q, dual):
+    assert np.allclose(geo.orthogonal_plane(pi, p, q), dual)
+
+
+@pytest.mark.parametrize(
+    "p1_corners, p2_corners, p1_closest_point, p2_closest_point",
+    [
+        # edge to interior point
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array([[1, 1.5, 1], [0, 1.5, 1], [0, 0, 1.5], [1, 0, 1.5]]),
+            np.array([0.5, 1, 0]),
+            np.array([0.5, 1.35, 1.05]),
+        ),
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array(
+                [
+                    [-1 / 2, 1 / 2, -3 / 4 - 1 / 2],
+                    [-1 / 2, 1 / 4, -1 / 4 - 1 / 2],
+                    [-1 / 2, 3 / 4, -1 / 4 - 1 / 2],
+                    [-1 / 2, 1 / 2, 1 / 2],
+                ]
+            ),
+            np.array([0, 1 / 2, 0]),
+            np.array([-1 / 2, 1 / 2, 0]),
+        ),
+        # corner-to-corner
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array([[1, 0, 1], [0, 0, 3 / 4], [0, 1, 1 / 2], [1, 1, 3 / 4]]),
+            np.array([0, 1, 0]),
+            np.array([0, 1, 0.5]),
+        ),
+        # corner to interior
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array(
+                [
+                    [1 / 2, 1 / 2, 1 / 4],
+                    [1 / 2, 1 / 4, 3 / 4],
+                    [1 / 2, 1 / 2, 1],
+                    [1 / 2, 3 / 4, 3 / 4],
+                ]
+            ),
+            np.array([1 / 2, 1 / 2, 0]),
+            np.array([1 / 2, 1 / 2, 1 / 4]),
+        ),
+        # edge to edge
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array(
+                [
+                    [-1 / 2, 1 / 2, -1],
+                    [-1, 1 / 2, -1],
+                    [-1, 1 / 2, 1],
+                    [-1 / 2, 1 / 2, 1],
+                ]
+            ),
+            np.array([0, 1 / 2, 0]),
+            np.array([-1 / 2, 1 / 2, 0]),
+        ),
+    ],
+)
+def test_closest_points(p1_corners, p2_corners, p1_closest_point, p2_closest_point):
+    (p1_computed, p2_computed) = geo.closest_points_between_planes(
+        p1_corners, p2_corners
+    )
+    assert np.allclose(p1_closest_point, p1_computed, atol=1e-7)
+    assert np.allclose(p2_closest_point, p2_computed, atol=1e-7)
