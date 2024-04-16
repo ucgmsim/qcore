@@ -4,6 +4,7 @@ Functions and classes to load data that doesn't belong elsewhere.
 
 import pandas as pd
 import numpy as np
+import argparse
 
 
 def load_im_file(csv_file, all_psa=False, comp=None):
@@ -59,6 +60,134 @@ def load_im_file_pd(imcsv, all_ims=False, comp=None):
         df = df[df.index.get_level_values(1) == comp]
 
     return df
+
+
+def station_file_argparser(parser=None):
+    """
+    Return a parser object with formatting information of a generic station file. To facilitate the use of load_generic_station_file()
+
+    Example:
+    In your script, X.py, you already have some arguments parsed by ArgumentParser(), but if you wish to handle extra arguments related to the format of a station file
+
+    def get_args():
+        parser = argparse.ArgumentParser()
+        arg = parser.add_argument
+        arg("--arg1", help="argument 1")
+        arg("--arg2", help="argument 2")
+        parser = formats.station_file_argparser(parser=parser)  # pass the parser argument, update it with the return value
+        return parser.parse_args()
+
+    if __name__ == '__main__':
+        args = get_args()
+        ....
+
+    python X.py --arg1 ARG1 --arg2 ARG2 --stat_file some_station_file.csv --stat_name_col 0 --lat_col 1 --lon_col 2 --sep , --skiprows 1
+
+    Parameters
+    ----------
+    parser : parser created to handle other arguments unrelated to the station file loading (default: None)
+
+    Returns
+    -------
+    parser object with arguments related to station file loading
+
+    """
+    if parser is None:
+        parser = argparse.ArgumentParser(description="Station Data Loader")
+    arg = parser.add_argument
+
+    arg(
+        "--stat_file",
+        help="add longitude latitude station file to plot (eg. *.ll file)",
+    )
+    arg("--sep", help="delimiter", default=" ")
+    arg("--skiprows", help="number of rows to skip", type=int, default=0)
+    arg(
+        "--stat_name_col",
+        help="the column number of the station name to be used as index",
+        type=int,
+        default=2,
+    )
+    arg(
+        "--lon_col",
+        help="Column number to be used as the longitude",
+        type=int,
+        default=0,
+    )
+    arg(
+        "--lat_col",
+        help="Column number to be used as the latitude",
+        type=int,
+        default=1,
+    )
+    arg(
+        "--other_cols",
+        help="Other columns to include. eg. --other_cols 3 4",
+        nargs="+",
+        type=int,
+        default=[],
+    )
+    arg(
+        "--other_names",
+        help="Other column names to include. eg. --other_names basin basin_type",
+        nargs="+",
+        default=[],
+    )
+
+    return parser
+
+
+def load_generic_station_file(
+    stat_file: str,
+    stat_name_col: int = 2,
+    lon_col: int = 0,
+    lat_col: int = 1,
+    other_cols=[],
+    other_names=[],
+    sep="\s+",
+    skiprows=0,
+):
+    """
+    Reads the station file of any format into a pandas dataframe
+
+    Can be useful to obtain necessary format info with station_file_argparser()
+    Parameters
+    ----------
+    stat_file: str
+        Path to the station file. Can be .ll or any other format
+    stat_name_col: column index of station name (default: 2 for .ll file)
+    lon_col: column index of lon (default 0 for .ll file)
+    lat_col: column index of lat (default 1 for .ll file)
+    other_cols : column indices of other columns to load eg eg. [3,5,6]
+    other_names : column names of other_cols eg. ["vs30","z1p0","z2p5"]
+    sep : delimiter (by default "\s+" (whitespace) for .ll file
+    skiprows : number of rows to skip (if header rows exist)
+
+    Returns
+    -------
+    pd.DataFrame
+        station as index and columns lon, lat and other columns
+    """
+    cols = {"stat_name": stat_name_col}
+    if lon_col is not None:
+        cols["lon"] = lon_col
+    if lat_col is not None:
+        cols["lat"] = lat_col
+
+    for i, col_idx in enumerate(other_cols):
+        cols[other_names[i]] = col_idx
+
+    return pd.read_csv(
+        stat_file,
+        usecols=cols.values(),  # we will be loading columns of these indices (order doesn't matter)
+        names=sorted(
+            cols, key=cols.get
+        ),  # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"]
+        index_col=stat_name_col,
+        sep=sep,
+        header=None,
+        skiprows=skiprows,
+    )
 
 
 def load_station_file(station_file: str):
