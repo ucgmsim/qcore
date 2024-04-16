@@ -888,14 +888,19 @@ def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
     """
     M = np.vstack([p, q, r])
     null_space = sp.linalg.null_space(M)
-    # If the null space does not have dimension 1 then the points supplied do
-    # not span a unique plane. This could happen if the points supplied are
-    # collinear.
+    # The null space of M describes the space of all dual coordinates x such
+    # that x * p == 0, x * q == 0, and x * r == 0. Such coordinates, if p, q,
+    # and r are not collinear, should be unique up to scalar multiples. In that
+    # case, the null_space has rank 1 to represent these scalar multiples.
+    # Hence, if null_space does not have rank 1 (checked via shape[1]), the
+    # points supplied cannot be contained within a unique plane.
     if null_space.shape[1] != 1:
         raise ValueError("Points supplied do not span a plane.")
-    # Otherwise we just rescale the homogenous vector. It is now mathematically
-    # impossible that the vector is zero, so we can safely assume that c != 0 in the following code.
-    # We normalise by the last non-zero coordinate of the point.
+    # As previously discussed, the dual coordinates for any plane are not
+    # unique. The plane x = 0 could be given dual coordinates (1, 0, 0, 0), or
+    # equivalently (2, 0, 0, 0). We need to choose one of these coordinates
+    # deterministically. This is usually done by rescaling the coordinates such
+    # that the last non-zero coordinate is one (a process called normalisation).
     null_space = null_space.reshape((1, -1))[0]
     c = next(x for x in reversed(null_space) if not np.isclose(x, 0))
     return null_space / c
