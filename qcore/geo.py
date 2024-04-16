@@ -2,14 +2,14 @@
 Various tools which may be needed in various processes.
 """
 
-from subprocess import Popen, PIPE
-from math import sin, asin, cos, acos, atan, atan2, degrees, radians, sqrt, pi
-from warnings import warn
+import functools
+from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
+from subprocess import PIPE, Popen
 from typing import Union
+from warnings import warn
 
 import numpy as np
 import scipy as sp
-import functools
 
 from qcore.binary_version import get_unversioned_bin
 
