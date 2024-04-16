@@ -901,10 +901,12 @@ def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
     return ns / c
 
 
-def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray):
+def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
     """Find the plane spanning three points.
 
     Returns the coefficient vector of the affine plane spanning three points.
+    Note this is distinct from projective_span in that p, q, and r are three
+    points in R^3.
 
     Parameters
     ----------
@@ -914,6 +916,11 @@ def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray):
         a point on the plane.
     r : np.ndarray
         a point on the plane.
+
+    Returns
+    -------
+    np.ndarray
+        The dual coordinates of the plane spanning p, q, and r.
 
     Examples
     --------
