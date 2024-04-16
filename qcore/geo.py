@@ -1074,7 +1074,9 @@ def closest_points_between_planes(
     def distance(x):
         # x is a numpy array 6-tuple containing the position of the points p and q.
         # returns ||p - q||^2
-        return np.sum(np.square(x[:3] - x[3:]))
+        return sp.spatial.distance.cdist(
+            x[:3].reshape((1, 3)), x[3:].reshape((1, 3)), metric="sqeuclidean"
+        )
 
     # Our initial guess is just the centroid of each plane.
     x0 = [*p1_centroid, *p2_centroid]
