@@ -904,7 +904,7 @@ def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
     #
     # NOTE: This choice to normalise by the last coordinate is arbitrary. Any
     # method of normalisation would work.
-    null_space = null_space.reshape((1, -1))[0]
+    null_space = null_space.ravel()
     c = next(x for x in reversed(null_space) if not np.isclose(x, 0))
     return null_space / c
 
