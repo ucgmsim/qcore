@@ -6,7 +6,7 @@ import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict, Any, List
 from warnings import warn
 
 import numpy as np
@@ -988,6 +988,49 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
     return projective_span(pi, p, q)
 
 
+def oriented_bounding_planes(
+    plane_dual_coordinates, plane_corners: np.ndarray
+) -> List[np.ndarray]:
+
+    plane_centroid = np.average(plane_corners, axis=0)
+    # For each side of the plane p1, we construct a plane orthogonal to p1
+    # passing through the side.
+    bounding_planes = [
+        orthogonal_plane(
+            plane_dual_coordinates,
+            plane_corners[i],
+            plane_corners[(i + 1) % len(plane_corners)],
+        )
+        for i in range(len(plane_corners))
+    ]
+
+    # The dual coordinates of a plane are defined up to scalar multiples. Here we
+    # scale the coordinates to ensure that the normal vectors point towards the
+    # centre.
+    #
+    # The picture should look like
+    #
+    #      x
+    #     / \
+    # p1'/  |
+    #   /    x--------x
+    #  X  ---> norm  /
+    #   \  /   .    / p1
+    #   | /   c    /
+    #    x--------x
+    #
+    # Where p1 is the plane, p1' the plane orthogonal to p1, and norm the normal
+    # vector pointing towards c, the centroid. This ensures that the inequality
+    # norm * x >= 0 describes all points on the same side of p1' as c. Adding a
+    # condition like this for each edge of p1 bounds our search to just points
+    # on p1.
+    for i, norm in enumerate(bounding_planes):
+        if norm.dot(homogenise_point(plane_centroid)) < 0:
+            bounding_planes[i] *= -1
+
+    return bounding_planes
+
+
 def closest_points_between_planes(
     p1_corners: np.ndarray, p2_corners: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -1026,49 +1069,8 @@ def closest_points_between_planes(
         "fun": lambda x: p2_dual_coordinates.dot(homogenise_point(x[3:])),
     }
 
-    p1_centroid = np.average(p1_corners, axis=0)
-    # For each side of the plane p1, we construct a plane orthogonal to p1
-    # passing through the side.
-    p1_ortho_planes = [
-        orthogonal_plane(
-            p1_dual_coordinates, p1_corners[i], p1_corners[(i + 1) % len(p1_corners)]
-        )
-        for i in range(len(p1_corners))
-    ]
-
-    # The dual coordinates of a plane are defined up to scalar multiples. Here we
-    # scale the coordinates to ensure that the normal vectors point towards the
-    # centre.
-    #
-    # The picture should look like
-    #
-    #      x
-    #     / \
-    # p1'/  |
-    #   /    x--------x
-    #  X  ---> norm  /
-    #   \  /   .    / p1
-    #   | /   c    /
-    #    x--------x
-    #
-    # Where p1 is the plane, p1' the plane orthogonal to p1, and norm the normal vector pointing towards c, the centroid.
-    # This ensures that the inequality norm * x >= 0 describes all points on the same side of p1' as c.
-    # Adding a condition like this for each edge of p1 bounds our search to just points on p1.
-    for i, norm in enumerate(p1_ortho_planes):
-        if norm.dot(homogenise_point(p1_centroid)) < 0:
-            p1_ortho_planes[i] *= -1
-
-    # We now repeat this process for p2.
-    p2_centroid = np.average(p2_corners, axis=0)
-    p2_ortho_planes = [
-        orthogonal_plane(
-            p2_dual_coordinates, p2_corners[i], p2_corners[(i + 1) % len(p2_corners)]
-        )
-        for i in range(len(p2_corners))
-    ]
-    for i, norm in enumerate(p2_ortho_planes):
-        if norm.dot(homogenise_point(p2_centroid)) < 0:
-            p2_ortho_planes[i] *= -1
+    p1_ortho_planes = oriented_bounding_planes(p1_dual_coordinates, p1_corners)
+    p2_ortho_planes = oriented_bounding_planes(p2_dual_coordinates, p2_corners)
 
     def p1_constraint(ortho_coords, x):
         return ortho_coords.dot(homogenise_point(x[:3]))
@@ -1088,19 +1090,24 @@ def closest_points_between_planes(
         for ortho_coords in p2_ortho_planes
     ]
 
-    def distance(x):
+    def distance(plane_point_positions):
         # x is a numpy array of length 6 containing the position of the points p in x[:3] and q in x[3:].
         # returns ||p - q||^2
         return sp.spatial.distance.cdist(
-            x[:3].reshape((1, 3)), x[3:].reshape((1, 3)), metric="sqeuclidean"
+            plane_point_positions[:3].reshape((1, 3)),
+            plane_point_positions[3:].reshape((1, 3)),
+            metric="sqeuclidean",
         )
 
     # Our initial guess is just the centroid of each plane.
-    x0 = [*p1_centroid, *p2_centroid]
+    p1_centroid = np.average(p1_corners, axis=0)
+    p2_centroid = np.average(p2_corners, axis=0)
+
+    plane_centroids = [*p1_centroid, *p2_centroid]
 
     result = sp.optimize.minimize(
         distance,
-        x0,
+        plane_centroids,
         constraints=[
             p1_in_plane_constraint,
             p2_in_plane_constraint,
