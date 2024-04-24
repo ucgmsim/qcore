@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 import pytest
 
 from qcore import geo
@@ -237,5 +238,18 @@ def test_closest_points(p1_corners, p2_corners, p1_closest_point, p2_closest_poi
     (p1_computed, p2_computed) = geo.closest_points_between_planes(
         p1_corners, p2_corners
     )
-    assert np.allclose(p1_closest_point, p1_computed, atol=1e-7)
-    assert np.allclose(p2_closest_point, p2_computed, atol=1e-7)
+    closest_distance = sp.spatial.distance.cdist(
+        p1_closest_point.reshape((1, -1)), p2_closest_point.reshape((1, -1))
+    )
+    computed_distance = sp.spatial.distance.cdist(
+        p1_computed.reshape((1, -1)), p2_computed.reshape((1, -1))
+    )
+    # distance check
+    assert np.allclose(
+        closest_distance,
+        computed_distance,
+        atol=1e-7,
+    )
+    # in plane check
+    assert geo.in_finite_plane(p1_corners, p1_computed)
+    assert geo.in_finite_plane(p2_corners, p2_computed)

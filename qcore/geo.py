@@ -1031,14 +1031,131 @@ def oriented_bounding_planes(
     return bounding_planes
 
 
+def closest_line_seg_line_seg(
+    p1: np.ndarray, p2: np.ndarray, p3: np.ndarray, p4: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Find the closest pair of points between two line segments in 3D.
+
+    Given four points p1, p2, p3, p4, defining line segments l = <p1, p2> and m
+    = <p3, p4>, find the closest points between the line segments l and m.
+
+    Parameters
+    ----------
+    p1 : np.ndarray
+        First point on l.
+    p2 : np.ndarray
+        Second point on l.
+    p3 : np.ndarray
+        First point on m.
+    p4 : np.ndarray
+        Second point on m.
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        The point pair (p, q) with p in l and q in m that minimizes ||p - q||.
+        If l and m are parallel, this pair is not uniquely defined.
+
+    Examples
+    --------
+    FIXME: Add docs.
+
+    """
+    P1 = p1
+    P2 = p3
+    V1 = p2 - p1
+    V2 = p4 - p3
+    V21 = P2 - P1
+
+    v22 = np.dot(V2, V2)
+    v11 = np.dot(V1, V1)
+    v21 = np.dot(V2, V1)
+    v21_1 = np.dot(V21, V1)
+    v21_2 = np.dot(V21, V2)
+    denom = v21 * v21 - v22 * v11
+
+    if np.isclose(denom, 0.0):
+        s = 0.0
+        t = (v11 * s - v21_1) / v21
+    else:
+        s = (v21_2 * v21 - v22 * v21_1) / denom
+        t = (-v21_1 * v21 + v11 * v21_2) / denom
+
+    s = max(min(s, 1.0), 0.0)
+    t = max(min(t, 1.0), 0.0)
+
+    p_a = P1 + s * V1
+    p_b = P2 + t * V2
+
+    return p_a, p_b
+
+
+def project_point_onto_plane(
+    plane_dual_coordinates: np.ndarray, points: np.ndarray
+) -> np.ndarray:
+    """Project points on plane given by plane_dual_coordinates.
+
+    Parameters
+    ----------
+    plane_dual_coordinates : np.ndarray
+        The dual coordinates of the plane to project onto.
+    points : np.ndarray
+        The points to project.
+
+    Returns
+    -------
+    np.ndarray
+        The projected points.
+
+    Examples
+    --------
+    FIXME: Add docs.
+
+    """
+
+    return points - (
+        (points @ plane_dual_coordinates[:3]) - plane_dual_coordinates[3]
+    ).reshape((-1, 1)) @ plane_dual_coordinates[:3].reshape((1, -1))
+
+
+def in_finite_plane(plane_corners: np.ndarray, point: np.ndarray) -> bool:
+    """Test if a point lies in a finite plane.
+
+    Parameters
+    ----------
+    plane_corners : np.ndarray
+        The corners of the finite plane.
+    point : np.ndarray
+        The point to test.
+
+    Returns
+    -------
+    bool
+        True if point is contained in the plane defined by
+        plane_dual_coordinates and bounded by plane_corners
+
+    Examples
+    --------
+    FIXME: Add docs.
+
+    """
+    plane_dual_coordinates = plane_from_three_points(*plane_corners[:3])
+    plane_ortho_planes = oriented_bounding_planes(plane_dual_coordinates, plane_corners)
+    homogenised_point = homogenise_point(point)
+    plane_dot_product = np.dot(plane_dual_coordinates, homogenised_point)
+    if not np.allclose(plane_dot_product, 0):
+        return False
+    for ortho_dual_coords in plane_ortho_planes:
+        ortho_dot_product = np.dot(ortho_dual_coords, homogenised_point)
+        if not (np.allclose(ortho_dot_product, 0) or ortho_dot_product > 0):
+            return False
+    return True
+
+
 def closest_points_between_planes(
     p1_corners: np.ndarray, p2_corners: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Compute the closest points between two finite planes.
-
-    This function solves the closest point problem by phrasing it as a
-    constrained quadratic optimisation problem, and then solving using scipy's
-    optimisation package.
 
     Parameters
     ----------
@@ -1052,73 +1169,39 @@ def closest_points_between_planes(
     Returns
     -------
     (np.ndarray, np.ndarray)
-        The point pair (p, q) with p in p1 and q in p2 such that ||p - q|| is minimised.
+        A point pair (p, q) with p in p1 and q in p2 such that ||p - q|| is minimised.
     """
-    # These dual coordinates are used to enforce the condition that the found
-    # points lie within p1 and p2 respectively.
     p1_dual_coordinates = plane_from_three_points(*p1_corners[:3])
     p2_dual_coordinates = plane_from_three_points(*p2_corners[:3])
-
-    p1_in_plane_constraint = {
-        "type": "eq",
-        "fun": lambda x: p1_dual_coordinates.dot(homogenise_point(x[:3])),
-    }
-
-    p2_in_plane_constraint = {
-        "type": "eq",
-        "fun": lambda x: p2_dual_coordinates.dot(homogenise_point(x[3:])),
-    }
-
-    p1_ortho_planes = oriented_bounding_planes(p1_dual_coordinates, p1_corners)
-    p2_ortho_planes = oriented_bounding_planes(p2_dual_coordinates, p2_corners)
-
-    def p1_constraint(ortho_coords, x):
-        return ortho_coords.dot(homogenise_point(x[:3]))
-
-    def p2_constraint(ortho_coords, x):
-        return ortho_coords.dot(homogenise_point(x[3:]))
-
-    p1_bounds_constraints = [
-        {
-            "type": "ineq",
-            "fun": functools.partial(p1_constraint, ortho_coords),
-        }  # we use functools.partial because we want to copy ortho_coords by value rather than by reference.
-        for ortho_coords in p1_ortho_planes
-    ]
-    p2_bounds_constraints = [
-        {"type": "ineq", "fun": functools.partial(p2_constraint, ortho_coords)}
-        for ortho_coords in p2_ortho_planes
+    p1_line_segments = [(p1_corners[i], p1_corners[(i + 1) % 4]) for i in range(4)]
+    p2_line_segments = [(p2_corners[i], p2_corners[(i + 1) % 4]) for i in range(4)]
+    pairs = [
+        closest_line_seg_line_seg(*p1_line, *p2_line)
+        for p1_line, p2_line in itertools.product(p1_line_segments, p2_line_segments)
     ]
 
-    def distance(plane_point_positions):
-        # x is a numpy array of length 6 containing the position of the points p in x[:3] and q in x[3:].
-        # returns ||p - q||^2
-        return sp.spatial.distance.cdist(
-            plane_point_positions[:3].reshape((1, 3)),
-            plane_point_positions[3:].reshape((1, 3)),
-            metric="sqeuclidean",
-        )
-
-    # Our initial guess is just the centroid of each plane.
-    p1_centroid = np.average(p1_corners, axis=0)
-    p2_centroid = np.average(p2_corners, axis=0)
-
-    plane_centroids = [*p1_centroid, *p2_centroid]
-
-    result = sp.optimize.minimize(
-        distance,
-        plane_centroids,
-        constraints=[
-            p1_in_plane_constraint,
-            p2_in_plane_constraint,
-        ]
-        + p1_bounds_constraints
-        + p2_bounds_constraints,
-        options={"ftol": 1e-10},
+    line_seg_pair = min(
+        pairs,
+        key=lambda pp: np.sum(np.square(pp[1] - pp[0])),
     )
-
-    solution = result.x
-    return (solution[:3], solution[3:])
+    p1_projections_onto_p2 = [
+        (point, proj)
+        for (point, proj) in zip(
+            p1_corners, project_point_onto_plane(p2_dual_coordinates, p1_corners)
+        )
+        if in_finite_plane(p2_corners, proj)
+    ]
+    p2_projections_onto_p1 = [
+        (proj, point)
+        for (point, proj) in zip(
+            p2_corners, project_point_onto_plane(p1_dual_coordinates, p2_corners)
+        )
+        if in_finite_plane(p1_corners, proj)
+    ]
+    return min(
+        p1_projections_onto_p2 + p2_projections_onto_p1 + [line_seg_pair],
+        key=lambda pp: np.sum(np.square(pp[1] - pp[0])),
+    )
 
 
 def closest_points_between_plane_sequences(
@@ -1149,3 +1232,31 @@ def closest_points_between_plane_sequences(
             pq[0].reshape((1, 3)), pq[1].reshape((1, 3)), metric="sqeuclidean"
         ),
     )
+
+
+def spheres_intersect(c: np.ndarray, r: float, c1: np.ndarray, r1: float) -> bool:
+    """Test if two spheres intersect.
+
+    Parameters
+    ----------
+    c : np.ndarray
+        The centre of the first sphere, a (n x 1)-dimensional numpy vector.
+    r : float
+        The radius of the first sphere.
+    c1 : np.ndarray
+        The centre of the second sphere, a (n x 1)-dimensional numpy vector.
+    r1 : float
+        The radius of the second sphere.
+
+    Returns
+    -------
+    bool
+        True if the n-dimensional sphere centred on c with radius r intersects
+        the n-dimensional sphere centred on c1 with radius r1.
+
+    Examples
+    --------
+    FIXME: Add docs.
+
+    """
+    return np.square(r1 - r) <= np.sum(np.square(c1 - c)) <= np.square(r1 + r)
