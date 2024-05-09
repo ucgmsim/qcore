@@ -237,6 +237,7 @@ def seis2txt(
     prefix,
     stat,
     comp,
+    filename=None,
     start_hr=0,
     start_min=0,
     start_sec=0.0,
@@ -253,6 +254,7 @@ def seis2txt(
     prefix: filename excluding station name and extention, None to return contents as byte array.
     stat: station name
     comp: same as file extention ('090', '000', 'ver')
+    filename: None to use stat and comp, otherwise use this
     start_hr: start time (hours, generally not used)
     start_min: start time (minutes, generally not used)
     start_sec: start time (seconds)
@@ -266,7 +268,10 @@ def seis2txt(
     if prefix is None:
         txt = BytesIO()
     else:
-        txt = open("%s%s.%s" % (prefix, stat, comp), "wb")
+        if filename is not None:
+            txt = open(f"{prefix}/{filename}", "wb")
+        else:
+            txt = open("%s%s.%s" % (prefix, stat, comp), "wb")
 
     # same format strings as fdbin2wcc
     txt.write(("%-10s %3s %s\n" % (stat, comp, title)).encode())
