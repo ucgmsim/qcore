@@ -276,22 +276,21 @@ def timeseries_to_text(
         The azimuth backwards B->A in degrees, by default 0.0
     """
     nt = timeseries.shape[0]
-    txt = open(filename, "wb")
-
-    # same format strings as fdbin2wcc
-    txt.write(("%-10s %3s\n" % (stat, comp)).encode())
-    txt.write(
-        (
-            "%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n"
-            % (nt, dt, start_hr, start_min, start_sec, edist, az, baz)
-        ).encode()
-    )
-    # values below header lines, split into lines
-    divisible = nt - nt % values_per_line
-    np.savetxt(txt, timeseries[:divisible].reshape(-1, values_per_line), fmt="%13.5e")
-    np.savetxt(txt, np.atleast_2d(timeseries[divisible:]), fmt="%13.5e")
-
-    txt.close()
+    with open(filename, "wb") as txt:
+        # same format strings as fdbin2wcc
+        txt.write(("%-10s %3s\n" % (stat, comp)).encode())
+        txt.write(
+            (
+                "%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n"
+                % (nt, dt, start_hr, start_min, start_sec, edist, az, baz)
+            ).encode()
+        )
+        # values below header lines, split into lines
+        divisible = nt - nt % values_per_line
+        np.savetxt(
+            txt, timeseries[:divisible].reshape(-1, values_per_line), fmt="%13.5e"
+        )
+        np.savetxt(txt, np.atleast_2d(timeseries[divisible:]), fmt="%13.5e")
 
 
 ###
