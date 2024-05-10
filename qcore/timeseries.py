@@ -231,65 +231,67 @@ def pgv2MMI(pgv):
     )
 
 
-def seis2txt(
-    seis,
-    dt,
-    prefix,
-    stat,
-    comp,
-    filename=None,
-    start_hr=0,
-    start_min=0,
-    start_sec=0.0,
-    edist=0.0,
-    az=0.0,
-    baz=0.0,
-    title="",
-    vpl=6,
+def timeseries_to_text(
+    timeseries: np.ndarray,
+    filename: Path,
+    dt: float,
+    stat: str,
+    comp: str,
+    values_per_line: int = 6,
+    start_hr: int = 0,
+    start_min: int = 0,
+    start_sec: float = 0.0,
+    edist: float = 0.0,
+    az: float = 0.0,
+    baz: float = 0.0,
 ):
     """
-    Store timeseries data as standard EMOD3D text file {prefix}{stat}.{comp}.
-    seis: timeseries
-    dt: timestep
-    prefix: filename excluding station name and extention, None to return contents as byte array.
-    stat: station name
-    comp: same as file extention ('090', '000', 'ver')
-    filename: None to use stat and comp, otherwise use this
-    start_hr: start time (hours, generally not used)
-    start_min: start time (minutes, generally not used)
-    start_sec: start time (seconds)
-    edist: epicentre distance
-    az: generally not used
-    baz: generally not used
-    title: used in header
-    vpl: values per line, more is faster
+    Store timeseries data into a text file.
+
+    Parameters
+    ----------
+    timeseries : np.ndarray
+        The timeseries data to store
+    filename : Path
+        The full file path to store the file
+    dt : float
+        The time step of the data
+    stat : str
+        The station name
+    comp : str
+        The component name
+    values_per_line : int, optional
+        The number of values per line, by default 6
+    start_hr : int, optional
+        The start hour of the data, by default 0
+    start_min : int, optional
+        The start minute of the data, by default 0
+    start_sec : float, optional
+        The start second of the data, by default 0.0
+    edist : float, optional
+        The epicentral distance, by default 0.0
+    az : float, optional
+        The azimuth forward A->B in degrees, by default 0.0
+    baz : float, optional
+        The azimuth backwards B->A in degrees, by default 0.0
     """
-    nt = seis.shape[0]
-    if prefix is None:
-        txt = BytesIO()
-    else:
-        if filename is not None:
-            txt = open(f"{prefix}/{filename}", "wb")
-        else:
-            txt = open("%s%s.%s" % (prefix, stat, comp), "wb")
+    nt = timeseries.shape[0]
+    txt = open(filename, "wb")
 
     # same format strings as fdbin2wcc
-    txt.write(("%-10s %3s %s\n" % (stat, comp, title)).encode())
+    txt.write(("%-10s %3s\n" % (stat, comp)).encode())
     txt.write(
         (
             "%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n"
             % (nt, dt, start_hr, start_min, start_sec, edist, az, baz)
         ).encode()
     )
-    # values below header lines, vpl per line
-    divisible = nt - nt % vpl
-    np.savetxt(txt, seis[:divisible].reshape(-1, vpl), fmt="%13.5e")
-    np.savetxt(txt, np.atleast_2d(seis[divisible:]), fmt="%13.5e")
+    # values below header lines, split into lines
+    divisible = nt - nt % values_per_line
+    np.savetxt(txt, timeseries[:divisible].reshape(-1, values_per_line), fmt="%13.5e")
+    np.savetxt(txt, np.atleast_2d(timeseries[divisible:]), fmt="%13.5e")
 
-    if prefix is None:
-        return txt.getvalue()
-    else:
-        txt.close()
+    txt.close()
 
 
 ###
