@@ -164,7 +164,7 @@ def read_gsf(gsf_filepath: str) -> pd.DataFrame:
 
     Parameters
     ----------
-    gsf_file_handle : TextIO
+    gsf_filepath : str
         The file handle pointing to the GSF file to read.
 
     Returns
