@@ -15,7 +15,7 @@ See https://wiki.canterbury.ac.nz/display/QuakeCore/File+Formats+Used+On+GM
 for details on the GSF format.
 """
 
-from typing import TextIO
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -113,7 +113,7 @@ def coordinate_meshgrid(
 
 
 def write_fault_to_gsf_file(
-    gsf_file_handle: TextIO,
+    gsf_filepath: Path,
     meshgrids: list[np.ndarray],
     lengths: np.ndarray,
     widths: np.ndarray,
@@ -126,8 +126,8 @@ def write_fault_to_gsf_file(
 
     Parameters
     ----------
-    gsf_file_handle : TextIO
-        The file handle pointing to the GSF file to write to.
+    gsf_filepath : Path
+        The file path pointing to the GSF file to write to.
     meshgrids : list[np.ndarray]
         List of meshgrid arrays representing fault segments (length: n).
     lengths : np.ndarray
@@ -143,28 +143,29 @@ def write_fault_to_gsf_file(
     resolution : int
         Resolution of the meshgrid.
     """
-    gsf_file_handle.write(
-        "# LON  LAT  DEP(km)  SUB_DX  SUB_DY  LOC_STK  LOC_DIP  LOC_RAKE  SLIP(cm)  INIT_TIME  SEG_NO\n"
-    )
-    number_of_points = sum(meshgrid.shape[0] for meshgrid in meshgrids)
-    gsf_file_handle.write(f"{number_of_points}\n")
-    for i, (length, width, strike, dip, rake, meshgrid) in enumerate(
-        zip(lengths, widths, strikes, dips, rakes, meshgrids)
-    ):
-        strike_step = length / gridpoint_count_in_length(length * 1000, resolution)
-        dip_step = width / gridpoint_count_in_length(width * 1000, resolution)
-        for point in meshgrid:
-            gsf_file_handle.write(
-                f"{point[1]:11.5f} {point[0]:11.5f} {point[2] / 1000:11.5e} {strike_step:11.5e} {dip_step:11.5e} {strike:6.1f} {dip:6.1f} {rake:6.1f} {-1.0:8.2f} {-1.0:8.2f} {i:3d}\n"
-            )
+    with open(gsf_filepath, "w", encoding="utf-8") as gsf_file_handle:
+        gsf_file_handle.write(
+            "# LON  LAT  DEP(km)  SUB_DX  SUB_DY  LOC_STK  LOC_DIP  LOC_RAKE  SLIP(cm)  INIT_TIME  SEG_NO\n"
+        )
+        number_of_points = sum(meshgrid.shape[0] for meshgrid in meshgrids)
+        gsf_file_handle.write(f"{number_of_points}\n")
+        for i, (length, width, strike, dip, rake, meshgrid) in enumerate(
+            zip(lengths, widths, strikes, dips, rakes, meshgrids)
+        ):
+            strike_step = length / gridpoint_count_in_length(length * 1000, resolution)
+            dip_step = width / gridpoint_count_in_length(width * 1000, resolution)
+            for point in meshgrid:
+                gsf_file_handle.write(
+                    f"{point[1]:11.5f} {point[0]:11.5f} {point[2] / 1000:11.5e} {strike_step:11.5e} {dip_step:11.5e} {strike:6.1f} {dip:6.1f} {rake:6.1f} {-1.0:8.2f} {-1.0:8.2f} {i:3d}\n"
+                )
 
 
-def read_gsf(gsf_filepath: str) -> pd.DataFrame:
+def read_gsf(gsf_filepath: Path) -> pd.DataFrame:
     """Parse a GSF file into a pandas DataFrame.
 
     Parameters
     ----------
-    gsf_filepath : str
+    gsf_filepath : Path
         The file handle pointing to the GSF file to read.
 
     Returns
