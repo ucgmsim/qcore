@@ -36,6 +36,8 @@ def wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
     np.ndarray
         An array of shape (N, 3) containing NZTM coordinates (x, y, depth).
     """
+    if wgs_depth_coordinates.shape == (3,):
+        return np.array(_WGS2NZTM.transform(*wgs_depth_coordinates))
     return np.array(
         _WGS2NZTM.transform(
             wgs_depth_coordinates[:, 0],
@@ -59,8 +61,10 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
     np.ndarray
         An array of shape (N, 3) containing WGS84 coordinates (latitude, longitude, depth).
     """
+    if nztm_coordinates.shape == (3,):
+        return np.array(_NZTM2WGS.transform(*nztm_coordinates))
     return np.array(
-        _WGS2NZTM.transform(
+        _NZTM2WGS.transform(
             nztm_coordinates[:, 0],
             nztm_coordinates[:, 1],
             nztm_coordinates[:, 2],
