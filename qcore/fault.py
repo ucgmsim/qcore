@@ -49,18 +49,27 @@ class FaultSegment:
 
     Attributes
     ----------
-    corners : np.ndarray
-        An array containing the coordinates of the corners of the fault segment.
     rake : float
         The rake angle of the fault segment.
     """
 
-    corners: np.ndarray
+    _corners: np.ndarray
     rake: float
 
     def __init__(self, corners: np.ndarray, rake: float):
-        self.corners = qcore.coordinates.wgs_depth_to_nztm(corners)
+        self._corners = qcore.coordinates.wgs_depth_to_nztm(corners)
         self.rake = rake
+
+    @property
+    def corners(self) -> np.ndarray:
+        """
+
+        Returns
+        -------
+        np.ndarray
+            The corners of the fault segment in (lat, lon, depth) format.
+        """
+        return qcore.coordinates.nztm_to_wgs_depth(self._corners)
 
     @property
     def length_m(self) -> float:
@@ -70,7 +79,7 @@ class FaultSegment:
         float
             The length of the fault segment (in metres).
         """
-        return np.linalg.norm(self.corners[1] - self.corners[0])
+        return np.linalg.norm(self._corners[1] - self._corners[0])
 
     @property
     def width_m(self) -> float:
@@ -80,7 +89,7 @@ class FaultSegment:
         float
             The width of the fault segment (in metres).
         """
-        return np.linalg.norm(self.corners[-1] - self.corners[0])
+        return np.linalg.norm(self._corners[-1] - self._corners[0])
 
     @property
     def bottom_m(self) -> float:
@@ -90,7 +99,7 @@ class FaultSegment:
         float
             The bottom depth (in metres).
         """
-        return self.corners[-1, -1]
+        return self._corners[-1, -1]
 
     @property
     def width(self) -> float:
@@ -143,7 +152,7 @@ class FaultSegment:
 
         north_direction = np.array([1, 0, 0])
         up_direction = np.array([0, 0, 1])
-        strike_direction = self.corners[1] - self.corners[0]
+        strike_direction = self._corners[1] - self._corners[0]
         return (
             np.degrees(
                 qcore.geo.oriented_angle_wrt_normal(
@@ -163,7 +172,7 @@ class FaultSegment:
         """
         north_direction = np.array([1, 0, 0])
         up_direction = np.array([0, 0, 1])
-        dip_direction = self.corners[-1] - self.corners[0]
+        dip_direction = self._corners[-1] - self._corners[0]
         dip_direction[-1] = 0
         return (
             np.degrees(
@@ -272,9 +281,9 @@ class FaultSegment:
         np.ndarray
             An 3d-vector of (lat, lon, depth) transformed coordinates.
         """
-        origin = self.corners[0]
-        top_right = self.corners[1]
-        bottom_left = self.corners[-1]
+        origin = self._corners[0]
+        top_right = self._corners[1]
+        bottom_left = self._corners[-1]
         frame = np.vstack((top_right - origin, bottom_left - origin))
         offset = np.array([1 / 2, 1 / 2])
 
@@ -307,9 +316,9 @@ class FaultSegment:
         ValueError
             If the given coordinates do not lie in the fault plane.
         """
-        origin = self.corners[0]
-        top_right = self.corners[1]
-        bottom_left = self.corners[-1]
+        origin = self._corners[0]
+        top_right = self._corners[1]
+        bottom_left = self._corners[-1]
         frame = np.vstack((top_right - origin, bottom_left - origin))
         offset = qcore.coordinates.wgs_depth_to_nztm(global_coordinates) - origin
         segment_coordinates, residual, _, _ = np.linalg.lstsq(frame.T, offset)
@@ -353,7 +362,7 @@ class FaultSegment:
         """
 
         return qcore.coordinates.nztm_to_wgs_depth(
-            np.mean(self.corners, axis=0).reshape((1, -1))
+            np.mean(self._corners, axis=0).reshape((1, -1))
         ).ravel()
 
 
@@ -435,7 +444,6 @@ class Fault:
         np.ndarray of shape (4n x 3)
             The corners of each fault segment in the fault, stacked vertically.
         """
-
         return np.vstack([segment.corners() for segment in self.segments])
 
     def global_coordinates_to_fault_coordinates(
