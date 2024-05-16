@@ -476,7 +476,7 @@ class Fault:
             If the given point does not lie on the fault.
         """
 
-        running_length = 0
+        running_length = 0.0
         midpoint = np.sum(self.lengths()) / 2
         for segment in self.segments:
             if segment.global_coordinates_in_segment(global_coordinates):
@@ -485,9 +485,11 @@ class Fault:
                 )
                 strike_length = segment_coordinates[0] + 1 / 2
                 dip_length = segment_coordinates[1] + 1 / 2
-                return (
-                    running_length + strike_length * segment.length - midpoint,
-                    max(dip_length * segment.width, 0),
+                return np.array(
+                    [
+                        running_length + strike_length * segment.length - midpoint,
+                        max(dip_length * segment.width, 0),
+                    ]
                 )
             running_length += segment.length
         raise ValueError("Specified coordinates not contained on fault.")
