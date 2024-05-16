@@ -191,7 +191,7 @@ class FaultSegment:
         float
             The dip angle of the fault.
         """
-        return np.degrees(np.arcsin(self.bottom_m / self.width_m))
+        return np.degrees(np.arcsin(np.abs(self.bottom_m) / self.width_m))
 
     @staticmethod
     def from_centroid_parameters(
