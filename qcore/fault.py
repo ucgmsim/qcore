@@ -224,9 +224,9 @@ class FaultSegment:
         corners = []
         for segment_coordinates in [
             [-1 / 2, -1 / 2],
-            [1 / 2, -1 / 2],
-            [1 / 2, 1 / 2],
             [-1 / 2, 1 / 2],
+            [1 / 2, 1 / 2],
+            [1 / 2, -1 / 2],
         ]:
             depth = top + (
                 (segment_coordinates[0] + 1 / 2)
@@ -239,7 +239,7 @@ class FaultSegment:
             width_shift_lat, width_shift_lon = qcore.geo.ll_shift(
                 *centroid,
                 projected_width * np.abs(segment_coordinates[0]),
-                dip_coord_dir,
+                dip_coord_dir
             )
             strike_coord_dir = strike if segment_coordinates[1] > 0 else 180 + strike
             length_shift_lat, length_shift_lon = qcore.geo.ll_shift(
@@ -249,7 +249,7 @@ class FaultSegment:
                 strike_coord_dir,
             )
             corners.append([length_shift_lat, length_shift_lon, depth])
-        return FaultSegment(np.ndarray(corners), rake)
+        return FaultSegment(np.array(corners), rake)
 
     def segment_coordinates_to_global_coordinates(
         self, segment_coordinates: np.ndarray
