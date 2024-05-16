@@ -530,22 +530,3 @@ class Fault:
                 )
             remaining_length -= segment_length
         raise ValueError("Specified fault coordinates out of bounds.")
-
-    # TODO: This should move somewhere else...
-    def random_hypocentre_location(self) -> (float, float):
-        weibull_scale = 0.612
-        dhyp = (
-            self.widths()[0]
-            * sp.stats.weibull_min(3.353, 0, 1, scale=weibull_scale).rvs(1)[0]
-        )
-        shyp = distributions.rand_shyp() * np.sum(self.lengths())
-        return (shyp, dhyp)
-
-    def expected_fault_coordinates(self) -> (float, float):
-        weibull_scale = 0.612
-        dhyp = (
-            self.widths()[0]
-            * sp.stats.truncweibull_min(3.353, 0, 1, scale=weibull_scale).expect()
-        )
-        shyp = 0
-        return (shyp, float(dhyp))
