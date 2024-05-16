@@ -6,7 +6,7 @@ import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Tuple, Union, Dict, Any, List
+from typing import Any, Dict, List, Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -986,6 +986,62 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
     p = homogenise_point(p)
     q = homogenise_point(q)
     return projective_span(pi, p, q)
+
+
+def angle_between_vectors(u: np.ndarray, v: np.ndarray) -> float:
+    """Compute the signed angle between u and v.
+
+    Parameters
+    ----------
+    u : np.ndarray
+    v : np.ndarray
+
+    Returns
+    -------
+    float
+        The angle between u and v (in radians)
+    """
+    u_hat = u / np.linalg.norm(u)
+    v_hat = v / np.linalg.norm(v)
+    return np.arccos(np.dot(u_hat, v_hat))
+
+
+def oriented_angle_wrt_normal(
+    u: np.ndarray, v: np.ndarray, normal: np.ndarray
+) -> float:
+    """Compute the bearing from u to v with respect to a normal.
+
+    The normal vector determines the positive bearing direction (see diagram, or
+    use right hand rule).
+
+                     u
+                     ∧
+                     │
+                     │
+                     │ ┐  +bearing
+                     │ └─┐
+                     │   ∨
+                     ▇──────────>v
+                    ╱
+                   ╱
+                  ╱
+                 n
+
+    Parameters
+    ----------
+    u : np.ndarray
+    v : np.ndarray
+    normal : np.ndarray
+
+    Returns
+    -------
+    float
+        The bearing from u to v (in radians).
+    """
+    angle = angle_between_vectors(u, v)
+    cross = np.cross(u, v)
+    angle *= np.sign(np.dot(normal, cross))
+    return angle
 
 
 def oriented_bounding_planes(
