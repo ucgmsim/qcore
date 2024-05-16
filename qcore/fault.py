@@ -301,17 +301,21 @@ class FaultSegment:
         np.ndarray
             The segment coordinates (x, y) representing the position of
             global_coordinates on the fault segment.
+
+        Raises
+        ------
+        ValueError
+            If the given coordinates do not lie in the fault plane.
         """
-
-        # Ok how about the stupidest solution ever...
-
-        def f(x):
-            return (
-                self.segment_coordinates_to_global_coordinates(x[:2])
-                - global_coordinates
-            )
-
-        return sp.optimize.root(f, np.array([0, 0, 0])).x[:2]
+        origin = self.corners[0]
+        top_right = self.corners[1]
+        bottom_left = self.corners[-1]
+        frame = np.vstack((top_right - origin, bottom_left - origin))
+        offset = qcore.coordinates.wgs_depth_to_nztm(global_coordinates) - origin
+        segment_coordinates, residual, _, _ = np.linalg.lstsq(frame.T, offset)
+        if not np.isclose(residual[0], 0):
+            raise ValueError("Coordinates do not lie in fault plane.")
+        return segment_coordinates - np.array([1 / 2, 1 / 2])
 
     def global_coordinates_in_segment(self, global_coordinates: np.ndarray) -> bool:
         """Test if some global coordinates lie in the bounds of a segment.
