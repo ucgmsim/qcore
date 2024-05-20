@@ -155,7 +155,8 @@ def oriented_bearing_wrt_normal(
     """Compute the oriented bearing from u to v with respect to a normal.
 
     This function is useful to calculate, for example, strike and dip
-    directions. The orientation is established via the right hand rule (or refer to the diagram below).
+    directions. The orientation is established via the right hand rule
+    (or refer to the diagram below).
 
            v
            ^
