@@ -149,6 +149,56 @@ def ll2gp_multi(
     return xy
 
 
+def oriented_bearing_wrt_normal(
+    u: np.ndarray, v: np.ndarray, normal: np.ndarray
+) -> float:
+    """Compute the oriented bearing from u to v with respect to a normal.
+
+    This function is useful to calculate, for example, strike and dip
+    directions. The orientation is established via the right hand rule (or refer to the diagram below).
+
+           v
+           ^
+           │
+           │
+           │
+           │
+           │
+           │<┐
+           │ └─┐
+           ╳─────────────>u
+          ╱
+         ╱
+        ╱
+       ╱
+    normal
+
+    Parameters
+    ----------
+    u : np.ndarray
+    v : np.ndarray
+    normal : np.ndarray
+
+    Returns
+    -------
+    float
+        The bearing from u to v with oriented with respect to normal.
+
+    Examples
+    --------
+    >>> oriented_bearing_wrt_normal(np.array([0, 1, 0]), np.array([1, 0, 0]), np.array([0, 0, 1]))
+    270
+    >>> oriented_bearing_wrt_normal(np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    90
+    """
+
+    u_hat = u / np.linalg.norm(u)
+    v_hat = v / np.linalg.norm(v)
+    angle_signed = np.arccos(np.dot(u_hat, v_hat))
+    orientation = np.sign(np.dot(np.cross(u, v), normal))
+    return np.degrees(angle_signed * orientation) % 360
+
+
 def ll2gp(
     lat, lon, mlat, mlon, rot, nx, ny, hh, dx=1, dy=1, decimated=False, verbose=False
 ):
