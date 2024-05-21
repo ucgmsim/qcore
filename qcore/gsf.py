@@ -114,12 +114,7 @@ def coordinate_meshgrid(
 
 def write_fault_to_gsf_file(
     gsf_filepath: Path,
-    meshgrids: list[np.ndarray],
-    lengths: np.ndarray,
-    widths: np.ndarray,
-    strikes: np.ndarray,
-    dips: np.ndarray,
-    rakes: np.ndarray,
+    gsf_df: pd.DataFrame,
     resolution: int,
 ):
     """Writes geometry data to a GSF file.
@@ -128,18 +123,8 @@ def write_fault_to_gsf_file(
     ----------
     gsf_filepath : Path
         The file path pointing to the GSF file to write to.
-    meshgrids : list[np.ndarray]
-        List of meshgrid arrays representing fault segments (length: n).
-    lengths : np.ndarray
-        An (n x 1) array of segment lengths.
-    widths : np.ndarray
-        An (n x 1) array of segment widths.
-    strikes : np.ndarray
-        An (n x 1) array of segment strikes.
-    dips : np.ndarray
-        An (n x 1) array of segment dips.
-    rakes : np.ndarray
-        An (n x 1) array of segment rakes.
+    gsf_df : pd.DataFrame
+        The GSF dataframe to write.
     resolution : int
         Resolution of the meshgrid.
     """
@@ -147,11 +132,17 @@ def write_fault_to_gsf_file(
         gsf_file_handle.write(
             "# LON  LAT  DEP(km)  SUB_DX  SUB_DY  LOC_STK  LOC_DIP  LOC_RAKE  SLIP(cm)  INIT_TIME  SEG_NO\n"
         )
-        number_of_points = sum(meshgrid.shape[0] for meshgrid in meshgrids)
+        number_of_points = gsf_df.apply(
+            lambda row: row["meshgrid"].shape[0], axis=1
+        ).sum()
         gsf_file_handle.write(f"{number_of_points}\n")
-        for i, (length, width, strike, dip, rake, meshgrid) in enumerate(
-            zip(lengths, widths, strikes, dips, rakes, meshgrids)
-        ):
+        for i, row in gsf_df.iterrows():
+            length = row["length"]
+            width = row["width"]
+            strike = row["strike"]
+            dip = row["dip"]
+            rake = row["rake"]
+            meshgrid = row["meshgrid"]
             strike_step = length / gridpoint_count_in_length(length * 1000, resolution)
             dip_step = width / gridpoint_count_in_length(width * 1000, resolution)
             for point in meshgrid:
