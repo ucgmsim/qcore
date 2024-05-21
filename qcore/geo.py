@@ -150,24 +150,24 @@ def ll2gp_multi(
 
 
 def oriented_bearing_wrt_normal(
-    u: np.ndarray, v: np.ndarray, normal: np.ndarray
+    from_direction: np.ndarray, to_direction: np.ndarray, normal: np.ndarray
 ) -> float:
-    """Compute the oriented bearing from u to v with respect to a normal.
+    """Compute the oriented bearing between two directions with respect to a normal.
 
     This function is useful to calculate, for example, strike and dip
     directions. The orientation is established via the right hand rule
     (or refer to the diagram below).
 
-           v
+        to_bearing
            ^
            │
            │
            │
            │
            │
-           │<┐
+           │<┐  bearing
            │ └─┐
-           ╳─────────────>u
+           ╳─────────────> from_direction
           ╱
          ╱
         ╱
@@ -176,9 +176,12 @@ def oriented_bearing_wrt_normal(
 
     Parameters
     ----------
-    u : np.ndarray
-    v : np.ndarray
+    from_direction : np.ndarray
+        The direction to measure the bearing from.
+    to_direction : np.ndarray
+        The direction to measure the bearing to.
     normal : np.ndarray
+        The normal direction to orient the bearing with via the right hand rule.
 
     Returns
     -------
@@ -193,10 +196,10 @@ def oriented_bearing_wrt_normal(
     90
     """
 
-    u_hat = u / np.linalg.norm(u)
-    v_hat = v / np.linalg.norm(v)
-    angle_signed = np.arccos(np.dot(u_hat, v_hat))
-    orientation = np.sign(np.dot(np.cross(u, v), normal))
+    from_dir_hat = from_direction / np.linalg.norm(from_direction)
+    to_dir_hat = to_direction / np.linalg.norm(to_direction)
+    angle_signed = np.arccos(np.dot(from_dir_hat, to_dir_hat))
+    orientation = np.sign(np.dot(np.cross(from_direction, to_direction), normal))
     return np.degrees(angle_signed * orientation) % 360
 
 
