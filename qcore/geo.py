@@ -186,7 +186,8 @@ def oriented_bearing_wrt_normal(
     Returns
     -------
     float
-        The bearing from u to v with oriented with respect to normal.
+        The bearing from from_direction to to_direction oriented with respect to
+        the normal direction.
 
     Examples
     --------
