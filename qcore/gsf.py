@@ -91,7 +91,9 @@ def coordinate_meshgrid(
     Returns
     -------
     np.ndarray
-        The meshgrid of the rectangular planar region.
+        The meshgrid of the rectangular planar region. Has shape (ny, nx), where
+        ny is the number of points in the origin->y_bottom direction and nx the number of
+        points in the origin->x_upper direction.
     """
     origin = coordinates.wgs_depth_to_nztm(origin)
     x_upper = coordinates.wgs_depth_to_nztm(x_upper)
@@ -109,7 +111,7 @@ def coordinate_meshgrid(
     ).T
     nztm_meshgrid = (transformation_matrix @ subdivision_coordinates).T
     nztm_meshgrid += origin
-    return coordinates.nztm_to_wgs_depth(nztm_meshgrid)
+    return coordinates.nztm_to_wgs_depth(nztm_meshgrid).reshape((ny, nx, 3))
 
 
 def write_fault_to_gsf_file(
@@ -119,12 +121,17 @@ def write_fault_to_gsf_file(
 ):
     """Writes geometry data to a GSF file.
 
+    This code assumes that the dip is constant across all faults.
+
     Parameters
     ----------
     gsf_filepath : Path
         The file path pointing to the GSF file to write to.
     gsf_df : pd.DataFrame
-        The GSF dataframe to write.
+        The GSF dataframe to write. This dataframe must have the columns length,
+        width, strike, dip, rake, and meshgrid. Each row corresponds to one
+        fault plane, with the meshgrid column being the discretisation of the
+        fault planes.
     resolution : int
         Resolution of the meshgrid.
     """
@@ -133,22 +140,29 @@ def write_fault_to_gsf_file(
             "# LON  LAT  DEP(km)  SUB_DX  SUB_DY  LOC_STK  LOC_DIP  LOC_RAKE  SLIP(cm)  INIT_TIME  SEG_NO\n"
         )
         number_of_points = gsf_df.apply(
-            lambda row: row["meshgrid"].shape[0], axis=1
+            lambda row: np.prod(row["meshgrid"].shape[:2]), axis=1
         ).sum()
+
+        # Get the number of dip gridpoints by looking at the first dimension of
+        # the meshgrid of the first fault plane. See coordinate_meshgrid for an
+        # explanation of meshgrid dimensions.
+        n_dip = gsf_df.iloc[0]['meshgrid'].shape[0]
+
         gsf_file_handle.write(f"{number_of_points}\n")
-        for i, row in gsf_df.iterrows():
-            length = row["length"]
-            width = row["width"]
-            strike = row["strike"]
-            dip = row["dip"]
-            rake = row["rake"]
-            meshgrid = row["meshgrid"]
-            strike_step = length / gridpoint_count_in_length(length * 1000, resolution)
-            dip_step = width / gridpoint_count_in_length(width * 1000, resolution)
-            for point in meshgrid:
-                gsf_file_handle.write(
-                    f"{point[1]:11.5f} {point[0]:11.5f} {point[2] / 1000:11.5e} {strike_step:11.5e} {dip_step:11.5e} {strike:6.1f} {dip:6.1f} {rake:6.1f} {-1.0:8.2f} {-1.0:8.2f} {i:3d}\n"
-                )
+        for j in range(n_dip):
+            for i, row in gsf_df.iterrows():
+                length = row["length"]
+                width = row["width"]
+                strike = row["strike"]
+                dip = row["dip"]
+                rake = row["rake"]
+                meshgrid = row["meshgrid"]
+                strike_step = length / gridpoint_count_in_length(length * 1000, resolution)
+                dip_step = width / gridpoint_count_in_length(width * 1000, resolution)
+                for point in meshgrid[j]:
+                    gsf_file_handle.write(
+                        f"{point[1]:11.5f} {point[0]:11.5f} {point[2] / 1000:11.5e} {strike_step:11.5e} {dip_step:11.5e} {strike:6.1f} {dip:6.1f} {rake:6.1f} {-1.0:8.2f} {-1.0:8.2f} {i:3d}\n"
+                    )
 
 
 def read_gsf(gsf_filepath: Path) -> pd.DataFrame:
