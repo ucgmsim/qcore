@@ -251,9 +251,9 @@ class XYTSFile:
             mmiv = np.vstack((self.ll_map.reshape(-1, 2).T, mmiv)).T
 
         # store / output
-        if pgvout != None:
+        if pgvout is not None:
             pgv.astype(np.float32).tofile(pgvout)
-        if mmi and mmiout != None:
+        if mmi and mmiout is not None:
             mmiv.astype(np.float32).tofile(mmiout)
 
         if pgvout is None:
