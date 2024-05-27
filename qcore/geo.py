@@ -6,7 +6,7 @@ import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Any, Dict, List, Tuple, Union
+from typing import List, Tuple, Union
 from warnings import warn
 
 import numpy as np
