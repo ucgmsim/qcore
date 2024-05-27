@@ -115,10 +115,6 @@ class XYTSFile:
     y0: int
     z0: int
     t0: int
-    # proc-local files only
-    local_nx: Optional[int]
-    local_ny: Optional[int]
-    local_nz: Optional[int]
     #######################
     nx: int
     ny: int
@@ -142,17 +138,24 @@ class XYTSFile:
     cosP: float
     sinP: float
     rot_matrix: np.ndarray
+    # proc-local files only
+    local_nx: Optional[int] = None
+    local_ny: Optional[int] = None
+    local_nz: Optional[int] = None
 
     # contents
-    data: np.memmap  # NOTE: this is distinct (but nearly identical to) a np.ndarray
+    data: Optional[np.memmap] = (
+        None  # NOTE: this is distinct (but nearly identical to) a np.ndarray
+    )
 
-    ll_map: np.ndarray
+    ll_map: Optional[np.ndarray] = None
 
     def __init__(
         self,
         xyts_path: Path | str,
         meta_only: bool = False,
         proc_local_file: bool = False,
+        round_dt: bool = True,
     ):
         """Initializes the XYTSFile object.
 
@@ -165,6 +168,9 @@ class XYTSFile:
             locations (slower).
         proc_local_file : bool
             If True, indicates a proc-local file.
+        round_dt : bool
+            If True, round the dt value to 4dp (present only for backwards
+            compatibility).
 
         Raises
         ------
@@ -207,7 +213,8 @@ class XYTSFile:
         )
         xytf.close()
         # dt is sensitive to float error eg 0.2 stores as 0.199999 (dangerous)
-        self.dt = np.around(dt, decimals=4)
+        if round_dt:
+            self.dt = np.around(self.dt, decimals=4)
 
         # determine original sim parameters
         self.dxts = int(round(self.dx / self.hh))
