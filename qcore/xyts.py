@@ -38,6 +38,22 @@ class XYTSFile:
         meta_only: bool = False,
         proc_local_file: bool = False,
     ):
+        """Initializes the XYTSFile object.
+
+        Parameters
+        ----------
+        xyts_path : Path | str
+            Path to the xyts file.
+        meta_only : bool
+            If True, only loads metadata and doesn't prepare gridpoint datum
+            locations (slower).
+        proc_local_file : bool
+            If True, indicates a proc-local file.
+
+        Raises
+        ------
+        ValueError
+            ValueError: If the file is not an XY timeslice file.
         """
 
         xytf = open(xyts_path, "rb")
@@ -140,10 +156,21 @@ class XYTSFile:
             ll_map[ll_map[:, :, 0] < 0, 0] += 360
         self.ll_map = ll_map
 
-    def corners(self, gmt_format=False):
-        """
-        Retrieve corners of simulation domain.
-        gmt_format: if True, also returns corners in GMT string format
+    def corners(
+        self, gmt_format: bool = False
+    ) -> list[list[float]] | Tuple[list[list[float]], str]:
+        """Retrieves the corners of the simulation domain.
+
+        Parameters
+        ----------
+        gmt_format : bool
+            If True, returns corners in GMT string format alongside the corner
+            list.
+
+        Returns
+        -------
+        list[list[float]] | Tuple[list[list[float]], str]
+            List of corners and (optionally) GMT string.
         """
         # compared with model_params format:
         # c1 =   x0   y0
@@ -172,10 +199,20 @@ class XYTSFile:
         gmt_cnrs = "\n".join([" ".join(map(str, cnr)) for cnr in ll_cnrs])
         return ll_cnrs.tolist(), gmt_cnrs
 
-    def region(self, corners=None):
-        """
-        Returns simulation region as a tuple (x_min, x_max, y_min, y_max).
-        corners: use pre-calculated corners if given
+    def region(
+        self, corners: Optional[np.ndarray] = None
+    ) -> Tuple[float, float, float, float]:
+        """Returns simulation region.
+
+        Parameters
+        ----------
+        corners : Optional[np.ndarray]
+            If not None, use precalculated corners
+
+        Returns
+        -------
+        Tuple[float, float, float, float]
+            The simulation region as a tuple (x_min, x_max, y_min, y_max).
         """
         if corners is None:
             corners = self.corners()
@@ -184,12 +221,24 @@ class XYTSFile:
 
         return (x_min, x_max, y_min, y_max)
 
-    def tslice_get(self, step, comp=-1, outfile=None):
-        """
-        Retrieve timeslice data.
-        Based on logic in WccFormat/src/ts2xyz.c
-        step: timestep to retrieve data for
-        comp: timestep component -1:sqrt(x^2 + y^2 + z^2), 0:x, 1:y, 2:z
+    def tslice_get(
+        self, step: int, comp: int = -1, outfile: Optional[Path | str] = None
+    ) -> np.ndarray:
+        """Retrieves timeslice data.
+
+        Parameters
+        ----------
+        step : int
+            Timestep to retrieve data for.
+        comp : int
+            Timestep component (-1: sqrt(x^2 + y^2 + z^2), 0: x, 1: y, 2: z).
+        outfile : Optional[Path | str]
+            File path to store the retrieved data.
+
+        Returns
+        -------
+        np.ndarray
+            Retrieved timeslice data.
         """
         # loading x, y, z all the time not significant
         y = self.data[step, 0, :, :] * self.cosR - self.data[step, 1, :, :] * self.sinR
@@ -212,12 +261,28 @@ class XYTSFile:
         else:
             wanted.astype(np.float32).tofile(outfile)
 
-    def pgv(self, mmi=False, pgvout=None, mmiout=None):
-        """
-        Retrieve PGV map.
-        mmi: also calculate MMI
-        pgvout: file to store pgv or None to return it
-        mmiout: file to store mmi or None to return it
+    def pgv(
+        self,
+        mmi: bool = False,
+        pgvout: Optional[Path | str] = None,
+        mmiout: Optional[Path | str] = None,
+    ) -> None | np.ndarray | Tuple[np.ndarray, np.ndarray]:
+        """Retrieves PGV and/or MMI map.
+
+        Parameters
+        ----------
+        mmi : bool
+            If True, also calculates MMI.
+        pgvout : Optional[Path | str]
+            File to store PGV or None to return it.
+        mmiout : Optional[Path | str]
+            File to store MMI or None to return it.
+
+        Returns
+        -------
+        None | np.ndarray | Tuple[np.ndarray, np.ndarray]
+            PGV map or tuple of (PGV map, MMI map) or None (if both are written to a
+            file).
         """
         # PGV as timeslices reduced to maximum value at each point
         pgv = np.zeros(self.nx * self.ny)
