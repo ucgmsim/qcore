@@ -6,7 +6,7 @@ import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Tuple, Union, Dict, Any, List
+from typing import Any, Dict, List, Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -158,7 +158,7 @@ def oriented_bearing_wrt_normal(
     directions. The orientation is established via the right hand rule
     (or refer to the diagram below).
 
-        to_bearing
+        to_direction
            ^
            │
            │
