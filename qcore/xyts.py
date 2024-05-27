@@ -9,29 +9,116 @@ XYTS file processing
 @date 19 January 2017
 """
 
+import dataclasses
 from math import cos, radians, sin
+from pathlib import Path
+from typing import Optional, Tuple
 
 import numpy as np
 
 from qcore import geo
 
 
-###
-### PROCESSING OF XYTS FILE
-###
+@dataclasses.dataclass
 class XYTSFile:
     """
+    Represents an XYTS file containing time slices on the X-Y plane (z = 1, top level).
+    This class provides methods to read metadata, retrieve data, and calculate
+    PGV (Peak Ground Velocity) and MMI (Modified Mercalli Intensity) values.
+
     Assumptions:
-    dip = 0: simulation domain is flat
-    t0 = 0: complete timeseries from t = 0
+    - dip = 0: Simulation domain is flat.
+    - t0 = 0: Complete timeseries from t = 0.
+
+    Attributes:
+        x0: Starting x-coordinate.
+        y0: Starting y-coordinate.
+        z0: Starting z-coordinate.
+        t0: Starting time.
+        local_nx: Number of local x-coordinates (for proc-local files only).
+        local_ny: Number of local y-coordinates (for proc-local files only).
+        local_nz: Number of local z-coordinates (for proc-local files only).
+        nx: Total number of x-coordinates.
+        ny: Total number of y-coordinates.
+        nz: Total number of z-coordinates.
+        nt: Total number of time steps.
+        dx: Grid spacing in the x-direction.
+        dy: Grid spacing in the y-direction.
+        hh: Grid spacing in the z-direction.
+        dt: Time step size.
+        mrot: Rotation angle for model origin.
+        mlat: Latitude of the model origin.
+        mlon: Longitude of the model origin.
+        dxts: Original simulation grid spacing in the x-direction.
+        dyts: Original simulation grid spacing in the y-direction.
+        nx_sim: Original simulation size in the x-direction.
+        ny_sim: Original simulation size in the y-direction.
+        dip: Dip angle.
+        comps: Orientation of components (X, Y, Z).
+        cosR: Cosine of the rotation angle.
+        sinR: Sine of the rotation angle.
+        cosP: Cosine of the dip angle.
+        sinP: Sine of the dip angle.
+        rot_matrix: Rotation matrix for components.
+        data: Memory-mapped array containing the data.
+        ll_map: Longitude-latitude map for data.
+
+    Methods:
+        __init__(xyts_path, meta_only=False, proc_local_file=False):
+            Initializes the XYTSFile object by loading metadata and memmapping
+            data sections.
+
+        corners(gmt_format=False):
+            Retrieves the corners of the simulation domain.
+
+        region(corners=None):
+            Returns the simulation region as a tuple (x_min, x_max, y_min, y_max).
+
+        tslice_get(step, comp=-1, outfile=None):
+            Retrieves timeslice data.
+
+        pgv(mmi=False, pgvout=None, mmiout=None):
+            Retrieves PGV map and optionally calculates MMI.
     """
 
-    def __init__(self, xyts_path, meta_only=False):
-        """
-        Load metadata and optionally prepare gridpoint datum locations.
-        xyts_path: path to the xyts.e3d file
-        meta_only: don't prepare gridpoint datum locations (slower)
-                can't use timeslice (lon, lat, value) capability
+    # Header values
+    x0: int
+    y0: int
+    z0: int
+    t0: int
+    # proc-local files only
+    local_nx: Optional[int]
+    local_ny: Optional[int]
+    local_nz: Optional[int]
+    #######################
+    nx: int
+    ny: int
+    nz: int
+    nt: int
+    dx: float
+    dy: float
+    hh: float
+    dt: float
+    mrot: float
+    mlat: float
+    mlon: float
+    # Derived values
+    dxts: int
+    dyts: int
+    nx_sim: int
+    dip: float
+    comps: dict[str, float]
+    cosR: float
+    sinR: float
+    cosP: float
+    sinP: float
+    rot_matrix: np.ndarray
+
+    # contents
+    data: np.memmap  # NOTE: this is distinct (but nearly identical to) a np.ndarray
+
+    ll_map: np.ndarray
+
     def __init__(
         self,
         xyts_path: Path | str,
