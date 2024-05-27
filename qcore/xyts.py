@@ -9,11 +9,12 @@ XYTS file processing
 @date 19 January 2017
 """
 
-from math import radians, cos, sin
+from math import cos, radians, sin
 
 import numpy as np
 
 from qcore import geo
+
 
 ###
 ### PROCESSING OF XYTS FILE
@@ -31,9 +32,17 @@ class XYTSFile:
         xyts_path: path to the xyts.e3d file
         meta_only: don't prepare gridpoint datum locations (slower)
                 can't use timeslice (lon, lat, value) capability
+    def __init__(
+        self,
+        xyts_path: Path | str,
+        meta_only: bool = False,
+        proc_local_file: bool = False,
+    ):
         """
 
         xytf = open(xyts_path, "rb")
+
+        self.xyts_path = xyts_path
 
         # determine endianness, an x-y timeslice has 1 z value
         nz = np.fromfile(xytf, dtype=">i4", count=7)[-1]
@@ -47,18 +56,22 @@ class XYTSFile:
         xytf.seek(0)
 
         # read header
+        (self.x0, self.y0, self.z0, self.t0) = np.fromfile(
+            xytf, dtype="%si4" % (endian), count=4
+        )
+        if proc_local_file:
+            (self.local_nx, self.local_ny, self.local_nz) = np.fromfile(
+                xytf, dtype="%si4" % (endian), count=3
+            )
+
         (
-            self.x0,
-            self.y0,
-            self.z0,
-            self.t0,
             self.nx,
             self.ny,
             self.nz,
             self.nt,
-        ) = np.fromfile(xytf, dtype="%si4" % (endian), count=8)
-        self.dx, self.dy, self.hh, dt, self.mrot, self.mlat, self.mlon = np.fromfile(
-            xytf, dtype="%sf4" % (endian), count=7
+        ) = np.fromfile(xytf, dtype="%si4" % (endian), count=4)
+        self.dx, self.dy, self.hh, self.dt, self.mrot, self.mlat, self.mlon = (
+            np.fromfile(xytf, dtype="%sf4" % (endian), count=7)
         )
         xytf.close()
         # dt is sensitive to float error eg 0.2 stores as 0.199999 (dangerous)
@@ -94,14 +107,23 @@ class XYTSFile:
         if meta_only:
             return
 
-        # memory map for data section
-        self.data = np.memmap(
-            xyts_path,
-            dtype="%sf4" % (endian),
-            mode="r",
-            offset=60,
-            shape=(self.nt, len(self.comps), self.ny, self.nx),
-        )
+        if proc_local_file:
+            self.data = np.memmap(
+                xyts_path,
+                dtype="%sf4" % (endian),
+                mode="r",
+                offset=72,
+                shape=(self.nt, len(self.comps), self.local_ny, self.local_nx),
+            )
+        else:
+            # memory map for data section
+            self.data = np.memmap(
+                xyts_path,
+                dtype="%sf4" % (endian),
+                mode="r",
+                offset=60,
+                shape=(self.nt, len(self.comps), self.ny, self.nx),
+            )
 
         # create longitude, latitude map for data
         grid_points = (
