@@ -1,12 +1,41 @@
 """
-Read xyts.e3d files.
-C structs available in WccFormat/src/structure.h
-XYTS file related functions.
-XYTS files contain time slices on the X-Y plane (z = 1, top level).
-XYTS file processing
+This module provides functionality to read xyts files.
 
-@author Viktor Polak
-@date 19 January 2017
+Extended Summary
+----------------
+This module includes the XYTSFile class, which represents an XYTS file. It
+allows users to load metadata, retrieve data, and calculate PGV (Peak Ground
+Velocity) and MMI (Modified Mercalli Intensity) values from the XYTS file.
+
+Classes
+----------------
+- XYTSFile: Represents an XYTS file and provides methods to interact with it.
+
+Notes
+-----
+- This module assumes that the simulation domain is flat, and the timeseries
+  contained inside the xyts files begins at t = 0.
+
+References
+----------
+- XYTS file format documentation:
+    https://wiki.canterbury.ac.nz/x/FAGnAw#FileFormatsUsedInGroundMotionSimulation-XYTS.e3dbinaryformat
+- C struct metadata definition:
+    merge_ts/structure.h (in the EMOD3D repository)
+
+Examples
+--------
+# Load an XYTS file
+xyts_file = XYTSFile("example.x3d")
+
+# Retrieve corners of the simulation domain
+corners = xyts_file.corners()
+
+# Retrieve PGV map
+pgv_map = xyts_file.pgv()
+
+# Calculate MMI values
+_, mmi_values = xyts_file.pgv(mmi=True)
 """
 
 import dataclasses
