@@ -330,7 +330,7 @@ class XYTSFile:
         Parameters
         ----------
         corners : Optional[np.ndarray]
-            If not None, use precalculated corners
+            If not None, use the given precalculated corners.
 
         Returns
         -------
