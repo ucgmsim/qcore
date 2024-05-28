@@ -41,7 +41,7 @@ _, mmi_values = xyts_file.pgv(mmi=True)
 import dataclasses
 from math import cos, radians, sin
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -132,7 +132,7 @@ class XYTSFile:
     dyts: int
     nx_sim: int
     dip: float
-    comps: dict[str, float]
+    comps: Dict[str, float]
     cosR: float
     sinR: float
     cosP: float
@@ -152,7 +152,7 @@ class XYTSFile:
 
     def __init__(
         self,
-        xyts_path: Path | str,
+        xyts_path: Union[Path, str],
         meta_only: bool = False,
         proc_local_file: bool = False,
         round_dt: bool = True,
@@ -281,7 +281,7 @@ class XYTSFile:
 
     def corners(
         self, gmt_format: bool = False
-    ) -> list[list[float]] | Tuple[list[list[float]], str]:
+    ) -> Union[List[List[float]], Tuple[List[List[float]], str]]:
         """Retrieves the corners of the simulation domain.
 
         Parameters
@@ -292,7 +292,7 @@ class XYTSFile:
 
         Returns
         -------
-        list[list[float]] | Tuple[list[list[float]], str]
+        List[List[float]] | Tuple[List[List[float]], str]
             List of corners and (optionally) GMT string.
         """
         # compared with model_params format:
@@ -345,7 +345,7 @@ class XYTSFile:
         return (x_min, x_max, y_min, y_max)
 
     def tslice_get(
-        self, step: int, comp: int = -1, outfile: Optional[Path | str] = None
+        self, step: int, comp: int = -1, outfile: Optional[Union[Path, str]] = None
     ) -> np.ndarray:
         """Retrieves timeslice data.
 
@@ -387,9 +387,9 @@ class XYTSFile:
     def pgv(
         self,
         mmi: bool = False,
-        pgvout: Optional[Path | str] = None,
-        mmiout: Optional[Path | str] = None,
-    ) -> None | np.ndarray | Tuple[np.ndarray, np.ndarray]:
+        pgvout: Optional[Union[Path, str]] = None,
+        mmiout: Optional[Union[Path, str]] = None,
+    ) -> Union[None, np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Retrieves PGV and/or MMI map.
 
         Parameters
