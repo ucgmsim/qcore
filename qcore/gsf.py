@@ -187,22 +187,24 @@ def write_fault_to_gsf_file(
         # Get the number of dip gridpoints by looking at the first dimension of
         # the meshgrid of the first fault plane. See coordinate_meshgrid for an
         # explanation of meshgrid dimensions.
-        n_dip = gsf_df.iloc[0]['meshgrid'].shape[0]
+        n_dip = gsf_df.iloc[0]["meshgrid"].shape[0]
 
         gsf_file_handle.write(f"{number_of_points}\n")
-        for j in range(n_dip):
-            for i, row in gsf_df.iterrows():
-                length = row["length"]
-                width = row["width"]
-                strike = row["strike"]
-                dip = row["dip"]
-                rake = row["rake"]
-                meshgrid = row["meshgrid"]
-                strike_step = length / gridpoint_count_in_length(length * 1000, resolution)
+        for dip_index in range(n_dip):
+            for plane_index, plane in gsf_df.iterrows():
+                length = plane["length"]
+                width = plane["width"]
+                strike = plane["strike"]
+                dip = plane["dip"]
+                rake = plane["rake"]
+                meshgrid = plane["meshgrid"]
+                strike_step = length / gridpoint_count_in_length(
+                    length * 1000, resolution
+                )
                 dip_step = width / gridpoint_count_in_length(width * 1000, resolution)
-                for point in meshgrid[j]:
+                for point in meshgrid[dip_index]:
                     gsf_file_handle.write(
-                        f"{point[1]:11.5f} {point[0]:11.5f} {point[2] / 1000:11.5e} {strike_step:11.5e} {dip_step:11.5e} {strike:6.1f} {dip:6.1f} {rake:6.1f} {-1.0:8.2f} {-1.0:8.2f} {i:3d}\n"
+                        f"{point[1]:11.5f} {point[0]:11.5f} {point[2] / 1000:11.5e} {strike_step:11.5e} {dip_step:11.5e} {strike:6.1f} {dip:6.1f} {rake:6.1f} {-1.0:8.2f} {-1.0:8.2f} {plane_index:3d}\n"
                     )
 
 
