@@ -29,7 +29,7 @@ def gridpoint_count_in_length(length: float, resolution: float) -> int:
     Computes the number of gridpoints that fit into a given length, if each
     gridpoint is roughly resolution metres apart, and if the gridpoints
     includes the endpoints. If length = 10, and resolution = 5, then the
-    function returns 3.
+    function returns 3 grid points spaced as follows:
 
       5m    5m
     +-----+-----+
