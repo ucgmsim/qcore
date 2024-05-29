@@ -95,22 +95,63 @@ def coordinate_meshgrid(
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
     """
+    # These calculations are easier to do if the coordinates are in NZTM rather
+    # than (lat, lon, depth).
     origin = coordinates.wgs_depth_to_nztm(origin)
     x_upper = coordinates.wgs_depth_to_nztm(x_upper)
     y_bottom = coordinates.wgs_depth_to_nztm(y_bottom)
+
     length_x = np.linalg.norm(x_upper - origin)
     length_y = np.linalg.norm(y_bottom - origin)
+
     nx = gridpoint_count_in_length(length_x, resolution)
     ny = gridpoint_count_in_length(length_y, resolution)
+
+    # We first create a meshgrid of coordinates across a flat rectangle like the following
+    #
+    #  (0, 0)       (length_x, 0)
+    #    ┌─────────┐
+    #    │         │
+    #    │         │
+    #    │         │
+    #    │         │
+    #    │         │
+    #    │         │
+    #    │         │
+    #    └─────────┘
+    # (0, length_y)
+
     x = np.linspace(0, length_x, nx)
     y = np.linspace(0, length_y, ny)
     xv, yv = np.meshgrid(x, y)
     subdivision_coordinates = np.vstack([xv.ravel(), yv.ravel()])
+
+    # The subdivision coordinates lie on a rectangle that has the right size,
+    # but is not in the right orientation or position.  The job of the
+    # transformation matrix is to rotate or shear the meshgrid to fit a plane
+    # with the same orientation as the desired plane.
+    # Diagramatically:
+    #
+    #                         ╱╲
+    # ┌─────────┐            ╱  ╲
+    # │         │           ╱    ╲
+    # │         │          ╱      ╲
+    # │         │          ╲       ╲
+    # │         │  ─────>   ╲       ╲
+    # │         │ tr. matrix ╲       ╲
+    # │         │             ╲      ╱
+    # │         │              ╲    ╱
+    # └─────────┘               ╲  ╱
+    #                            ╲╱
     transformation_matrix = np.vstack(
         [(x_upper - origin) / length_x, (y_bottom - origin) / length_y]
     ).T
     nztm_meshgrid = (transformation_matrix @ subdivision_coordinates).T
+
+    # nztm_meshgrid is a grid of points along a plane with the same orientation
+    # as the desired plane, but it needs to be translated back to the origin.
     nztm_meshgrid += origin
+
     return coordinates.nztm_to_wgs_depth(nztm_meshgrid).reshape((ny, nx, 3))
 
 
