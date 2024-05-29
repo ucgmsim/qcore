@@ -1,14 +1,19 @@
 """
 Module for coordinate conversions between WGS84 (latitude and longitude) and NZTM (New Zealand Transverse Mercator) coordinate systems.
 
-This module provides functions for converting coordinates between WGS84 and NZTM coordinate systems.
-See linz.govt.nz for a description of the NZTM coordinate system.
-
-Functions:
+Functions
+----------
 - wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
     Converts WGS84 coordinates (latitude, longitude, depth) to NZTM coordinates.
 - nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
     Converts NZTM coordinates (x, y, depth) to WGS84 coordinates.
+
+References
+----------
+This module provides functions for converting coordinates between WGS84 and NZTM coordinate systems.
+See LINZ[0] for a description of the NZTM coordinate system.
+
+[0]: https://www.linz.govt.nz/guidance/geodetic-system/coordinate-systems-used-new-zealand/projections/new-zealand-transverse-mercator-2000-nztm2000
 """
 
 import numpy as np

@@ -1,6 +1,7 @@
 """This module provides functions for working with and generating GSF files.
 
-Functions:
+Functions
+---------
 - gridpoint_count_in_length:
     Calculates the number of gridpoints that fit into a given length.
 - coordinate_meshgrid:
@@ -10,6 +11,8 @@ Functions:
 - read_gsf:
     Parses a GSF file into a pandas DataFrame.
 
+References
+----------
 The GSF file format is used to define the grid of the source model for a fault.
 See https://wiki.canterbury.ac.nz/display/QuakeCore/File+Formats+Used+On+GM
 for details on the GSF format.
