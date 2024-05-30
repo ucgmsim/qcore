@@ -6,7 +6,7 @@ import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Tuple, Union, Dict, Any, List
+from typing import List, Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -147,6 +147,61 @@ def ll2gp_multi(
             c[1] -= c[1] % dy
 
     return xy
+
+
+def oriented_bearing_wrt_normal(
+    from_direction: np.ndarray, to_direction: np.ndarray, normal: np.ndarray
+) -> float:
+    """Compute the oriented bearing between two directions with respect to a normal.
+
+    This function is useful to calculate, for example, strike and dip
+    directions. The orientation is established via the right hand rule
+    (or refer to the diagram below).
+
+        to_direction
+           ^
+           │
+           │
+           │
+           │
+           │
+           │<┐  bearing
+           │ └─┐
+           ╳─────────────> from_direction
+          ╱
+         ╱
+        ╱
+       ╱
+    normal
+
+    Parameters
+    ----------
+    from_direction : np.ndarray
+        The direction to measure the bearing from.
+    to_direction : np.ndarray
+        The direction to measure the bearing to.
+    normal : np.ndarray
+        The normal direction to orient the bearing with via the right hand rule.
+
+    Returns
+    -------
+    float
+        The bearing from from_direction to to_direction oriented with respect to
+        the normal direction.
+
+    Examples
+    --------
+    >>> oriented_bearing_wrt_normal(np.array([0, 1, 0]), np.array([1, 0, 0]), np.array([0, 0, 1]))
+    270
+    >>> oriented_bearing_wrt_normal(np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    90
+    """
+
+    from_dir_hat = from_direction / np.linalg.norm(from_direction)
+    to_dir_hat = to_direction / np.linalg.norm(to_direction)
+    angle_signed = np.arccos(np.dot(from_dir_hat, to_dir_hat))
+    orientation = np.sign(np.dot(np.cross(from_direction, to_direction), normal))
+    return np.degrees(angle_signed * orientation) % 360
 
 
 def ll2gp(
