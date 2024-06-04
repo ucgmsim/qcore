@@ -3,13 +3,12 @@ Functions used throughout ucgmsim.
 Mostly related to file system operations and other non-specific functionality.
 """
 
-
 import os
-import imp
-import yaml
-from shutil import rmtree
 from collections import OrderedDict
 from collections.abc import Mapping
+from shutil import rmtree
+
+import yaml
 
 
 def ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
@@ -175,22 +174,6 @@ def setup_dir(directory, empty=False):
         except OSError:
             if not os.path.isdir(directory):
                 raise
-
-
-def load_py_cfg(f_path):
-    """
-    loads a python configuration file to a dictionary
-
-    if you want to preserve the import params functionality, locals().update(cfg_dict) converts the returned dict to local variables.
-
-    :param f_path: path to configuration file
-    :return: dict of parameters
-    """
-    with open(f_path) as f:
-        module = imp.load_module("params", f, f_path, (".py", "r", imp.PY_SOURCE))
-        cfg_dict = module.__dict__
-
-    return cfg_dict
 
 
 def compare_versions(version1, version2, split_char="."):
