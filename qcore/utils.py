@@ -111,11 +111,15 @@ def compare_versions(version1: str, version2: str, split_char: str = ".") -> int
         for part in re.sub(invalid_version_characters, "", version2).split(split_char)
     ]
     max_length = max(len(parts1), len(parts2))
-    parts1.extend((max_length - len(parts1)) * [0])
-    parts2.extend((max_length - len(parts2)) * [0])
 
-    if parts1 > parts2:
+    if parts1[:max_length] > parts2[:max_length]:
         return 1
-    if parts1 < parts2:
+    if parts1[:max_length] < parts2[:max_length]:
         return -1
+
+    if len(parts1) > len(parts2):
+        return 1
+    if len(parts2) > len(parts1):
+        return -1
+
     return 0
