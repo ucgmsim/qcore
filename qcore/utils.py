@@ -74,8 +74,8 @@ def compare_versions(version1: str, version2: str, split_char: str = ".") -> int
     """Compare two version strings.
 
     Comparison is made on the individual parts of each version. Where the
-    number of parts differs, i.e. comparing 1.1 and 1, the longer version
-    string is considered newer.
+    versions are equivalent but the number of parts differs, i.e. comparing
+    1.0 and 1, the longer version string is considered newer.
 
     Parameters
     ----------
