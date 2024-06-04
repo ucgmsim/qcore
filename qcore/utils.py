@@ -176,44 +176,52 @@ def setup_dir(directory, empty=False):
                 raise
 
 
-def compare_versions(version1, version2, split_char="."):
-    """
-    Compares two version strings.
-    Each string is to be split into segments by the given string.
-    Each segment is only compared by numerical character value (e.g. a, b, rc are ignored)
-    Ordinality is determined by the first non equal numeric segment.
-    If the first argument is greater than the second then 1 is returned, if the second argunet is greater then -1 is returned.
-    If an ordering has not been found by this point then the version with more segments is considered greater.
-    If both have the same segments then the value 0 is returned.
-    """
-    parts1 = version1.split(split_char)
-    parts2 = version2.split(split_char)
+def compare_versions(version1: str, version2: str, split_char: str = ".") -> int:
+    """Compare two version strings.
 
-    num_parts = min(len(parts1), len(parts2))
-    for i in range(num_parts):
-        num1 = int("".join(c for c in parts1[i] if c.isnumeric()))
-        num2 = int("".join(c for c in parts2[i] if c.isnumeric()))
-        if num1 > num2:
-            return 1
-        if num2 > num1:
-            return -1
+    Comparison is made on the individual parts of each version. Where the
+    number of parts differs, i.e. comparing 1.1 and 1, the smaller version
+    is padded with zeros before comparison.
 
-    # We haven't found a match
-    if len(parts1) > len(parts2):
+    Parameters
+    ----------
+    version1 : str
+        The first version string to check.
+    version2 : str
+        The second version string to check.
+    split_char : str
+        The version separator.
+
+    Returns
+    -------
+    int
+        Returns 1 if version1 is newer than version 2, -1 if version2 is
+        newer than version1 and 0 otherwise.
+
+    Examples
+    --------
+    >>> compare_versions('1.0.0', '1')
+    0
+    >>> compare_versions('1.0.1', '1')
+    1
+    >>> compare_versions('1.0.1', '1.1')
+    -1
+    """
+    invalid_version_characters = f"[^0-9{re.escape(split_char)}]"
+    parts1 = [
+        int(part)
+        for part in re.sub(invalid_version_characters, "", version1).split(split_char)
+    ]
+    parts2 = [
+        int(part)
+        for part in re.sub(invalid_version_characters, "", version2).split(split_char)
+    ]
+    max_length = max(len(parts1), len(parts2))
+    parts1.extend((max_length - len(parts1)) * [0])
+    parts2.extend((max_length - len(parts2)) * [0])
+
+    if parts1 > parts2:
         return 1
-    if len(parts2) > len(parts1):
+    if parts1 < parts2:
         return -1
     return 0
-
-
-def change_file_ext(file_ffp: str, new_ext: str, excl_dot: bool = False):
-    """Returns the full file path of the given file with the
-    extension changed to new_ext
-
-    If excl_dot is set, then a . is not added automatically
-    """
-    return os.path.join(
-        os.path.dirname(file_ffp),
-        os.path.splitext(os.path.basename(file_ffp))[0]
-        + (f".{new_ext}" if not excl_dot else new_ext),
-    )
