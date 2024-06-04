@@ -5,8 +5,8 @@ Mostly related to file system operations and other non-specific functionality.
 
 import os
 import re
+import shutil
 from pathlib import Path
-from shutil import rmtree
 from typing import Any, Union
 
 import yaml
@@ -60,7 +60,7 @@ def setup_dir(directory: str, empty: bool = False):
         If True, check if the directory is empty.
     """
     if os.path.exists(directory) and empty:
-        rmtree(directory)
+        shutil.rmtree(directory)
     if not os.path.exists(directory):
         # multi processing safety (not useful with empty set)
         try:
@@ -74,8 +74,8 @@ def compare_versions(version1: str, version2: str, split_char: str = ".") -> int
     """Compare two version strings.
 
     Comparison is made on the individual parts of each version. Where the
-    number of parts differs, i.e. comparing 1.1 and 1, the smaller version
-    is padded with zeros before comparison.
+    number of parts differs, i.e. comparing 1.1 and 1, the longer version
+    string is considered newer.
 
     Parameters
     ----------
