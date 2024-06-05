@@ -6,7 +6,7 @@ import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Tuple, Union, Dict, Any, List
+from typing import Any, Dict, List, Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -1031,13 +1031,13 @@ def oriented_bounding_planes(
     return bounding_planes
 
 
-def closest_line_seg_line_seg(
-    p1: np.ndarray, p2: np.ndarray, p3: np.ndarray, p4: np.ndarray
+def closest_points_between_line_segments(
+    p1: np.ndarray, p2: np.ndarray, q1: np.ndarray, q2: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Find the closest pair of points between two line segments in 3D.
 
-    Given four points p1, p2, p3, p4, defining line segments l = <p1, p2> and m
-    = <p3, p4>, find the closest points between the line segments l and m.
+    Given four points p1, p2, q1, q2, defining line segments l = <p1, p2> and m
+    = <q1, q2>, find the closest points between the line segments l and m.
 
     Parameters
     ----------
@@ -1045,9 +1045,9 @@ def closest_line_seg_line_seg(
         First point on l.
     p2 : np.ndarray
         Second point on l.
-    p3 : np.ndarray
+    q1 : np.ndarray
         First point on m.
-    p4 : np.ndarray
+    q2 : np.ndarray
         Second point on m.
 
     Returns
@@ -1061,33 +1061,23 @@ def closest_line_seg_line_seg(
     FIXME: Add docs.
 
     """
-    P1 = p1
-    P2 = p3
-    V1 = p2 - p1
-    V2 = p4 - p3
-    V21 = P2 - P1
 
-    v22 = np.dot(V2, V2)
-    v11 = np.dot(V1, V1)
-    v21 = np.dot(V2, V1)
-    v21_1 = np.dot(V21, V1)
-    v21_2 = np.dot(V21, V2)
-    denom = v21 * v21 - v22 * v11
+    l_direction = p2 - p1
+    m_direction = q2 - q1
+    cross_direction = p1 - q1
+    directions = np.array([l_direction, m_direction])
+    system_matrix = directions @ directions.T
+    right_hand_side = -directions @ cross_direction.T
 
-    if np.isclose(denom, 0.0):
-        s = 0.0
-        t = (v11 * s - v21_1) / v21
-    else:
-        s = (v21_2 * v21 - v22 * v21_1) / denom
-        t = (-v21_1 * v21 + v11 * v21_2) / denom
+    solution = np.linalg.lstsq(system_matrix, right_hand_side, rcond=None)[0]
+    solution[1] *= -1
+    solution = np.clip(solution, 0, 1)
+    s, t = solution[0], solution[1]
 
-    s = max(min(s, 1.0), 0.0)
-    t = max(min(t, 1.0), 0.0)
+    p_l = p1 + s * l_direction
+    p_m = q1 + t * m_direction
 
-    p_a = P1 + s * V1
-    p_b = P2 + t * V2
-
-    return p_a, p_b
+    return p_l, p_m
 
 
 def project_point_onto_plane(
@@ -1176,7 +1166,7 @@ def closest_points_between_planes(
     p1_line_segments = [(p1_corners[i], p1_corners[(i + 1) % 4]) for i in range(4)]
     p2_line_segments = [(p2_corners[i], p2_corners[(i + 1) % 4]) for i in range(4)]
     pairs = [
-        closest_line_seg_line_seg(*p1_line, *p2_line)
+        closest_points_between_line_segments(*p1_line, *p2_line)
         for p1_line, p2_line in itertools.product(p1_line_segments, p2_line_segments)
     ]
 
