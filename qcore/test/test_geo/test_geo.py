@@ -1,6 +1,6 @@
 import numpy as np
-import scipy as sp
 import pytest
+import scipy as sp
 
 from qcore import geo
 from qcore.test.tool import utils
@@ -253,3 +253,68 @@ def test_closest_points(p1_corners, p2_corners, p1_closest_point, p2_closest_poi
     # in plane check
     assert geo.in_finite_plane(p1_corners, p1_computed)
     assert geo.in_finite_plane(p2_corners, p2_computed)
+
+
+@pytest.mark.parametrize(
+    "l, m, l_closest_point, m_closest_point",
+    (
+        # line segments share points
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([0, 0, 1]),
+            ),
+            (np.array([0, 0, 0]), np.array([0, 1, 0])),
+            np.array([0, 0, 0]),
+            np.array([0, 0, 0]),
+        ),
+        # line segments are contained in a bigger line, Closest points at endpoints.
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([0, 0, 1]),
+            ),
+            (np.array([0, 0, -2]), np.array([0, 0, -1])),
+            np.array([0, 0, 0]),
+            np.array([0, 0, -1]),
+        ),
+        # line segments lie in a common plane, closest points at endpoints.
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([1, 0, 0]),
+            ),
+            (np.array([2, 0, 0]), np.array([0, 1, 0])),
+            np.array([1, 0, 0]),
+            np.array([2, 0, 0]),
+        ),
+        # line segments lie in a common plane, closest points at end and interior point.
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([1, 0, 0]),
+            ),
+            (np.array([3, -1, 0]), np.array([0, 1, 0])),
+            np.array([1, 0, 0]),
+            np.array([1.5, 0, 0]),
+        ),
+        # Line segments skew, closest points at endpoint and interior point.
+        (
+            (np.array([0, 0, 0]), np.array([1, 0, 0])),
+            (np.array([0.5, 1, 1]), np.array([0.5, 0, 1])),
+            np.array([0.5, 0, 0]),
+            np.array([0.5, 0, 1]),
+        ),
+        # line segments skew, closest points in interior
+        (
+            (np.array([0, 0, 0]), np.array([1, 0, 0])),
+            (np.array([0.5, 1, 1]), np.array([0.5, -1, 1])),
+            np.array([0.5, 0, 0]),
+            np.array([0.5, 0, 1]),
+        ),
+    ),
+)
+def test_closest_line_seg(l, m, l_closest_point, m_closest_point):
+    (l_computed, m_computed) = geo.closest_points_between_line_segments(*l, *m)
+    assert np.allclose(l_computed, l_closest_point)
+    assert np.allclose(m_computed, m_closest_point)
