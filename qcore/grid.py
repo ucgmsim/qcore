@@ -50,8 +50,8 @@ def grid_corners(
     strike_direction = np.array(
         [np.cos(np.radians(strike)), np.sin(np.radians(strike))]
     )
-    dip_direction = np.array([np.cos(np.radians(dip_dir)), np.sin(dip_dir)])
-    centroid_nztm = coordinates.wgs_depth_to_nztm(centroid)[:2]
+    dip_direction = np.array([np.cos(np.radians(dip_dir)), np.sin(np.radians(dip_dir))])
+    centroid_nztm = coordinates.wgs_depth_to_nztm(centroid)
     basis = (
         np.array(
             [
