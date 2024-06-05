@@ -66,7 +66,7 @@ def grid_corners(
     )
     corners = centroid_nztm + basis @ np.array([strike_direction, dip_direction])
     return coordinates.nztm_to_wgs_depth(
-        np.c_[corners, np.array([dtop, dtop, dbottom]) * 1000]
+        np.c_[corners, np.array([dtop, dtop, dbottom, dbottom]) * 1000]
     )
 
 
