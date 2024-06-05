@@ -1058,26 +1058,68 @@ def closest_points_between_line_segments(
 
     Examples
     --------
-    FIXME: Add docs.
-
+    >>> closest_points_between_line_segments(np.array([0, 0, 0]),
+                                             np.array([1, 0, 0]),
+                                             np.array([0.5, 1, 1]),
+                                             np.array([0.5, -1, -1]))
+    (array([0.5, 0, 0]), array([0.5, 0, 1]))
     """
+    # Suppsoe that l and m have points
+    #   p_s = p1 + s (p2 - p1), and
+    #   q_t = p3 + t (p4 - p3).
+    # Then, the values s and t minimising the distance
+    # between line segments has the vector p_s - q_t orthogonal to both p2 -
+    # p1 and p4 - p3. By expressing the conditions
+    #
+    #            (p_s - q_t) * (p2 - p1) = 0, and
+    #            (p_s - q_t) * (p4 - p3) = 0
+    #
+    # as a linear system with unknowns s and t, we can solve for s & t and
+    # get the closest points. This results in the following system:
+    #
+    #     ⎛s ⎞
+    #   A ⎜  ⎟ =  b,
+    #     ⎝-t⎠
+    #
+    # where
+    #             ⎛p  - p ⎞
+    #             ⎜ 2    1⎟ ⎛p  - p  q  - q ⎞
+    #   A      =  ⎜       ⎟ ⎝ 2    1  2    1⎠
+    #             ⎜q  - q ⎟
+    #             ⎝ 2    1⎠
+    #             ⎛p  - p ⎞
+    #             ⎜ 2    1⎟ ⎛q  - p ⎞
+    #   b      = -⎜       ⎟ ⎝ 1    1⎠
+    #             ⎜p  - p1⎟
+    #             ⎝ 2     ⎠
+    #
+    # The above system solves the case where s and t are unconstrained
+    # (i.e. l and m are infinite).
+    # To solve the case where 0 <= s <= 1 and 0 <= t <= 1, we can clip our
+    # solutions to the interval [0, 1].
 
     l_direction = p2 - p1
     m_direction = q2 - q1
     cross_direction = p1 - q1
     directions = np.array([l_direction, m_direction])
+    # This is the coefficient matrix for the linear system in s and t.
     system_matrix = directions @ directions.T
+    # This is the right hand side to solve for
     right_hand_side = -directions @ cross_direction.T
-
+    # In theory, the system matrix is not full rank, so we use the least
+    # square solver rather than np.linalg.solve. In the general case, the
+    # matrix has full rank and the solution is unique.
     solution = np.linalg.lstsq(system_matrix, right_hand_side, rcond=None)[0]
+    # Recall that in the above system, we solve for the vector (s; -t). We
+    # will multiply by -1 to get t directly.
     solution[1] *= -1
     solution = np.clip(solution, 0, 1)
     s, t = solution[0], solution[1]
 
-    p_l = p1 + s * l_direction
-    p_m = q1 + t * m_direction
+    p = p1 + s * l_direction
+    q = q1 + t * m_direction
 
-    return p_l, p_m
+    return p, q
 
 
 def project_point_onto_plane(
