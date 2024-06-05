@@ -107,7 +107,7 @@ def coordinate_meshgrid(
     y_bottom : np.ndarray
         Coordinates of the bottom y boundary (lat, lon, depth).
     resolution : float
-        Resolution of the meshgrid.
+        Resolution of the meshgrid (in metres).
 
     Returns
     -------
