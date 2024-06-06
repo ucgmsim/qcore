@@ -1119,9 +1119,9 @@ def closest_points_between_line_segments(
                                              np.array([0.5, -1, -1]))
     (array([0.5, 0, 0]), array([0.5, 0, 1]))
     """
-    # Suppsoe that l and m have points
+    # Suppose that l and m have points
     #   p_s = p1 + s (p2 - p1), and
-    #   q_t = p3 + t (p4 - p3).
+    #   q_t = q1 + t (q2 - q1).
     # Then, the values s and t minimising the distance
     # between line segments has the vector p_s - q_t orthogonal to both p2 -
     # p1 and p4 - p3. By expressing the conditions
@@ -1137,16 +1137,14 @@ def closest_points_between_line_segments(
     #     ⎝-t⎠
     #
     # where
-    #             ⎛p  - p ⎞
-    #             ⎜ 2    1⎟ ⎛p  - p  q  - q ⎞
-    #   A      =  ⎜       ⎟ ⎝ 2    1  2    1⎠
-    #             ⎜q  - q ⎟
-    #             ⎝ 2    1⎠
-    #             ⎛p  - p ⎞
-    #             ⎜ 2    1⎟ ⎛q  - p ⎞
-    #   b      = -⎜       ⎟ ⎝ 1    1⎠
-    #             ⎜p  - p1⎟
-    #             ⎝ 2     ⎠
+    #
+    #      ⎛p2 - p1⎞
+    #  A = ⎜       ⎟(p2 - p1, q2 - q1)
+    #      ⎝q2 - q1⎠
+    #
+    #       ⎛p2 - p1⎞          T
+    #  b = -⎜       ⎟(q1 - p1) 
+    #       ⎝q2 - q1⎠             
     #
     # The above system solves the case where s and t are unconstrained
     # (i.e. l and m are infinite).
