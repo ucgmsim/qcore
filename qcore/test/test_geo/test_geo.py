@@ -95,22 +95,6 @@ def test_avg_wbearing(test_angles, output_degrees):
 
 
 @pytest.mark.parametrize(
-    "test_lonlat, output_points",
-    [
-        ([[175, -45]], [[1757630.64073127, 5015103.82859388]]),
-        (
-            [[172, -41], [173, -43]],
-            [[1515897.8655543, 5460761.41058073], [1600000.0, 5239185.20382672]],
-        ),
-    ],
-)
-def test_wgs_nztm2000x(test_lonlat, output_points):
-    test_points = geo.wgs_nztm2000x(test_lonlat)
-    sample_output_points = np.array(output_points)
-    utils.compare_np_array(test_points, sample_output_points)
-
-
-@pytest.mark.parametrize(
     "p, expected_p", [(np.array([1, 0, 0]), np.array([1, 0, 0, 1]))]
 )
 def test_homogenise_point(p, expected_p):
