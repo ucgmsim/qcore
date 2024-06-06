@@ -1,3 +1,18 @@
+"""
+This module provides functions for working with planar regions defined by geographical coordinates.
+
+Functions
+---------
+grid_corners
+    Returns the corners of a plane from a series of parameters.
+
+coordinate_meshgrid
+    Creates a meshgrid of points in a bounded plane region.
+
+gridpoint_count_in_length
+    Calculate the number of gridpoints that fit into a given length.
+"""
+
 import numpy as np
 
 from qcore import coordinates
