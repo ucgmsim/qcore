@@ -1193,11 +1193,6 @@ def project_point_onto_plane(
     -------
     np.ndarray
         The projected points.
-
-    Examples
-    --------
-    FIXME: Add docs.
-
     """
 
     return points - (
@@ -1220,11 +1215,6 @@ def in_finite_plane(plane_corners: np.ndarray, point: np.ndarray) -> bool:
     bool
         True if point is contained in the plane defined by
         plane_dual_coordinates and bounded by plane_corners
-
-    Examples
-    --------
-    FIXME: Add docs.
-
     """
     plane_dual_coordinates = plane_from_three_points(*plane_corners[:3])
     plane_ortho_planes = oriented_bounding_planes(plane_dual_coordinates, plane_corners)
@@ -1321,18 +1311,20 @@ def closest_points_between_plane_sequences(
     )
 
 
-def spheres_intersect(c: np.ndarray, r: float, c1: np.ndarray, r1: float) -> bool:
+def spheres_intersect(
+    centre1: np.ndarray, radius1: float, centre2: np.ndarray, radius2: float
+) -> bool:
     """Test if two spheres intersect.
 
     Parameters
     ----------
-    c : np.ndarray
+    centre1 : np.ndarray
         The centre of the first sphere, a (n x 1)-dimensional numpy vector.
-    r : float
+    radius1 : float
         The radius of the first sphere.
-    c1 : np.ndarray
+    centre2 : np.ndarray
         The centre of the second sphere, a (n x 1)-dimensional numpy vector.
-    r1 : float
+    radius2 : float
         The radius of the second sphere.
 
     Returns
@@ -1340,10 +1332,9 @@ def spheres_intersect(c: np.ndarray, r: float, c1: np.ndarray, r1: float) -> boo
     bool
         True if the n-dimensional sphere centred on c with radius r intersects
         the n-dimensional sphere centred on c1 with radius r1.
-
-    Examples
-    --------
-    FIXME: Add docs.
-
     """
-    return np.square(r1 - r) <= np.sum(np.square(c1 - c)) <= np.square(r1 + r)
+    return (
+        np.square(radius2 - radius1)
+        <= np.sum(np.square(centre2 - centre1))
+        <= np.square(radius2 + radius1)
+    )
