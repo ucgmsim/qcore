@@ -1143,8 +1143,8 @@ def closest_points_between_line_segments(
     #      ⎝q2 - q1⎠
     #
     #       ⎛p2 - p1⎞          T
-    #  b = -⎜       ⎟(q1 - p1) 
-    #       ⎝q2 - q1⎠             
+    #  b = -⎜       ⎟(q1 - p1)
+    #       ⎝q2 - q1⎠
     #
     # The above system solves the case where s and t are unconstrained
     # (i.e. l and m are infinite).
@@ -1192,10 +1192,39 @@ def project_point_onto_plane(
     np.ndarray
         The projected points.
     """
-
-    return points - (
-        (points @ plane_dual_coordinates[:3]) - plane_dual_coordinates[3]
-    ).reshape((-1, 1)) @ plane_dual_coordinates[:3].reshape((1, -1))
+    # The point-normal description of a plane says a plane with normal vector
+    # n contains points p such that:
+    #
+    # n * p = 0.
+    #
+    # For affine planes (those translated away from the origin), we instead say
+    #
+    # n * p = d,
+    #
+    # where d is a translation distance from the origin. We can encapsulate
+    # this in the following diagram
+    #
+    #        ╱╲    normal
+    #       ╱  ╲ ╱
+    #      ╱    ╳
+    #     ╱    ╱ ╲
+    #    ╱    ╱   ╲
+    #    ╲   ╱    ╱
+    #     ╲ ╱    ╱
+    #    ^ ╲    ╱
+    #   d ╱ ╲  ╱
+    #  v ╱   ╲╱
+    #   ·
+    # origin
+    #
+    # So then n * p gives the distance in units of n from the origin. To
+    # project a point p onto a given plane with points n * r = d, we subtract
+    # (n * p) - d units of n from p, shifting it into the plane.
+    return points - np.outer(  # p -
+        np.dot(points, plane_dual_coordinates[:3])
+        - plane_dual_coordinates[3],  # ((n * p) - d) *
+        plane_dual_coordinates[:3],  # n
+    )
 
 
 def in_finite_plane(plane_corners: np.ndarray, point: np.ndarray) -> bool:
