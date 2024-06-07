@@ -875,7 +875,7 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
 
 
 def oriented_bounding_planes(
-    plane_dual_coordinates, plane_corners: np.ndarray
+    plane_dual_coordinates: np.ndarray, plane_corners: np.ndarray
 ) -> List[np.ndarray]:
 
     plane_centroid = np.average(plane_corners, axis=0)
