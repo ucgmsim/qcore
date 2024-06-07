@@ -17,10 +17,6 @@ from qcore.binary_version import get_unversioned_bin
 R_EARTH = 6378.139
 
 
-class InputError(Exception):
-    pass
-
-
 def get_distances(
     locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
 ):
@@ -226,10 +222,18 @@ def ll2gp(
             keep_outside=False,
         )[0]
     except IndexError:
-        raise InputError("Input outside simulation domain.")
+        raise ValueError("Input outside simulation domain.")
 
 
-def gp2ll_multi(coords, mlat, mlon, rot, nx, ny, hh):
+def gp2ll_multi(
+    coords: list[list[float]],
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+) -> list[list[float]]:
     """
     Converts gridpoint positions to longitude, latitude.
     coords: 2d list in format [[x0, y0], [x1, y1], ...]
