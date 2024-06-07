@@ -1,5 +1,5 @@
 """
-Various tools which may be needed in various processes.
+qcore geometry utilities.
 """
 
 import functools
