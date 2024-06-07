@@ -223,7 +223,7 @@ def ll2gp(
             keep_outside=False,
         )[0]
     except IndexError:
-        raise ValueError("Input outside simulation domain.")
+        raise IndexError("Input outside simulation domain.")
 
 
 def gp2ll_multi(
