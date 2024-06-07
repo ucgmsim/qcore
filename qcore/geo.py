@@ -513,26 +513,7 @@ def ll_cross_along_track_dist(
     return xta * R_EARTH, ata * R_EARTH
 
 
-def ll_cross_track_dist(
-    lon1, lat1, lon2, lat2, lon3, lat3, a12=None, a13=None, d13=None
-):
-    """
-    Returns the distance of point 3 to the nearest point on the great circle line that passes through point 1 and point 2
-    If any of a12, a13, d13 are given the calculations for them are skipped
-    :param a12: The angle between point 1 (lon1, lat1) and point 2 (lon2, lat2) in radians
-    :param a13: The angle between point 1 (lon1, lat1) and point 3 (lon3, lat3) in radians
-    :param d13: The distance between point 1 (lon1, lat1) and point 3 (lon3, lat3)
-    """
-    warn(
-        "This function is deprecated in favour of ll_cross_along_track_dist",
-        DeprecationWarning,
-    )
-    return ll_cross_along_track_dist(lon1, lat1, lon2, lat2, lon3, lat3, a12, a13, d13)[
-        0
-    ]
-
-
-def angle_diff(b1, b2):
+def angle_diff(b1: float, b2: float) -> float:
     """
     Return smallest difference (clockwise, -180 -> 180) from b1 to b2.
     """
