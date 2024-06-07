@@ -222,8 +222,8 @@ def ll2gp(
             verbose=verbose,
             keep_outside=False,
         )[0]
-    except IndexError:
-        raise IndexError("Input outside simulation domain.")
+    except IndexError as exc:
+        raise IndexError("Input outside simulation domain.") from exc
 
 
 def gp2ll_multi(
