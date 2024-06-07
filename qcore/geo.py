@@ -18,7 +18,7 @@ R_EARTH = 6378.139
 
 def get_distances(
     locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
-):
+) -> np.ndarray:
     """
     Calculates the distance between the array of locations and
     the specified reference location / locations
