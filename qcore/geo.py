@@ -202,8 +202,19 @@ def oriented_bearing_wrt_normal(
 
 
 def ll2gp(
-    lat, lon, mlat, mlon, rot, nx, ny, hh, dx=1, dy=1, decimated=False, verbose=False
-):
+    lat: float,
+    lon: float,
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+    dx: float = 1,
+    dy: float = 1,
+    decimated: bool = False,
+    verbose: bool = False,
+) -> List[float]:
     """
     Converts latitude/longitude to a gridpoint position.
     """
