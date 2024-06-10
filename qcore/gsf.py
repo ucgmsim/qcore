@@ -23,139 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from qcore import coordinates
-
-
-def gridpoint_count_in_length(length: float, resolution: float) -> int:
-    """Calculate the number of gridpoints that fit into a given length.
-
-    Computes the number of gridpoints that fit into a given length, if each
-    gridpoint is roughly resolution metres apart, and if the gridpoints
-    includes the endpoints. If length = 10, and resolution = 5, then the
-    function returns 3 grid points spaced as follows:
-
-      5m    5m
-    +-----+-----+
-
-    Parameters
-    ----------
-    length : float
-        Length to distribute grid points along.
-    resolution : float
-        Resolution of the grid.
-
-    Returns
-    -------
-    int
-        The number of gridpoints that fit into length.
-    """
-    return int(np.round(length / resolution + 2))
-
-
-def coordinate_meshgrid(
-    origin: np.ndarray,
-    x_upper: np.ndarray,
-    y_bottom: np.ndarray,
-    resolution: float,
-) -> np.ndarray:
-    """Creates a meshgrid of points in a bounded plane region.
-
-    Given the bounds of a rectangular planar region, create a meshgrid of
-    (lat, lon, depth) coordinates spaced at close to resolution metres apart
-    in the strike and dip directions.
-
-    origin                       x_upper
-          ┌─────────────────────┐
-          │. . . . . . . . . . .│
-          │                     │
-          │. . . . . . . . . . .│
-          │                     │
-          │. . . . . . . . . . .│
-          │                     │
-          │. . . . . . . . . . .│
-          │                     │
-          │. . . . . . . . . . .│
-          │            ∧ ∧      │
-          └────────────┼─┼──────┘
-     y_bottom          └─┘
-                    resolution
-
-    Parameters
-    ----------
-    origin : np.ndarray
-        Coordinates of the origin point (lat, lon, depth).
-    x_upper : np.ndarray
-        Coordinates of the upper x boundary (lat, lon, depth).
-    y_bottom : np.ndarray
-        Coordinates of the bottom y boundary (lat, lon, depth).
-    resolution : float
-        Resolution of the meshgrid.
-
-    Returns
-    -------
-    np.ndarray
-        The meshgrid of the rectangular planar region. Has shape (ny, nx), where
-        ny is the number of points in the origin->y_bottom direction and nx the number of
-        points in the origin->x_upper direction.
-    """
-    # These calculations are easier to do if the coordinates are in NZTM rather
-    # than (lat, lon, depth).
-    origin = coordinates.wgs_depth_to_nztm(origin)
-    x_upper = coordinates.wgs_depth_to_nztm(x_upper)
-    y_bottom = coordinates.wgs_depth_to_nztm(y_bottom)
-
-    length_x = np.linalg.norm(x_upper - origin)
-    length_y = np.linalg.norm(y_bottom - origin)
-
-    nx = gridpoint_count_in_length(length_x, resolution)
-    ny = gridpoint_count_in_length(length_y, resolution)
-
-    # We first create a meshgrid of coordinates across a flat rectangle like the following
-    #
-    #  (0, 0)       (length_x, 0)
-    #    ┌─────────┐
-    #    │         │
-    #    │         │
-    #    │         │
-    #    │         │
-    #    │         │
-    #    │         │
-    #    │         │
-    #    └─────────┘
-    # (0, length_y)
-
-    x = np.linspace(0, length_x, nx)
-    y = np.linspace(0, length_y, ny)
-    xv, yv = np.meshgrid(x, y)
-    subdivision_coordinates = np.vstack([xv.ravel(), yv.ravel()])
-
-    # The subdivision coordinates lie on a rectangle that has the right size,
-    # but is not in the right orientation or position.  The job of the
-    # transformation matrix is to rotate or shear the meshgrid to fit a plane
-    # with the same orientation as the desired plane.
-    # Diagramatically:
-    #
-    #                         ╱╲
-    # ┌─────────┐            ╱  ╲
-    # │         │           ╱    ╲
-    # │         │          ╱      ╲
-    # │         │          ╲       ╲
-    # │         │  ─────>   ╲       ╲
-    # │         │ tr. matrix ╲       ╲
-    # │         │             ╲      ╱
-    # │         │              ╲    ╱
-    # └─────────┘               ╲  ╱
-    #                            ╲╱
-    transformation_matrix = np.vstack(
-        [(x_upper - origin) / length_x, (y_bottom - origin) / length_y]
-    ).T
-    nztm_meshgrid = (transformation_matrix @ subdivision_coordinates).T
-
-    # nztm_meshgrid is a grid of points along a plane with the same orientation
-    # as the desired plane, but it needs to be translated back to the origin.
-    nztm_meshgrid += origin
-
-    return coordinates.nztm_to_wgs_depth(nztm_meshgrid).reshape((ny, nx, 3))
+from qcore import grid
 
 
 def write_fault_to_gsf_file(
@@ -201,10 +69,12 @@ def write_fault_to_gsf_file(
                 dip = plane["dip"]
                 rake = plane["rake"]
                 meshgrid = plane["meshgrid"]
-                strike_step = length / gridpoint_count_in_length(
+                strike_step = length / grid.gridpoint_count_in_length(
                     length * 1000, resolution
                 )
-                dip_step = width / gridpoint_count_in_length(width * 1000, resolution)
+                dip_step = width / grid.gridpoint_count_in_length(
+                    width * 1000, resolution
+                )
                 for point in meshgrid[dip_index]:
                     gsf_file_handle.write(
                         f"{point[1]:11.5f} {point[0]:11.5f} {point[2] / 1000:11.5e} {strike_step:11.5e} {dip_step:11.5e} {strike:6.1f} {dip:6.1f} {rake:6.1f} {-1.0:8.2f} {-1.0:8.2f} {plane_index:3d}\n"
