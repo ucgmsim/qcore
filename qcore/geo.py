@@ -1,12 +1,12 @@
 """
-Various tools which may be needed in various processes.
+qcore geometry utilities.
 """
 
 import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Optional, List, Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -17,13 +17,9 @@ from qcore.binary_version import get_unversioned_bin
 R_EARTH = 6378.139
 
 
-class InputError(Exception):
-    pass
-
-
 def get_distances(
     locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
-):
+) -> np.ndarray:
     """
     Calculates the distance between the array of locations and
     the specified reference location / locations
@@ -54,7 +50,9 @@ def get_distances(
     return d[0] if d.shape[0] == 1 else d
 
 
-def closest_location(locations, lon, lat):
+def closest_location(
+    locations: np.ndarray, lon: float, lat: float
+) -> Tuple[int, float]:
     """
     Find position and distance of closest location in 2D np.array of (lon, lat).
     """
@@ -65,19 +63,19 @@ def closest_location(locations, lon, lat):
 
 
 def ll2gp_multi(
-    coords,
-    mlon,
-    mlat,
-    rot,
-    nx,
-    ny,
-    hh,
-    dx=1,
-    dy=1,
-    decimated=False,
-    verbose=False,
-    keep_outside=False,
-):
+    coords: List[List[float]],
+    mlon: float,
+    mlat: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+    dx: float = 1,
+    dy: float = 1,
+    decimated: bool = False,
+    verbose: bool = False,
+    keep_outside: bool = False,
+) -> List[List[float]]:
     """
     Converts longitude/latitude positions to gridpoints.
     Three main modes of operation:
@@ -98,23 +96,23 @@ def ll2gp_multi(
     # output is displacement (x, y) from center, in kilometres
     cmd = [
         get_unversioned_bin("ll2xy"),
-        "mlat=%s" % (mlat),
-        "mlon=%s" % (mlon),
+        f"mlat={mlat}",
+        f"mlon={mlon}",
         "geoproj=1",
         "center_origin=1",
-        "h=%s" % (hh),
-        "xazim=%s" % (xazim),
-        "xlen=%s" % (xlen),
-        "ylen=%s" % (ylen),
+        f"h={hh}",
+        f"xazim={xazim}",
+        f"xlen={xlen}",
+        f"ylen={ylen}",
     ]
     if verbose:
         print(" ".join(cmd))
 
     # Has to be a byte string
-    p_conv = Popen(cmd, stdin=PIPE, stdout=PIPE)
-    stdout = p_conv.communicate(
-        "\n".join(["%s %s" % tuple(c) for c in coords]).encode()
-    )[0].decode()
+    with Popen(cmd, stdin=PIPE, stdout=PIPE) as p_conv:
+        stdout = p_conv.communicate(
+            "\n".join([f"{c[0]} {c[1]}" for c in coords]).encode()
+        )[0].decode()
     xy = [list(map(float, line.split())) for line in stdout.rstrip().split("\n")]
 
     # convert displacement to grid points
@@ -205,8 +203,19 @@ def oriented_bearing_wrt_normal(
 
 
 def ll2gp(
-    lat, lon, mlat, mlon, rot, nx, ny, hh, dx=1, dy=1, decimated=False, verbose=False
-):
+    lat: float,
+    lon: float,
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+    dx: float = 1,
+    dy: float = 1,
+    decimated: bool = False,
+    verbose: bool = False,
+) -> List[float]:
     """
     Converts latitude/longitude to a gridpoint position.
     """
@@ -225,11 +234,19 @@ def ll2gp(
             verbose=verbose,
             keep_outside=False,
         )[0]
-    except IndexError:
-        raise InputError("Input outside simulation domain.")
+    except IndexError as exc:
+        raise IndexError("Input outside simulation domain.") from exc
 
 
-def gp2ll_multi(coords, mlat, mlon, rot, nx, ny, hh):
+def gp2ll_multi(
+    coords: List[List[float]],
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+) -> List[List[float]]:
     """
     Converts gridpoint positions to longitude, latitude.
     coords: 2d list in format [[x0, y0], [x1, y1], ...]
@@ -252,37 +269,46 @@ def gp2ll_multi(coords, mlat, mlon, rot, nx, ny, hh):
         c[1] -= max_y * 0.5
 
     # run binary, get output
-    p_conv = Popen(
+    with Popen(
         [
             get_unversioned_bin("xy2ll"),
-            "mlat=%s" % (mlat),
-            "mlon=%s" % (mlon),
+            f"mlat={mlat}",
+            f"mlon={mlon}",
             "geoproj=1",
             "center_origin=1",
-            "h=%s" % (hh),
-            "xazim=%s" % (xazim),
-            "xlen=%s" % (xlen),
-            "ylen=%s" % (ylen),
+            f"h={hh}",
+            f"xazim={xazim}",
+            f"xlen={xlen}",
+            f"ylen={ylen}",
         ],
         stdin=PIPE,
         stdout=PIPE,
-    )
-    stdout = p_conv.communicate(
-        "\n".join(["%s %s" % tuple(c) for c in coords]).encode()
-    )[0].decode()
+    ) as p_conv:
+        stdout = p_conv.communicate(
+            "\n".join([f"{c[0]} {c[1]}" for c in coords]).encode()
+        )[0].decode()
 
     # lon, lat
     return [list(map(float, line.split())) for line in stdout.rstrip().split("\n")]
 
 
-def gp2ll(x, y, mlat, mlon, rot, nx, ny, hh):
+def gp2ll(
+    x: float,
+    y: float,
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+) -> List[float]:
     """
     Converts a gridpoint position to latitude/longitude.
     """
     return gp2ll_multi([[x, y]], mlat, mlon, rot, nx, ny, hh)[0]
 
 
-def gen_mat(mrot, mlon, mlat):
+def gen_mat(mrot: float, mlon: float, mlat: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Precursor for xy2ll and ll2xy functions.
     mrot: model rotation
@@ -322,7 +348,7 @@ def gen_mat(mrot, mlon, mlat):
     return amat.flatten(), ainv.flatten()
 
 
-def xy2ll(xy_km, amat):
+def xy2ll(xy_km: np.ndarray, amat: np.ndarray) -> np.ndarray:
     """
     Converts km offsets to longitude and latitude.
     xy_km: 2D np array of [X, Y] offsets from origin (km)
@@ -353,7 +379,7 @@ def xy2ll(xy_km, amat):
     return np.column_stack((lon, lat))
 
 
-def ll2xy(ll, ainv):
+def ll2xy(ll: np.ndarray, ainv: np.ndarray) -> np.ndarray:
     """
     Converts longitude and latitude to km offsets.
     ll: 2D np array of [lon, lat]
@@ -379,7 +405,7 @@ def ll2xy(ll, ainv):
     )
 
 
-def xy2gp(xy, nx, ny, hh):
+def xy2gp(xy: np.ndarray, nx: int, ny: int, hh: float) -> np.ndarray:
     """
     Converts km offsets to grid points.
     xy: 2D np array of [X, Y] offsets from origin (km)
@@ -399,7 +425,7 @@ def xy2gp(xy, nx, ny, hh):
     return np.round(gp).astype(np.int32, copy=False)
 
 
-def gp2xy(gp, nx, ny, hh):
+def gp2xy(gp: np.ndarray, nx: int, ny: int, hh: float) -> np.ndarray:
     """
     Converts grid points to km offsets.
     xy: 2D np array of [X, Y] gridpoints
@@ -416,7 +442,9 @@ def gp2xy(gp, nx, ny, hh):
     return xy
 
 
-def ll_shift(lat, lon, distance, bearing):
+def ll_shift(
+    lat: float, lon: float, distance: float, bearing: float
+) -> Tuple[float, float]:
     """
     Shift lat/long by distance at bearing.
     """
@@ -432,7 +460,7 @@ def ll_shift(lat, lon, distance, bearing):
     return degrees(lat2), degrees(lon2)
 
 
-def ll_mid(lon1, lat1, lon2, lat2):
+def ll_mid(lon1: float, lat1: float, lon2: float, lat2: float) -> Tuple[float, float]:
     """
     Return midpoint between a pair of lat, long points.
     """
@@ -448,7 +476,7 @@ def ll_mid(lon1, lat1, lon2, lat2):
     return degrees(lon3), degrees(lat3)
 
 
-def ll_dist(lon1, lat1, lon2, lat2):
+def ll_dist(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     """
     Return distance between a pair of lat, long points.
     """
@@ -461,7 +489,9 @@ def ll_dist(lon1, lat1, lon2, lat2):
     return R_EARTH * 2.0 * atan2(sqrt(a), sqrt(1 - a))
 
 
-def ll_bearing(lon1, lat1, lon2, lat2, midpoint=False):
+def ll_bearing(
+    lon1: float, lat1: float, lon2: float, lat2: float, midpoint: bool = False
+):
     """
     Initial bearing when traveling from 1 -> 2.
     Direction facing from point 1 when looking at point 2.
@@ -481,8 +511,16 @@ def ll_bearing(lon1, lat1, lon2, lat2, midpoint=False):
 
 
 def ll_cross_along_track_dist(
-    lon1, lat1, lon2, lat2, lon3, lat3, a12=None, a13=None, d13=None
-):
+    lon1: float,
+    lat1: float,
+    lon2: float,
+    lat2: float,
+    lon3: float,
+    lat3: float,
+    a12: Optional[float] = None,
+    a13: Optional[float] = None,
+    d13: Optional[float] = None,
+) -> Tuple[float, float]:
     """
     Returns both the distance of point 3 to the nearest point on the great circle line that passes through point 1 and
     point 2 and how far away that nearest point is from point 1, along the great line circle
@@ -513,26 +551,7 @@ def ll_cross_along_track_dist(
     return xta * R_EARTH, ata * R_EARTH
 
 
-def ll_cross_track_dist(
-    lon1, lat1, lon2, lat2, lon3, lat3, a12=None, a13=None, d13=None
-):
-    """
-    Returns the distance of point 3 to the nearest point on the great circle line that passes through point 1 and point 2
-    If any of a12, a13, d13 are given the calculations for them are skipped
-    :param a12: The angle between point 1 (lon1, lat1) and point 2 (lon2, lat2) in radians
-    :param a13: The angle between point 1 (lon1, lat1) and point 3 (lon3, lat3) in radians
-    :param d13: The distance between point 1 (lon1, lat1) and point 3 (lon3, lat3)
-    """
-    warn(
-        "This function is deprecated in favour of ll_cross_along_track_dist",
-        DeprecationWarning,
-    )
-    return ll_cross_along_track_dist(lon1, lat1, lon2, lat2, lon3, lat3, a12, a13, d13)[
-        0
-    ]
-
-
-def angle_diff(b1, b2):
+def angle_diff(b1: float, b2: float) -> float:
     """
     Return smallest difference (clockwise, -180 -> 180) from b1 to b2.
     """
@@ -542,7 +561,7 @@ def angle_diff(b1, b2):
     return r
 
 
-def avg_wbearing(angles):
+def avg_wbearing(angles: List[List[float]]) -> float:
     """
     Return average angle given angles and weightings.
     NB: angles are clockwise from North, not anti-clockwise from East.
@@ -561,7 +580,11 @@ def avg_wbearing(angles):
     return degrees(atan(x / y) + q_diff)
 
 
-def build_corners(origin, rot, xlen, ylen):
+def build_corners(
+    origin: Tuple[float, float], rot: float, xlen: float, ylen: float
+) -> Tuple[
+    Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]
+]:
     """
     Return 4 coordinates at corners centered at origin in [longitude, latitude] format.
     Parameters
@@ -626,7 +649,10 @@ def build_corners(origin, rot, xlen, ylen):
 
 
 def path_from_corners(
-    corners=None, output="sim.modelpath_hr", min_edge_points=100, close=True
+    corners: List[Tuple[float, float]],
+    output: str = "sim.modelpath_hr",
+    min_edge_points: int = 100,
+    close: bool = True,
 ):
     """
     corners: python list (4 by 2) containing (lon, lat) in order
@@ -649,15 +675,19 @@ def path_from_corners(
             corners.insert(i, val)
 
     # write points the make the path
-    if output != None:
-        with open(output, "w") as mp:
+    if output is not None:
+        with open(output, "w", encoding="utf-8") as mp:
             for point in corners:
-                mp.write("%s %s\n" % (point[0], point[1]))
+                mp.write(f"{point[0]} {point[1]}")
     else:
         return corners
 
 
-def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
+def compute_intermediate_latitudes(
+    lon_lat1: Tuple[float, float],
+    lon_lat2: Tuple[float, float],
+    lon_in: np.ndarray,
+) -> Union[float, np.ndarray]:
     """
     Calculates the latitudes of points along the shortest path between the points lon_lat1 and lon_lat2, taking the
     shortest path on the sphere, using great circle calculations.
@@ -846,7 +876,7 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
 
 
 def oriented_bounding_planes(
-    plane_dual_coordinates, plane_corners: np.ndarray
+    plane_dual_coordinates: np.ndarray, plane_corners: np.ndarray
 ) -> List[np.ndarray]:
 
     plane_centroid = np.average(plane_corners, axis=0)
