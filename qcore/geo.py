@@ -994,38 +994,70 @@ def project_point_onto_plane(
     np.ndarray
         The projected points.
     """
-    # The point-normal description of a plane says a plane with normal vector
-    # n contains points p such that:
+    # The point-normal description of an *affine* plane says a plane with
+    # *unit* normal vector n contains points r such that:
     #
-    # n * p = 0.
+    # n · r = d,
     #
-    # For affine planes (those translated away from the origin), we instead say
+    # where `d` is a parameter that translates the plane away from the
+    # origin. We can summarise this information in a diagram,
     #
-    # n * p = d,
+    #         n
+    #         ∧
+    #         │
+    #      ___│____________
+    #     ╱   │           ╱
+    #    ╱    │          ╱
+    #   ╱     │         ╱
+    #  ╱               ╱
+    # ╱_______________╱
+    #         ┊ ∧
+    #         ┊ │
+    #         ┊ │ d is the distance this plane is away from the origin.
+    #         ┊ │
+    #         ┊ ∨
+    #         .
+    #       origin
     #
-    # where d is a translation distance from the origin. We can encapsulate
-    # this in the following diagram
+    # To project a point p onto the plane with normal n and distance parameter
+    # d, we subtract (n · p - d) lots of n from p. This produces the closest
+    # vector to p in the plane:
     #
-    #        ╱╲    normal
-    #       ╱  ╲ ╱
-    #      ╱    ╳
-    #     ╱    ╱ ╲
-    #    ╱    ╱   ╲
-    #    ╲   ╱    ╱
-    #     ╲ ╱    ╱
-    #    ^ ╲    ╱
-    #   d ╱ ╲  ╱
-    #  v ╱   ╲╱
-    #   ·
-    # origin
+    # n · (p - (n · p - d) * n) = n · p - (n · p - d) * (n · n)
+    #                           = n · p - (n · p - d) * |n|^2
+    #                           = n · p - (n · p) * |n|^2 + d * |n|^2
+    #                            (n is a unit vector, so |n| = 1)
+    #                           = n · p - n · p + d
+    #                           = d.
+    # Again, diagramatically,
     #
-    # So then n * p gives the distance in units of n from the origin. To
-    # project a point p onto a given plane with points n * r = d, we subtract
-    # (n * p) - d units of n from p, shifting it into the plane.
+    #            p
+    #           +
+    #           │
+    #           │
+    #           │ ((n · p) - d) * n
+    #      _____│__________
+    #     ╱     │         ╱
+    #    ╱      ∨        ╱
+    #   ╱               ╱
+    #  ╱               ╱
+    # ╱_______________╱
+    #
+    # Conveniently, the `plane_dual_coordinates` which we use to describe
+    # affine planes contains both the normal in its first three coordinates,
+    # and the `d` value in its last coordinate. That is,
+    #
+    # plane_dual_coordinates = n + [d]
+    normal = plane_dual_coordinates[:3]
+    distance = plane_dual_coordinates[3]
+    # in case the provided normal is not a unit vector.
+    normal_length = np.linalg.norm(normal)
+    normal /= normal_length
+    distance /= normal_length
+
     return points - np.outer(  # p -
-        np.dot(points, plane_dual_coordinates[:3])
-        - plane_dual_coordinates[3],  # ((n * p) - d) *
-        plane_dual_coordinates[:3],  # n
+        np.dot(points, normal) - distance,  # ((n · p) - d) *
+        normal,  # n
     )
 
 
