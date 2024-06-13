@@ -1,26 +1,25 @@
 """
-Various tools which may be needed in various processes.
+qcore geometry utilities.
 """
 
-from subprocess import Popen, PIPE
-from math import sin, asin, cos, acos, atan, atan2, degrees, radians, sqrt, pi
+import functools
+import itertools
+from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
+from subprocess import PIPE, Popen
+from typing import Any, Dict, Optional, List, Tuple, Union
 from warnings import warn
-from typing import Union
 
 import numpy as np
+import scipy as sp
 
 from qcore.binary_version import get_unversioned_bin
 
 R_EARTH = 6378.139
 
 
-class InputError(Exception):
-    pass
-
-
 def get_distances(
     locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
-):
+) -> np.ndarray:
     """
     Calculates the distance between the array of locations and
     the specified reference location / locations
@@ -51,7 +50,9 @@ def get_distances(
     return d[0] if d.shape[0] == 1 else d
 
 
-def closest_location(locations, lon, lat):
+def closest_location(
+    locations: np.ndarray, lon: float, lat: float
+) -> Tuple[int, float]:
     """
     Find position and distance of closest location in 2D np.array of (lon, lat).
     """
@@ -62,19 +63,19 @@ def closest_location(locations, lon, lat):
 
 
 def ll2gp_multi(
-    coords,
-    mlon,
-    mlat,
-    rot,
-    nx,
-    ny,
-    hh,
-    dx=1,
-    dy=1,
-    decimated=False,
-    verbose=False,
-    keep_outside=False,
-):
+    coords: List[List[float]],
+    mlon: float,
+    mlat: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+    dx: float = 1,
+    dy: float = 1,
+    decimated: bool = False,
+    verbose: bool = False,
+    keep_outside: bool = False,
+) -> List[List[float]]:
     """
     Converts longitude/latitude positions to gridpoints.
     Three main modes of operation:
@@ -95,23 +96,23 @@ def ll2gp_multi(
     # output is displacement (x, y) from center, in kilometres
     cmd = [
         get_unversioned_bin("ll2xy"),
-        "mlat=%s" % (mlat),
-        "mlon=%s" % (mlon),
+        f"mlat={mlat}",
+        f"mlon={mlon}",
         "geoproj=1",
         "center_origin=1",
-        "h=%s" % (hh),
-        "xazim=%s" % (xazim),
-        "xlen=%s" % (xlen),
-        "ylen=%s" % (ylen),
+        f"h={hh}",
+        f"xazim={xazim}",
+        f"xlen={xlen}",
+        f"ylen={ylen}",
     ]
     if verbose:
         print(" ".join(cmd))
 
     # Has to be a byte string
-    p_conv = Popen(cmd, stdin=PIPE, stdout=PIPE)
-    stdout = p_conv.communicate(
-        "\n".join(["%s %s" % tuple(c) for c in coords]).encode()
-    )[0].decode()
+    with Popen(cmd, stdin=PIPE, stdout=PIPE) as p_conv:
+        stdout = p_conv.communicate(
+            "\n".join([f"{c[0]} {c[1]}" for c in coords]).encode()
+        )[0].decode()
     xy = [list(map(float, line.split())) for line in stdout.rstrip().split("\n")]
 
     # convert displacement to grid points
@@ -146,9 +147,75 @@ def ll2gp_multi(
     return xy
 
 
+def oriented_bearing_wrt_normal(
+    from_direction: np.ndarray, to_direction: np.ndarray, normal: np.ndarray
+) -> float:
+    """Compute the oriented bearing between two directions with respect to a normal.
+
+    This function is useful to calculate, for example, strike and dip
+    directions. The orientation is established via the right hand rule
+    (or refer to the diagram below).
+
+        to_direction
+           ^
+           │
+           │
+           │
+           │
+           │
+           │<┐  bearing
+           │ └─┐
+           ╳─────────────> from_direction
+          ╱
+         ╱
+        ╱
+       ╱
+    normal
+
+    Parameters
+    ----------
+    from_direction : np.ndarray
+        The direction to measure the bearing from.
+    to_direction : np.ndarray
+        The direction to measure the bearing to.
+    normal : np.ndarray
+        The normal direction to orient the bearing with via the right hand rule.
+
+    Returns
+    -------
+    float
+        The bearing from from_direction to to_direction oriented with respect to
+        the normal direction.
+
+    Examples
+    --------
+    >>> oriented_bearing_wrt_normal(np.array([0, 1, 0]), np.array([1, 0, 0]), np.array([0, 0, 1]))
+    270
+    >>> oriented_bearing_wrt_normal(np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    90
+    """
+
+    from_dir_hat = from_direction / np.linalg.norm(from_direction)
+    to_dir_hat = to_direction / np.linalg.norm(to_direction)
+    angle_signed = np.arccos(np.dot(from_dir_hat, to_dir_hat))
+    orientation = np.sign(np.dot(np.cross(from_direction, to_direction), normal))
+    return np.degrees(angle_signed * orientation) % 360
+
+
 def ll2gp(
-    lat, lon, mlat, mlon, rot, nx, ny, hh, dx=1, dy=1, decimated=False, verbose=False
-):
+    lat: float,
+    lon: float,
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+    dx: float = 1,
+    dy: float = 1,
+    decimated: bool = False,
+    verbose: bool = False,
+) -> List[float]:
     """
     Converts latitude/longitude to a gridpoint position.
     """
@@ -167,11 +234,19 @@ def ll2gp(
             verbose=verbose,
             keep_outside=False,
         )[0]
-    except IndexError:
-        raise InputError("Input outside simulation domain.")
+    except IndexError as exc:
+        raise IndexError("Input outside simulation domain.") from exc
 
 
-def gp2ll_multi(coords, mlat, mlon, rot, nx, ny, hh):
+def gp2ll_multi(
+    coords: List[List[float]],
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+) -> List[List[float]]:
     """
     Converts gridpoint positions to longitude, latitude.
     coords: 2d list in format [[x0, y0], [x1, y1], ...]
@@ -194,37 +269,46 @@ def gp2ll_multi(coords, mlat, mlon, rot, nx, ny, hh):
         c[1] -= max_y * 0.5
 
     # run binary, get output
-    p_conv = Popen(
+    with Popen(
         [
             get_unversioned_bin("xy2ll"),
-            "mlat=%s" % (mlat),
-            "mlon=%s" % (mlon),
+            f"mlat={mlat}",
+            f"mlon={mlon}",
             "geoproj=1",
             "center_origin=1",
-            "h=%s" % (hh),
-            "xazim=%s" % (xazim),
-            "xlen=%s" % (xlen),
-            "ylen=%s" % (ylen),
+            f"h={hh}",
+            f"xazim={xazim}",
+            f"xlen={xlen}",
+            f"ylen={ylen}",
         ],
         stdin=PIPE,
         stdout=PIPE,
-    )
-    stdout = p_conv.communicate(
-        "\n".join(["%s %s" % tuple(c) for c in coords]).encode()
-    )[0].decode()
+    ) as p_conv:
+        stdout = p_conv.communicate(
+            "\n".join([f"{c[0]} {c[1]}" for c in coords]).encode()
+        )[0].decode()
 
     # lon, lat
     return [list(map(float, line.split())) for line in stdout.rstrip().split("\n")]
 
 
-def gp2ll(x, y, mlat, mlon, rot, nx, ny, hh):
+def gp2ll(
+    x: float,
+    y: float,
+    mlat: float,
+    mlon: float,
+    rot: float,
+    nx: int,
+    ny: int,
+    hh: float,
+) -> List[float]:
     """
     Converts a gridpoint position to latitude/longitude.
     """
     return gp2ll_multi([[x, y]], mlat, mlon, rot, nx, ny, hh)[0]
 
 
-def gen_mat(mrot, mlon, mlat):
+def gen_mat(mrot: float, mlon: float, mlat: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Precursor for xy2ll and ll2xy functions.
     mrot: model rotation
@@ -264,7 +348,7 @@ def gen_mat(mrot, mlon, mlat):
     return amat.flatten(), ainv.flatten()
 
 
-def xy2ll(xy_km, amat):
+def xy2ll(xy_km: np.ndarray, amat: np.ndarray) -> np.ndarray:
     """
     Converts km offsets to longitude and latitude.
     xy_km: 2D np array of [X, Y] offsets from origin (km)
@@ -295,7 +379,7 @@ def xy2ll(xy_km, amat):
     return np.column_stack((lon, lat))
 
 
-def ll2xy(ll, ainv):
+def ll2xy(ll: np.ndarray, ainv: np.ndarray) -> np.ndarray:
     """
     Converts longitude and latitude to km offsets.
     ll: 2D np array of [lon, lat]
@@ -321,7 +405,7 @@ def ll2xy(ll, ainv):
     )
 
 
-def xy2gp(xy, nx, ny, hh):
+def xy2gp(xy: np.ndarray, nx: int, ny: int, hh: float) -> np.ndarray:
     """
     Converts km offsets to grid points.
     xy: 2D np array of [X, Y] offsets from origin (km)
@@ -341,7 +425,7 @@ def xy2gp(xy, nx, ny, hh):
     return np.round(gp).astype(np.int32, copy=False)
 
 
-def gp2xy(gp, nx, ny, hh):
+def gp2xy(gp: np.ndarray, nx: int, ny: int, hh: float) -> np.ndarray:
     """
     Converts grid points to km offsets.
     xy: 2D np array of [X, Y] gridpoints
@@ -358,7 +442,9 @@ def gp2xy(gp, nx, ny, hh):
     return xy
 
 
-def ll_shift(lat, lon, distance, bearing):
+def ll_shift(
+    lat: float, lon: float, distance: float, bearing: float
+) -> Tuple[float, float]:
     """
     Shift lat/long by distance at bearing.
     """
@@ -374,7 +460,7 @@ def ll_shift(lat, lon, distance, bearing):
     return degrees(lat2), degrees(lon2)
 
 
-def ll_mid(lon1, lat1, lon2, lat2):
+def ll_mid(lon1: float, lat1: float, lon2: float, lat2: float) -> Tuple[float, float]:
     """
     Return midpoint between a pair of lat, long points.
     """
@@ -390,7 +476,7 @@ def ll_mid(lon1, lat1, lon2, lat2):
     return degrees(lon3), degrees(lat3)
 
 
-def ll_dist(lon1, lat1, lon2, lat2):
+def ll_dist(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     """
     Return distance between a pair of lat, long points.
     """
@@ -403,7 +489,9 @@ def ll_dist(lon1, lat1, lon2, lat2):
     return R_EARTH * 2.0 * atan2(sqrt(a), sqrt(1 - a))
 
 
-def ll_bearing(lon1, lat1, lon2, lat2, midpoint=False):
+def ll_bearing(
+    lon1: float, lat1: float, lon2: float, lat2: float, midpoint: bool = False
+):
     """
     Initial bearing when traveling from 1 -> 2.
     Direction facing from point 1 when looking at point 2.
@@ -423,8 +511,16 @@ def ll_bearing(lon1, lat1, lon2, lat2, midpoint=False):
 
 
 def ll_cross_along_track_dist(
-    lon1, lat1, lon2, lat2, lon3, lat3, a12=None, a13=None, d13=None
-):
+    lon1: float,
+    lat1: float,
+    lon2: float,
+    lat2: float,
+    lon3: float,
+    lat3: float,
+    a12: Optional[float] = None,
+    a13: Optional[float] = None,
+    d13: Optional[float] = None,
+) -> Tuple[float, float]:
     """
     Returns both the distance of point 3 to the nearest point on the great circle line that passes through point 1 and
     point 2 and how far away that nearest point is from point 1, along the great line circle
@@ -455,26 +551,7 @@ def ll_cross_along_track_dist(
     return xta * R_EARTH, ata * R_EARTH
 
 
-def ll_cross_track_dist(
-    lon1, lat1, lon2, lat2, lon3, lat3, a12=None, a13=None, d13=None
-):
-    """
-    Returns the distance of point 3 to the nearest point on the great circle line that passes through point 1 and point 2
-    If any of a12, a13, d13 are given the calculations for them are skipped
-    :param a12: The angle between point 1 (lon1, lat1) and point 2 (lon2, lat2) in radians
-    :param a13: The angle between point 1 (lon1, lat1) and point 3 (lon3, lat3) in radians
-    :param d13: The distance between point 1 (lon1, lat1) and point 3 (lon3, lat3)
-    """
-    warn(
-        "This function is deprecated in favour of ll_cross_along_track_dist",
-        DeprecationWarning,
-    )
-    return ll_cross_along_track_dist(lon1, lat1, lon2, lat2, lon3, lat3, a12, a13, d13)[
-        0
-    ]
-
-
-def angle_diff(b1, b2):
+def angle_diff(b1: float, b2: float) -> float:
     """
     Return smallest difference (clockwise, -180 -> 180) from b1 to b2.
     """
@@ -484,7 +561,7 @@ def angle_diff(b1, b2):
     return r
 
 
-def avg_wbearing(angles):
+def avg_wbearing(angles: List[List[float]]) -> float:
     """
     Return average angle given angles and weightings.
     NB: angles are clockwise from North, not anti-clockwise from East.
@@ -503,7 +580,11 @@ def avg_wbearing(angles):
     return degrees(atan(x / y) + q_diff)
 
 
-def build_corners(origin, rot, xlen, ylen):
+def build_corners(
+    origin: Tuple[float, float], rot: float, xlen: float, ylen: float
+) -> Tuple[
+    Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]
+]:
     """
     Return 4 coordinates at corners centered at origin in [longitude, latitude] format.
     Parameters
@@ -568,7 +649,10 @@ def build_corners(origin, rot, xlen, ylen):
 
 
 def path_from_corners(
-    corners=None, output="sim.modelpath_hr", min_edge_points=100, close=True
+    corners: List[Tuple[float, float]],
+    output: str = "sim.modelpath_hr",
+    min_edge_points: int = 100,
+    close: bool = True,
 ):
     """
     corners: python list (4 by 2) containing (lon, lat) in order
@@ -591,213 +675,19 @@ def path_from_corners(
             corners.insert(i, val)
 
     # write points the make the path
-    if output != None:
-        with open(output, "w") as mp:
+    if output is not None:
+        with open(output, "w", encoding="utf-8") as mp:
             for point in corners:
-                mp.write("%s %s\n" % (point[0], point[1]))
+                mp.write(f"{point[0]} {point[1]}")
     else:
         return corners
 
 
-def wgs_nztm2000x(points):
-    """
-    Coordinates Transform: between WGS84 lon, lat and NZ Tranverse Mercator 2000
-    author: X. Bellagamba, Matlab -> Python by Viktor Polak
-
-    points: series of decimal longitude, latitude or nztm2k x, y
-    """
-    if type(points).__name__ == "list":
-        points = np.array(points)
-    points = np.atleast_2d(points)
-
-    if np.max(np.abs(points)) > 180:
-        wgs_out = True
-    else:
-        wgs_out = False
-        points = np.radians(points)
-
-    # NZTM2000 definitions (PROJ4 naming)
-    # origin
-    lon_0 = radians(173.0)
-    lat_0 = 0.0
-    # false northing, easting (metres)
-    y_0 = 10000000
-    x_0 = 1600000
-    # central meridian scaling factor
-    k_0 = 0.9996
-    # flattening of the ellipsoid (%)
-    f = 1 / 298.257222101
-    # semimajor, semiminor ellipsoid radius
-    a = 6378137.0
-    b = a * (1 - f)
-    # eccentricity of the ellipsoid squared
-    es = (f + f) - (f * f)
-
-    # conversion specific
-    A_0 = 1 - es / 4.0 - 3 * es**2 / 64.0 - 5 * es**3 / 256.0
-    A_2 = 3 / 8.0 * (es + es**2 / 4.0 + 15 * es**3 / 128.0)
-    A_4 = 15 / 256.0 * (es**2 + 3 * es**3 / 4.0)
-    A_6 = 35 * es**3 / 3072.0
-    m_0 = a * (
-        A_0 * lat_0 - A_2 * sin(2 * lat_0) + A_4 * sin(4 * lat_0) - A_6 * sin(6 * lat_0)
-    )
-    n = (a - b) / (a + b)
-    G = a * (1 - n) * (1 - n**2) * radians(1 + 9 * n**2 / 4.0 + 225 * n**4 / 64.0)
-
-    ###
-    ### process all points
-    ###
-    if wgs_out:
-        N_prime = points[:, 1] - y_0
-        E_prime = points[:, 0] - x_0
-        m_prime = m_0 + N_prime / k_0
-        sigma = np.radians(m_prime) * 1 / G
-        phi_prime = (
-            sigma
-            + (3 * n / 2.0 - 27 * n**3 / 32.0) * np.sin(2 * sigma)
-            + (21 * n**2 / 16.0 - 55 * n**4 / 32.0) * np.sin(4 * sigma)
-            + (151 * n**3 / 96.0) * np.sin(6 * sigma)
-            + (1097 * n**4 / 512.0) * np.sin(8 * sigma)
-        )
-        y_factors = phi_prime
-    else:
-        y_factors = points[:, 1]
-        m = a * (
-            A_0 * y_factors
-            - A_2 * np.sin(2 * y_factors)
-            + A_4 * np.sin(4 * y_factors)
-            - A_6 * np.sin(6 * y_factors)
-        )
-        omega = points[:, 0] - lon_0
-
-    # ellipsoid radius in the prime vertical
-    nu = a / np.sqrt(1 - es * np.sin(y_factors) ** 2)
-    # projection parameters
-    rho = (a * (1 - es)) / ((1 - es * np.sin(y_factors) ** 2) ** 1.5)
-    psi = nu / rho
-    t = np.tan(y_factors)
-    if wgs_out:
-        rs = rho * nu * k_0**2
-        x = E_prime / (k_0 * nu)
-
-        # terms for the north coordinates
-        T1_N = t / (k_0 * rho) * E_prime * x / 2.0
-        T2_N = (
-            t
-            / (k_0 * rho)
-            * E_prime
-            * x**3
-            / 24.0
-            * (-4 * psi**2 + 9 * psi * (1 - t**2) + 12 * t**2)
-        )
-        T3_N = (
-            t
-            / (k_0 * rho)
-            * E_prime
-            * x**5
-            / 720.0
-            * (
-                8 * psi**4 * (11 - 24 * t**2)
-                - 12 * psi**3 * (21 - 7 * t**2)
-                + 15 * psi**2 * (15 - 98 * t**2 + 15 * t**4)
-                + 180 * psi * (5 * t**2 - 3 * t**4)
-                + 360 * t**4
-            )
-        )
-        T4_N = (
-            t
-            / (k_0 * rho)
-            * E_prime
-            * x**7
-            / 40320.0
-            * (1385 + 3633 * t**2 + 4095 * t**4 + 1575 * t**6)
-        )
-        # north coordinates
-        y = y_factors - T1_N + T2_N - T3_N + T4_N
-
-        # terms for the east coordinates
-        T1_E = x * 1 / np.cos(y_factors)
-        T2_E = x**3 * 1 / np.cos(y_factors) / 6 * (psi + 2 * t**2)
-        T3_E = (
-            x**5
-            * 1
-            / np.cos(y_factors)
-            / 120
-            * (
-                -4 * psi**3 * (1 - 6 * t**2)
-                + psi**2 * (9 - 68 * t**2)
-                + 72 * psi * t**2
-                + 24 * t**4
-            )
-        )
-        T4_E = (
-            x**7
-            * 1
-            / np.cos(y_factors)
-            / 5040
-            * (61 + 662 * t**2 + 1320 * t**4 + 720 * t**6)
-        )
-        # east coordinates
-        x = lon_0 + T1_E - T2_E + T3_E - T4_E
-
-        return np.dstack((np.degrees(x), np.degrees(y)))[0]
-
-    # terms for the north coordinates
-    T1_N = (omega**2 / 2.0) * nu * np.sin(y_factors) * np.cos(y_factors)
-    T2_N = (
-        (omega**4 / 24.0)
-        * nu
-        * np.sin(y_factors)
-        * np.cos(y_factors) ** 3
-        * (4 * psi**2 + psi - t**2)
-    )
-    T3_N = (
-        (omega**6 / 720.0)
-        * nu
-        * np.sin(y_factors)
-        * np.cos(y_factors) ** 5
-        * (
-            8 * psi**4 * (11 - 24 * t**2)
-            - 28 * psi**3 * (1 - 6 * t**2)
-            + psi**2 * (1 - 32 * t**2)
-            - psi * (2 * t**2)
-            + t**4
-        )
-    )
-    T4_N = (
-        (omega**8 / 40320.0)
-        * nu
-        * np.sin(y_factors)
-        * np.cos(y_factors) ** 7
-        * (1385 - 3111 * t**2 + 543 * t**4 - t**6)
-    )
-    # north coordinates
-    lat = y_0 + k_0 * (m - m_0 + T1_N + T2_N + T3_N + T4_N)
-
-    # terms for the east coordinates
-    T1_E = (omega**2 / 6.0) * np.cos(y_factors) ** 2 * (psi - t**2)
-    T2_E = (
-        (omega**4 / 120.0)
-        * np.cos(y_factors) ** 4
-        * (
-            4 * psi**3 * (1 - 6 * t**2)
-            + psi**2 * (1 + 8 * t**2)
-            - psi * 2 * t**2
-            + t**4
-        )
-    )
-    T3_E = (
-        (omega**6 / 5040.0)
-        * np.cos(y_factors) ** 6
-        * (61 - 479 * t**2 + 179 * t**4 - t**6)
-    )
-    # east coordinates
-    lon = x_0 + k_0 * nu * omega * np.cos(y_factors) * (1 + T1_E + T2_E + T3_E)
-
-    return np.dstack((lon, lat))[0]
-
-
-def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
+def compute_intermediate_latitudes(
+    lon_lat1: Tuple[float, float],
+    lon_lat2: Tuple[float, float],
+    lon_in: np.ndarray,
+) -> Union[float, np.ndarray]:
     """
     Calculates the latitudes of points along the shortest path between the points lon_lat1 and lon_lat2, taking the
     shortest path on the sphere, using great circle calculations.
@@ -827,3 +717,515 @@ def compute_intermediate_latitudes(lon_lat1, lon_lat2, lon_in):
             / (np.cos(lat1) * np.cos(lat2) * np.sin(lon1 - lon2))
         )
     ) / conversion_factor
+
+
+def homogenise_point(p: np.ndarray) -> np.ndarray:
+    """Express a point in homogenous coordinates.
+
+    Given a point p in R^3 return the affine point in PG(3, R) associated with p. Informally, it maps
+    (x, y, z) -> (x, y, z, 1).
+
+    Parameters
+    ----------
+    p : np.ndarray
+        A point in R^3.
+
+    Returns
+    -------
+    np.ndarray
+        The associated point in PG(3, R).
+
+    Examples
+    --------
+    >>> homogenise_point(np.array([1, 0, 0]))
+    array([1,0,0,1])
+    """
+
+    return np.append(p, 1)
+
+
+def projective_span(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
+    """Find the projective plane spanned by p, q, and r.
+
+    Parameters
+    ----------
+    p : np.ndarray
+        The homogenous coordinates of p.
+    q : np.ndarray
+        The homogenous coordinates of q.
+    r : np.ndarray
+        The homogenous coordinates of r.
+
+    Returns
+    -------
+    np.ndarray
+        The dual coordinates of the plane spanning p, q, and r
+
+    Raises
+    ------
+    ValueError
+        If the supplied points don't span a plane in PG(3, R)
+
+    Examples
+    --------
+    >>> projective_span(np.array([1, 0, 0, 1]), np.array([1, 1, 0, 1]), np.array([0, 0, 0, 1]))
+    np.array([0, 0, 1, 0])
+    >>> projective_span(np.array([0, 0, 0, 1]), np.array([1, 1, 0, 1]), np.array([0.5, 0.5, 0, 1]))
+    ValueError: Points supplied do not span a plane. # NOTE: these points lie on the line x = y.
+    """
+    M = np.vstack([p, q, r])
+    null_space = sp.linalg.null_space(M)
+    # The null space of M describes the space of all dual coordinates x such
+    # that x * p == 0, x * q == 0, and x * r == 0. Such coordinates, if p, q,
+    # and r are not collinear, should be unique up to scalar multiples. In that
+    # case, the null_space has rank 1 to represent these scalar multiples.
+    # Hence, if null_space does not have rank 1 (checked via shape[1]), the
+    # points supplied cannot be contained within a unique plane.
+    if null_space.shape[1] != 1:
+        raise ValueError("Points supplied do not span a plane.")
+    # As previously discussed, the dual coordinates for any plane are not
+    # unique. The plane x = 0 could be given dual coordinates (1, 0, 0, 0), or
+    # equivalently (2, 0, 0, 0). We need to choose one of these coordinates
+    # deterministically. This is usually done by rescaling the coordinates such
+    # that the last non-zero coordinate is one (a process called normalisation).
+    #
+    # NOTE: This choice to normalise by the last coordinate is arbitrary. Any
+    # method of normalisation would work.
+    null_space = null_space.ravel()
+    c = next(x for x in reversed(null_space) if not np.isclose(x, 0))
+    return null_space / c
+
+
+def plane_from_three_points(p: np.ndarray, q: np.ndarray, r: np.ndarray) -> np.ndarray:
+    """Find the plane spanning three points.
+
+    Returns the coefficient vector of the affine plane spanning three points.
+    Note this is distinct from projective_span in that p, q, and r are three
+    points in R^3.
+
+    Parameters
+    ----------
+    p : np.ndarray
+        a point on the plane.
+    q : np.ndarray
+        a point on the plane.
+    r : np.ndarray
+        a point on the plane.
+
+    Returns
+    -------
+    np.ndarray
+        The dual coordinates of the plane spanning p, q, and r.
+
+    Examples
+    --------
+    >>> plane_from_three_points(np.array([0, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    array([ 1., -0., -0., -0.]) # Plane x = 0
+    >>> plane_from_three_points(np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    array([-1., -1., -1.,  1.]) # Plane x + y + z = 1
+    """
+    p = homogenise_point(p)
+    q = homogenise_point(q)
+    r = homogenise_point(r)
+    return projective_span(p, q, r)
+
+
+def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray:
+    """Find the orthogonal plane to pi through p and q.
+
+    Given two points p and q, find the unique orthogonal plane that meets pi at
+    p and q.
+
+    Parameters
+    ----------
+    pi : np.ndarray
+        Dual coordinates of the plane.
+    p : np.ndarray
+        Coordinates of the point p.
+    q : np.ndarray
+        Coordinates of the point q
+
+    Returns
+    -------
+    np.ndarray
+        The dual coordinates of the homogenous plane.
+
+    Examples
+    --------
+    >>> pi = plane_from_three_points(np.array([0, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]))
+    >>> orthogonal_plane(pi, np.array([0, 0, 0]), np.array([0, 1, 0]))
+    array([0., 0., 1., 0.]) # The orthogonal plane z = 0
+    >>> pi = np.array([0, 0, 1, 0])
+    >>> orthogonal_plane(pi, np.array([1, 0, 0]), np.array([0, 1, 0]))
+    array([-1., -1.,  0.,  1.]) # The plane x + y = 1. You should check that it is orthogonal, and it contains the points [1, 0, 0] and [0, 1, 0]
+    """
+    # We can do this efficiently with some projective geometry.
+    # We are looking for a plane gamma with dual coordinates x such that:
+    # - The plane pi is orthogonal to x: pi * x = 0
+    # - The plane x contains p: p * x = 0
+    # - The plane x contains q: q * x = 0
+    # (assuming pi is a row vector, and x a column vector)
+    # So we want the null space of [pi; p; q]
+    # This will be a one-dimensional subspace of R^4 (i.e. a projective point).
+    # So we again have to normalise like in plane_from_three_points.
+    # ...actually, this is exactly identical to asking for projective_span(pi, p', q'),
+    # where p' and q' are the homogenised equivalent of p and q!
+    p = homogenise_point(p)
+    q = homogenise_point(q)
+    return projective_span(pi, p, q)
+
+
+def oriented_bounding_planes(
+    plane_dual_coordinates: np.ndarray, plane_corners: np.ndarray
+) -> List[np.ndarray]:
+
+    plane_centroid = np.average(plane_corners, axis=0)
+    # For each side of the plane p1, we construct a plane orthogonal to p1
+    # passing through the side.
+    bounding_planes = [
+        orthogonal_plane(
+            plane_dual_coordinates,
+            plane_corners[i],
+            plane_corners[(i + 1) % len(plane_corners)],
+        )
+        for i in range(len(plane_corners))
+    ]
+
+    # The dual coordinates of a plane are defined up to scalar multiples. Here we
+    # scale the coordinates to ensure that the normal vectors point towards the
+    # centre.
+    #
+    # The picture should look like
+    #
+    #      x
+    #     / \
+    # p1'/  |
+    #   /    x--------x
+    #  X  ---> norm  /
+    #   \  /   .    / p1
+    #   | /   c    /
+    #    x--------x
+    #
+    # Where p1 is the plane, p1' the plane orthogonal to p1, and norm the normal
+    # vector pointing towards c, the centroid. This ensures that the inequality
+    # norm * x >= 0 describes all points on the same side of p1' as c. Adding a
+    # condition like this for each edge of p1 bounds our search to just points
+    # on p1.
+    for i, norm in enumerate(bounding_planes):
+        if norm.dot(homogenise_point(plane_centroid)) < 0:
+            bounding_planes[i] *= -1
+
+    return bounding_planes
+
+
+def closest_points_between_line_segments(
+    p1: np.ndarray, p2: np.ndarray, q1: np.ndarray, q2: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Find the closest pair of points between two line segments in 3D.
+
+    Given four points p1, p2, q1, q2, defining line segments l = <p1, p2> and m
+    = <q1, q2>, find the closest points between the line segments l and m.
+
+    Parameters
+    ----------
+    p1 : np.ndarray
+        First point on l.
+    p2 : np.ndarray
+        Second point on l.
+    q1 : np.ndarray
+        First point on m.
+    q2 : np.ndarray
+        Second point on m.
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        The point pair (p, q) with p in l and q in m that minimizes ||p - q||.
+        If l and m are parallel, this pair is not uniquely defined.
+
+    Examples
+    --------
+    >>> closest_points_between_line_segments(np.array([0, 0, 0]),
+                                             np.array([1, 0, 0]),
+                                             np.array([0.5, 1, 1]),
+                                             np.array([0.5, -1, -1]))
+    (array([0.5, 0, 0]), array([0.5, 0, 1]))
+    """
+    # Suppose that l and m have points
+    #   p_s = p1 + s (p2 - p1), and
+    #   q_t = q1 + t (q2 - q1).
+    # Then, the values s and t minimising the distance
+    # between line segments has the vector p_s - q_t orthogonal to both p2 -
+    # p1 and p4 - p3. By expressing the conditions
+    #
+    #            (p_s - q_t) * (p2 - p1) = 0, and
+    #            (p_s - q_t) * (p4 - p3) = 0
+    #
+    # as a linear system with unknowns s and t, we can solve for s & t and
+    # get the closest points. This results in the following system:
+    #
+    #     ⎛s ⎞
+    #   A ⎜  ⎟ =  b,
+    #     ⎝-t⎠
+    #
+    # where
+    #
+    #      ⎛p2 - p1⎞
+    #  A = ⎜       ⎟(p2 - p1, q2 - q1)
+    #      ⎝q2 - q1⎠
+    #
+    #       ⎛p2 - p1⎞          T
+    #  b = -⎜       ⎟(q1 - p1)
+    #       ⎝q2 - q1⎠
+    #
+    # The above system solves the case where s and t are unconstrained
+    # (i.e. l and m are infinite).
+    # To solve the case where 0 <= s <= 1 and 0 <= t <= 1, we can clip our
+    # solutions to the interval [0, 1].
+
+    l_direction = p2 - p1
+    m_direction = q2 - q1
+    cross_direction = p1 - q1
+    directions = np.array([l_direction, m_direction])
+    # This is the coefficient matrix for the linear system in s and t.
+    system_matrix = directions @ directions.T
+    # This is the right hand side to solve for
+    right_hand_side = -directions @ cross_direction.T
+    # In theory, the system matrix is not full rank, so we use the least
+    # square solver rather than np.linalg.solve. In the general case, the
+    # matrix has full rank and the solution is unique.
+    solution = np.linalg.lstsq(system_matrix, right_hand_side, rcond=None)[0]
+    # Recall that in the above system, we solve for the vector (s; -t). We
+    # will multiply by -1 to get t directly.
+    solution[1] *= -1
+    solution = np.clip(solution, 0, 1)
+    s, t = solution[0], solution[1]
+
+    p = p1 + s * l_direction
+    q = q1 + t * m_direction
+
+    return p, q
+
+
+def project_point_onto_plane(
+    plane_dual_coordinates: np.ndarray, points: np.ndarray
+) -> np.ndarray:
+    """Project points on plane given by plane_dual_coordinates.
+
+    Parameters
+    ----------
+    plane_dual_coordinates : np.ndarray
+        The dual coordinates of the plane to project onto.
+    points : np.ndarray
+        The points to project.
+
+    Returns
+    -------
+    np.ndarray
+        The projected points.
+    """
+    # The point-normal description of an *affine* plane says a plane with
+    # *unit* normal vector n contains points r such that:
+    #
+    # n · r = d,
+    #
+    # where `d` is a parameter that translates the plane away from the
+    # origin. We can summarise this information in a diagram,
+    #
+    #         n
+    #         ∧
+    #         │
+    #      ___│____________
+    #     ╱   │           ╱
+    #    ╱    │          ╱
+    #   ╱     │         ╱
+    #  ╱               ╱
+    # ╱_______________╱
+    #         ┊ ∧
+    #         ┊ │
+    #         ┊ │ d is the distance this plane is away from the origin.
+    #         ┊ │
+    #         ┊ ∨
+    #         .
+    #       origin
+    #
+    # To project a point p onto the plane with normal n and distance parameter
+    # d, we subtract (n · p - d) lots of n from p. This produces the closest
+    # vector to p in the plane:
+    #
+    # n · (p - (n · p - d) * n) = n · p - (n · p - d) * (n · n)
+    #                           = n · p - (n · p - d) * |n|^2
+    #                           = n · p - (n · p) * |n|^2 + d * |n|^2
+    #                            (n is a unit vector, so |n| = 1)
+    #                           = n · p - n · p + d
+    #                           = d.
+    # Again, diagramatically,
+    #
+    #            p
+    #           +
+    #           │
+    #           │
+    #           │ ((n · p) - d) * n
+    #      _____│__________
+    #     ╱     │         ╱
+    #    ╱      ∨        ╱
+    #   ╱               ╱
+    #  ╱               ╱
+    # ╱_______________╱
+    #
+    # Conveniently, the `plane_dual_coordinates` which we use to describe
+    # affine planes contains both the normal in its first three coordinates,
+    # and the `d` value in its last coordinate. That is,
+    #
+    # plane_dual_coordinates = n + [d]
+    normal = plane_dual_coordinates[:3]
+    distance = plane_dual_coordinates[3]
+    # in case the provided normal is not a unit vector.
+    normal_length = np.linalg.norm(normal)
+    normal /= normal_length
+    distance /= normal_length
+
+    return points - np.outer(  # p -
+        np.dot(points, normal) - distance,  # ((n · p) - d) *
+        normal,  # n
+    )
+
+
+def in_finite_plane(plane_corners: np.ndarray, point: np.ndarray) -> bool:
+    """Test if a point lies in a finite plane.
+
+    Parameters
+    ----------
+    plane_corners : np.ndarray
+        The corners of the finite plane.
+    point : np.ndarray
+        The point to test.
+
+    Returns
+    -------
+    bool
+        True if point is contained in the plane defined by
+        plane_dual_coordinates and bounded by plane_corners
+    """
+    plane_dual_coordinates = plane_from_three_points(*plane_corners[:3])
+    plane_ortho_planes = oriented_bounding_planes(plane_dual_coordinates, plane_corners)
+    homogenised_point = homogenise_point(point)
+    plane_dot_product = np.dot(plane_dual_coordinates, homogenised_point)
+    if not np.allclose(plane_dot_product, 0):
+        return False
+    for ortho_dual_coords in plane_ortho_planes:
+        ortho_dot_product = np.dot(ortho_dual_coords, homogenised_point)
+        if not (np.allclose(ortho_dot_product, 0) or ortho_dot_product > 0):
+            return False
+    return True
+
+
+def closest_points_between_planes(
+    p1_corners: np.ndarray, p2_corners: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute the closest points between two finite planes.
+
+    Parameters
+    ----------
+    p1_corners : np.ndarray
+        The corners of the first plane.
+        p1_corners[i] and p1_corners[( i + 1 ) % 4] must be adjacent corners.
+    p2_corners : np.ndarray
+        The corners of the second plane.
+        p1_corners[i] and p1_corners[( i + 1 ) % 4] must be adjacent corners.
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        A point pair (p, q) with p in p1 and q in p2 such that ||p - q|| is minimised.
+    """
+    p1_dual_coordinates = plane_from_three_points(*p1_corners[:3])
+    p2_dual_coordinates = plane_from_three_points(*p2_corners[:3])
+    p1_line_segments = [(p1_corners[i], p1_corners[(i + 1) % 4]) for i in range(4)]
+    p2_line_segments = [(p2_corners[i], p2_corners[(i + 1) % 4]) for i in range(4)]
+    pairs = [
+        closest_points_between_line_segments(*p1_line, *p2_line)
+        for p1_line, p2_line in itertools.product(p1_line_segments, p2_line_segments)
+    ]
+
+    line_seg_pair = min(
+        pairs,
+        key=lambda pp: np.sum(np.square(pp[1] - pp[0])),
+    )
+    p1_projections_onto_p2 = [
+        (point, proj)
+        for (point, proj) in zip(
+            p1_corners, project_point_onto_plane(p2_dual_coordinates, p1_corners)
+        )
+        if in_finite_plane(p2_corners, proj)
+    ]
+    p2_projections_onto_p1 = [
+        (proj, point)
+        for (point, proj) in zip(
+            p2_corners, project_point_onto_plane(p1_dual_coordinates, p2_corners)
+        )
+        if in_finite_plane(p1_corners, proj)
+    ]
+    return min(
+        p1_projections_onto_p2 + p2_projections_onto_p1 + [line_seg_pair],
+        key=lambda pp: np.sum(np.square(pp[1] - pp[0])),
+    )
+
+
+def closest_points_between_plane_sequences(
+    sequence1_planes: np.ndarray, sequence2_planes: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Find the closest points between two sequences of planes.
+
+    Parameters
+    ----------
+    sequence1_planes : np.ndarray
+        A sequence of planes (tensor of shape (n x 4 x 3)).
+    sequence2_planes : np.ndarray
+        A sequence of planes (tensor of shape (n x 4 x 3)).
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        Points (p, q) minimising ||p - q||, such that p lies on sequence1_planes and
+        q lies on sequence2_planes.
+
+    """
+    return min(
+        (
+            closest_points_between_planes(p1, p2)
+            for (p1, p2) in itertools.product(sequence1_planes, sequence2_planes)
+        ),
+        key=lambda pq: sp.spatial.distance.cdist(
+            pq[0].reshape((1, 3)), pq[1].reshape((1, 3)), metric="sqeuclidean"
+        ),
+    )
+
+
+def spheres_intersect(
+    centre1: np.ndarray, radius1: float, centre2: np.ndarray, radius2: float
+) -> bool:
+    """Test if two spheres intersect.
+
+    Parameters
+    ----------
+    centre1 : np.ndarray
+        The centre of the first sphere, a (n x 1)-dimensional numpy vector.
+    radius1 : float
+        The radius of the first sphere.
+    centre2 : np.ndarray
+        The centre of the second sphere, a (n x 1)-dimensional numpy vector.
+    radius2 : float
+        The radius of the second sphere.
+
+    Returns
+    -------
+    bool
+        True if the n-dimensional sphere centred on c with radius r intersects
+        the n-dimensional sphere centred on c1 with radius r1.
+    """
+    return (
+        np.square(radius2 - radius1)
+        <= np.sum(np.square(centre2 - centre1))
+        <= np.square(radius2 + radius1)
+    )

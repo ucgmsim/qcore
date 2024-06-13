@@ -1,6 +1,8 @@
-from qcore import geo
-import pytest
 import numpy as np
+import pytest
+import scipy as sp
+
+from qcore import geo
 from qcore.test.tool import utils
 
 
@@ -93,16 +95,210 @@ def test_avg_wbearing(test_angles, output_degrees):
 
 
 @pytest.mark.parametrize(
-    "test_lonlat, output_points",
+    "p, expected_p", [(np.array([1, 0, 0]), np.array([1, 0, 0, 1]))]
+)
+def test_homogenise_point(p, expected_p):
+    assert np.allclose(geo.homogenise_point(p), expected_p)
+
+
+@pytest.mark.parametrize(
+    "p, q, r, dual",
     [
-        ([[175, -45]], [[1757630.64073127, 5015103.82859388]]),
         (
-            [[172, -41], [173, -43]],
-            [[1515897.8655543, 5460761.41058073], [1600000.0, 5239185.20382672]],
+            np.array([1, 0, 0, 1]),
+            np.array([1, 1, 0, 1]),
+            np.array([0, 0, 0, 1]),
+            np.array([0, 0, 1, 0]),
+        )
+    ],
+)
+def test_projective_span(p, q, r, dual):
+    assert np.allclose(geo.projective_span(p, q, r), dual)
+
+
+@pytest.mark.parametrize(
+    "p, q, r, dual",
+    [
+        (
+            np.array([0, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([0, 0, 1]),
+            np.array([1, 0, 0, 0]),
+        ),
+        (
+            np.array([1, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([0, 0, 1]),
+            np.array([-1, -1, -1, 1]),
         ),
     ],
 )
-def test_wgs_nztm2000x(test_lonlat, output_points):
-    test_points = geo.wgs_nztm2000x(test_lonlat)
-    sample_output_points = np.array(output_points)
-    utils.compare_np_array(test_points, sample_output_points)
+def test_plane_from_three_points(p, q, r, dual):
+    assert np.allclose(geo.plane_from_three_points(p, q, r), dual)
+
+
+@pytest.mark.parametrize(
+    "pi, p, q, dual",
+    [
+        (
+            np.array([1, 0, 0, 0]),
+            np.array([0, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([0, 0, 1, 0]),
+        ),
+        (
+            np.array([0, 0, 1, 0]),
+            np.array([1, 0, 0]),
+            np.array([0, 1, 0]),
+            np.array([-1, -1, 0, 1]),
+        ),
+    ],
+)
+def test_orthogonal_plane(pi, p, q, dual):
+    assert np.allclose(geo.orthogonal_plane(pi, p, q), dual)
+
+
+@pytest.mark.parametrize(
+    "p1_corners, p2_corners, p1_closest_point, p2_closest_point",
+    [
+        # edge to interior point
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array([[1, 1.5, 1], [0, 1.5, 1], [0, 0, 1.5], [1, 0, 1.5]]),
+            np.array([0.5, 1, 0]),
+            np.array([0.5, 1.35, 1.05]),
+        ),
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array(
+                [
+                    [-1 / 2, 1 / 2, -3 / 4 - 1 / 2],
+                    [-1 / 2, 1 / 4, -1 / 4 - 1 / 2],
+                    [-1 / 2, 3 / 4, -1 / 4 - 1 / 2],
+                    [-1 / 2, 1 / 2, 1 / 2],
+                ]
+            ),
+            np.array([0, 1 / 2, 0]),
+            np.array([-1 / 2, 1 / 2, 0]),
+        ),
+        # corner-to-corner
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array([[1, 0, 1], [0, 0, 3 / 4], [0, 1, 1 / 2], [1, 1, 3 / 4]]),
+            np.array([0, 1, 0]),
+            np.array([0, 1, 0.5]),
+        ),
+        # corner to interior
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array(
+                [
+                    [1 / 2, 1 / 2, 1 / 4],
+                    [1 / 2, 1 / 4, 3 / 4],
+                    [1 / 2, 1 / 2, 1],
+                    [1 / 2, 3 / 4, 3 / 4],
+                ]
+            ),
+            np.array([1 / 2, 1 / 2, 0]),
+            np.array([1 / 2, 1 / 2, 1 / 4]),
+        ),
+        # edge to edge
+        (
+            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]),
+            np.array(
+                [
+                    [-1 / 2, 1 / 2, -1],
+                    [-1, 1 / 2, -1],
+                    [-1, 1 / 2, 1],
+                    [-1 / 2, 1 / 2, 1],
+                ]
+            ),
+            np.array([0, 1 / 2, 0]),
+            np.array([-1 / 2, 1 / 2, 0]),
+        ),
+    ],
+)
+def test_closest_points(p1_corners, p2_corners, p1_closest_point, p2_closest_point):
+    (p1_computed, p2_computed) = geo.closest_points_between_planes(
+        p1_corners, p2_corners
+    )
+    closest_distance = sp.spatial.distance.cdist(
+        p1_closest_point.reshape((1, -1)), p2_closest_point.reshape((1, -1))
+    )
+    computed_distance = sp.spatial.distance.cdist(
+        p1_computed.reshape((1, -1)), p2_computed.reshape((1, -1))
+    )
+    # distance check
+    assert np.allclose(
+        closest_distance,
+        computed_distance,
+        atol=1e-7,
+    )
+    # in plane check
+    assert geo.in_finite_plane(p1_corners, p1_computed)
+    assert geo.in_finite_plane(p2_corners, p2_computed)
+
+
+@pytest.mark.parametrize(
+    "l, m, l_closest_point, m_closest_point",
+    (
+        # line segments share points
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([0, 0, 1]),
+            ),
+            (np.array([0, 0, 0]), np.array([0, 1, 0])),
+            np.array([0, 0, 0]),
+            np.array([0, 0, 0]),
+        ),
+        # line segments are contained in a bigger line, Closest points at endpoints.
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([0, 0, 1]),
+            ),
+            (np.array([0, 0, -2]), np.array([0, 0, -1])),
+            np.array([0, 0, 0]),
+            np.array([0, 0, -1]),
+        ),
+        # line segments lie in a common plane, closest points at endpoints.
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([1, 0, 0]),
+            ),
+            (np.array([2, 0, 0]), np.array([0, 1, 0])),
+            np.array([1, 0, 0]),
+            np.array([2, 0, 0]),
+        ),
+        # line segments lie in a common plane, closest points at end and interior point.
+        (
+            (
+                np.array([0, 0, 0]),
+                np.array([1, 0, 0]),
+            ),
+            (np.array([3, -1, 0]), np.array([0, 1, 0])),
+            np.array([1, 0, 0]),
+            np.array([1.5, 0, 0]),
+        ),
+        # Line segments skew, closest points at endpoint and interior point.
+        (
+            (np.array([0, 0, 0]), np.array([1, 0, 0])),
+            (np.array([0.5, 1, 1]), np.array([0.5, 0, 1])),
+            np.array([0.5, 0, 0]),
+            np.array([0.5, 0, 1]),
+        ),
+        # line segments skew, closest points in interior
+        (
+            (np.array([0, 0, 0]), np.array([1, 0, 0])),
+            (np.array([0.5, 1, 1]), np.array([0.5, -1, 1])),
+            np.array([0.5, 0, 0]),
+            np.array([0.5, 0, 1]),
+        ),
+    ),
+)
+def test_closest_line_seg(l, m, l_closest_point, m_closest_point):
+    (l_computed, m_computed) = geo.closest_points_between_line_segments(*l, *m)
+    assert np.allclose(l_computed, l_closest_point)
+    assert np.allclose(m_computed, m_closest_point)
