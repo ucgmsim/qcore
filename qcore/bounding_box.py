@@ -26,7 +26,7 @@ import scipy as sp
 import shapely
 from shapely import Polygon
 
-from qcore import coordinates, geo, point_in_polygon
+from qcore import coordinates, geo
 
 
 @dataclasses.dataclass
