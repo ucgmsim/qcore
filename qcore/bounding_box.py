@@ -148,7 +148,7 @@ def minimum_area_bounding_box(points: np.ndarray) -> BoundingBox:
     # and then finding the axis-aligned bounding box of the convex hull. This
     # creates a list of boxes that are each parallel to a different segment.
     bounding_boxes = [
-        axis_aligned_bounding_box(convex_hull @ rotation_matrix(angle).T)
+        axis_aligned_bounding_box(convex_hull @ geo.rotation_matrix(angle).T)
         for angle in rotation_angles
     ]
 
@@ -159,7 +159,7 @@ def minimum_area_bounding_box(points: np.ndarray) -> BoundingBox:
         # rotating by -minimum_rotation_angle we undo the rotation applied
         # to obtain bounding_boxes.
         minimum_bounding_box.corners
-        @ rotation_matrix(-minimum_rotation_angle).T
+        @ geo.rotation_matrix(-minimum_rotation_angle).T
     )
 
 
