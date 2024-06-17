@@ -67,8 +67,8 @@ def truncated_weibull(
     float
         Random value from the truncated Weibull distribution.
     """
-    return sp.stats.truncweibull_min(
-        0, upper_value / scale_factor, c=c, scale=scale_factor
+    return upper_value * sp.stats.truncweibull_min(
+        c, 0, 1 / scale_factor, scale=scale_factor
     ).rvs(random_state=seed)
 
 
@@ -92,9 +92,10 @@ def truncated_weibull_expected_value(
     float
         Expected value for the truncated Weibull distribution.
     """
-    return sp.stats.truncweibull_min(
-        0, upper_value / scale_factor, c=c, scale=scale_factor
-    ).expect()
+    return (
+        upper_value
+        * sp.stats.truncweibull_min(c, 0, 1 / scale_factor, scale=scale_factor).expect()
+    )
 
 
 def truncated_log_normal(
