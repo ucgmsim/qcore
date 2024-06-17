@@ -24,8 +24,9 @@ import dataclasses
 import numpy as np
 import scipy as sp
 import shapely
-from qcore import geo
 from shapely import Polygon
+
+from qcore import coordinates, geo, point_in_polygon
 
 
 @dataclasses.dataclass
@@ -35,12 +36,16 @@ class BoundingBox:
     Attributes
     ----------
         corners : np.ndarray
-            The corners of the bounding box. The order of the corners is
-            clock-wise from the top-left point with respect to latitude
-            and longitude.
+            The corners of the bounding box in cartesian coordinates. The
+            order of the corners should be counter clock-wise from the bottom-left point
+            (minimum x, minimum y).
     """
 
     corners: np.ndarray
+
+    @staticmethod
+    def from_wgs84_coordinates(corner_coordinates: np.ndarray) -> "BoundingBox":
+        return BoundingBox(coordinates.wgs_depth_to_nztm(corner_coordinates))
 
     @property
     def origin(self):
@@ -50,12 +55,12 @@ class BoundingBox:
     @property
     def extent_x(self):
         """Returns the extent along the x-axis of the bounding box (in km)."""
-        return np.linalg.norm(np.linalg.norm(self.corners[2] - self.corners[1]) / 1000)
+        return np.linalg.norm(self.corners[2] - self.corners[1]) / 1000
 
     @property
     def extent_y(self):
         """Returns the extent along the y-axis of the bounding box (in km)."""
-        return np.linalg.norm(np.linalg.norm(self.corners[1] - self.corners[0]) / 1000)
+        return np.linalg.norm(self.corners[1] - self.corners[0]) / 1000
 
     @property
     def bearing(self):
@@ -77,6 +82,21 @@ class BoundingBox:
         """Returns a shapely geometry for the bounding box."""
         return Polygon(np.append(self.corners, np.atleast_2d(self.corners[0]), axis=0))
 
+    def contains(self, point: np.array) -> bool:
+        """Test if a point is in a BoundingBox
+
+        Parameters
+        ----------
+        point : np.array
+            The point to test.
+
+        Returns
+        -------
+        bool
+            True if point is inside the bounding box.
+        """
+        return self.polygon.intersects(shapely.Point(point))
+
 
 def axis_aligned_bounding_box(points: np.ndarray) -> BoundingBox:
     """Returns an axis-aligned bounding box containing points.
@@ -93,22 +113,6 @@ def axis_aligned_bounding_box(points: np.ndarray) -> BoundingBox:
     max_x, max_y = np.max(points, axis=0)
     corners = np.array([[min_x, min_y], [max_x, min_y], [max_x, max_y], [min_x, max_y]])
     return BoundingBox(corners)
-
-
-def rotation_matrix(angle: float) -> np.ndarray:
-    """Returns the 2D rotation matrix for a given angle.
-
-    Parameters
-    ----------
-    angle : float
-        The angle to rotate by in radians.
-
-    Returns
-    -------
-    np.ndarray
-        The 2x2 rotation matrix.
-    """
-    return np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
 
 
 def minimum_area_bounding_box(points: np.ndarray) -> BoundingBox:
@@ -195,9 +199,7 @@ def minimum_area_bounding_box_for_polygons_masked(
     )
 
     if isinstance(bounding_polygon, Polygon):
-        return bounding_box.minimum_area_bounding_box(
-            np.array(bounding_polygon.exterior.coords)
-        )
-    return bounding_box.minimum_area_bounding_box(
+        return minimum_area_bounding_box(np.array(bounding_polygon.exterior.coords))
+    return minimum_area_bounding_box(
         np.vstack([np.array(geom.exterior.coords) for geom in bounding_polygon.geoms])
     )
