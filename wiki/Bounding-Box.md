@@ -151,3 +151,47 @@ not present in the old model, and required one to disable the optimisation
 and manually specify the bounds.
 
 
+# An Aside: Why not alphashape?
+A valid question to ask is why we can't use the
+[alphashape](https://pypi.org/project/alphashape/) library to find the minimum
+bounding box. Simply put: because an alphashape does not mean a minimum bounding
+box. However, it is worth discussing what an _alphashape_ is and common pitfalls
+using alphashapes.
+
+
+Recall that a convex hull of a set of points is simply the smallest convex polygon that contains the points.
+
+![A convex hull of a set of points](images/convex_hull.png)
+
+An _alphashape_ is a generalisation of a convex hull. There is a formal
+definition[^1] of an alphashape, but we will use an informal analogy to
+communicate the idea instead. Suppose that the two-dimensional plane is
+ice-cream and the points are raisins. Then the alphashape with parameter
+$\alpha > 0$ is the polygon we obtain by carving out the area in the plane with
+spoons of radius $1/\alpha$. The points which cannot fit a $(1/\alpha)$-radius
+spoon between them become connected in the alphashape with a line.
+
+![An image illustrating the alphashape process. The grey circles have radius 1/alpha](images/alphashape.png)
+
+In the special case $\alpha = 0$ we carve the plane with a spoon that is a
+circle with infinite radius (i.e. a half-plane) and we recover the convex hull.
+
+Intuitively:
+
+- Large values of $\alpha$ correspond to more fine-grained polygons. Here you
+  carry the danger of "overfitting" your geometry.
+- Small values of $\alpha$ correspond to coarse-grained polygons. Here you carry
+  the danger of "underfitting" your geometry.
+  
+In the limits of $\alpha = 0$ and $\alpha \to \infty$ you get the convex hull
+and the original set of points, respectively. Often the $\alpha$ parameter is
+optimised according to some criterion to produce the best bounding polygon (the
+`alphashape` package has a routine for this, for example).
+
+This hopefully illustrates why we can't use the alphashape package to find a
+minimum bounding box then. It is a tool for finding generalised bounding
+_polygons_, but the generalisation is unfortunately to finding bounding polygons
+that may not be convex. Alpha shapes cannot help us find bounding polygons with
+a fixed number of sides or constraints on angles (which we require).
+
+[^1]: https://graphics.stanford.edu/courses/cs268-11-spring/handouts/AlphaShapes/as_fisher.pdf
