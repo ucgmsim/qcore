@@ -17,7 +17,7 @@ Fault:
 """
 
 import dataclasses
-from typing import Optional, Protocol
+from typing import Protocol
 
 import numpy as np
 import scipy as sp
