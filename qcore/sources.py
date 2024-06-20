@@ -9,15 +9,14 @@ Classes
 PointSource:
     A representation of a point source.
 
-FaultPlane:
+Plane:
     A representation of a single plane of a Fault.
 
 Fault:
-    A representation of a fault, consisting of one or more FaultPlanes.
+    A representation of a fault, consisting of one or more Planes.
 """
 
 import dataclasses
-from enum import Enum
 from typing import Optional, Protocol
 
 import numpy as np
@@ -35,6 +34,11 @@ class Point:
     point_coordinates: np.ndarray
     # used to approximate point source as a small planar patch (metres).
     length_m: float
+    # The usual strike, dip, dip direction, etc cannot be calculated
+    # from a point source and so must be provided by the user.
+    strike: float
+    dip: float
+    dip_dir: float
 
     @property
     def length(self) -> float:
@@ -391,9 +395,9 @@ class Plane:
 
 @dataclasses.dataclass
 class Fault:
-    """A representation of a fault, consisting of one or more FaultPlanes.
+    """A representation of a fault, consisting of one or more Planes.
 
-    This class represents a fault, which is composed of one or more FaultPlanes.
+    This class represents a fault, which is composed of one or more Planes.
     It provides methods for computing the area of the fault, getting the widths and
     lengths of all fault planes, retrieving all corners of the fault, converting
     global coordinates to fault coordinates, converting fault coordinates to global
@@ -402,12 +406,8 @@ class Fault:
 
     Attributes
     ----------
-    name : str
-        The name of the fault.
-    tect_type : TectType | None
-        The type of fault this is (e.g. crustal, volcanic, subduction).
-    planes : list[FaultPlane]
-        A list containing all the FaultPlanes that constitute the fault.
+    planes : list[Plane]
+        A list containing all the Planes that constitute the fault.
 
     Methods
     -------
@@ -425,7 +425,6 @@ class Fault:
         Convert fault coordinates to global coordinates.
     """
 
-    name: str
     planes: list[Plane]
 
     def area(self) -> float:
@@ -440,15 +439,50 @@ class Fault:
 
     @property
     def lengths(self) -> np.ndarray:
+        """The lengths of each plane in the fault.
+
+        Returns
+        -------
+        np.ndarray
+           A numpy array of each plane length (in km).
+        """
         return np.array([fault.length for fault in self.planes])
 
     @property
     def length(self) -> float:
+        """The length of the fault.
+
+        Returns
+        -------
+        float
+            The total length of each fault plane.
+        """
+
         return self.lengths.sum()
 
     @property
     def width(self) -> float:
+        """The width of the fault.
+
+        Returns
+        -------
+        float
+            The width of the first fault plane (A fault is assumed to
+            have planes of constant width).
+        """
         return self.planes[0].width
+
+    @property
+    def dip_dir(self) -> float:
+        """The dip direction of the fault.
+
+        Returns
+        -------
+        float
+            The dip direction of the first fault plane (A fault is
+            assumed to have planes of constant dip direction).
+        """
+        return self.planes[0].dip_dir
 
     def corners(self) -> np.ndarray:
         """Get all corners of a fault.
