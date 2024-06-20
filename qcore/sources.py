@@ -33,21 +33,81 @@ class Point:
     """A representation of point source."""
 
     point_coordinates: np.ndarray
-    # used to approximate point source as a small planar patch.
-    length: float
+    # used to approximate point source as a small planar patch (metres).
+    length_m: float
 
     @property
-    def width(self):
-        return self.length
+    def length(self) -> float:
+        """
+        Returns
+        -------
+        float
+            The length of the approximating planar patch (in kilometres).
+        """
+        return self.length_m / _KM_TO_M
+
+    @property
+    def width_m(self) -> float:
+        """
+        Returns
+        -------
+        float
+            The width of the approximating planar patch (in metres).
+        """
+        return self.length_m
+
+    @property
+    def width(self) -> float:
+        """
+        Returns
+        -------
+        float
+            The width of the approximating planar patch (in kilometres).
+        """
+        return self.width_m / _KM_TO_M
 
     def fault_coordinates_to_wgs_depth_coordinates(
         self, fault_coordinates: np.ndarray
     ) -> np.ndarray:
+        """Convert fault-local coordinates to global (lat, lon, depth) coordinates.
+
+        Parameters
+        ----------
+        fault_coordinates : np.ndarray
+            The local fault coordinates
+
+        Returns
+        -------
+        np.ndarray
+            The global coordinates for these fault-local
+            coordinates. Because this is a point-source, the global
+            coordinates are just the location of the point source.
+        """
+
         return self.point_coordinates
 
     def wgs_depth_coordinates_to_fault_coordinates(
         self, wgs_depth_coordinates: np.ndarray
     ) -> np.ndarray:
+        """Convert global coordinates into fault-local coordinates.
+
+        Parameters
+        ----------
+        wgs_depth_coordinates : np.ndarray
+            The global coordinates to convert.
+
+        Returns
+        -------
+        np.ndarray
+            The fault-local coordinates. Because this is a
+            point-source, the local coordinates are simply (1/2, 1/2)
+            near the source point and undefined elsewhere.
+
+        Raises
+        ------
+        ValueError
+            If the point is not near the source point.
+        """
         nztm_coordinates = coordinates.wgs_depth_to_nztm(wgs_depth_coordinates)
         if np.all(
             np.abs(nztm_coordinates - self.point_coordinates)[:2] / _KM_TO_M
@@ -58,7 +118,7 @@ class Point:
 
 
 @dataclasses.dataclass
-class FaultPlane:
+class Plane:
     """A representation of a single plane of a Fault.
 
     This class represents a single plane of a fault, providing various
@@ -67,8 +127,6 @@ class FaultPlane:
 
     Attributes
     ----------
-    rake : float
-        The rake angle of the fault plane.
     corners_nztm : np.ndarray
         The corners of the fault plane, in NZTM format. The order of the
         corners is given clockwise from the top left (according to strike
@@ -88,7 +146,6 @@ class FaultPlane:
     """
 
     corners_nztm: np.ndarray
-    rake: float
 
     @property
     def corners(self) -> np.ndarray:
@@ -369,7 +426,7 @@ class Fault:
     """
 
     name: str
-    planes: list[FaultPlane]
+    planes: list[Plane]
 
     def area(self) -> float:
         """Compute the area of a fault.
@@ -419,22 +476,25 @@ class Fault:
     ) -> np.ndarray:
         """Convert global coordinates in (lat, lon, depth) format to fault coordinates.
 
-        Fault coordinates are a tuple (s, d) where s is the distance (in
-        kilometres) from the top centre, and d the distance from the top of the
-        fault (refer to the diagram).
+        Fault coordinates are a tuple (s, d) where s is the distance
+        from the top left, and d the distance from the top of the
+        fault (refer to the diagram). The coordinates are normalised
+        such that (0, 0) is the top left and (1, 1) the bottom right.
 
-        ┌─────────┬──────────────┬────┐
-        │         │      ╎       │    │
-        │         │      ╎       │    │
-        │         │    d ╎       │    │
-        │         │      ╎       │    │
-        │         │      └╶╶╶╶╶╶╶╶╶╶+ │
-        │         │           s  │  ∧ │
-        │         │              │  │ │
-        │         │              │  │ │
-        └─────────┴──────────────┴──┼─┘
-                                    │
-                            point: (s, d)
+        (0, 0)
+          ┌──────────────────────┬──────┐
+          │          |           │      │
+          │          |           │      │
+          │          | d         │      │
+          │          |           │      │
+          ├----------*           │      │
+          │    s     ^           │      │
+          │          |           │      │
+          │          |           │      │
+          │          |           │      │
+          └──────────|───────────┴──────┘
+                     +                    (1, 1)
+                  point: (s, d)
 
         Parameters
         ----------
@@ -450,6 +510,7 @@ class Fault:
         ------
         ValueError
             If the given point does not lie on the fault.
+
         """
         # the right edges as a cumulative proportion of the fault length (e.g. [0.1, ..., 0.8])
         right_edges = self.lengths.cumsum() / self.length
@@ -505,6 +566,8 @@ class Fault:
 
 
 class HasCoordinates(Protocol):
+    """Type definition for a source with local coordinates."""
+
     def fault_coordinates_to_wgs_depth_coordinates(
         self,
         fault_coordinates: np.ndarray,
@@ -516,7 +579,31 @@ class HasCoordinates(Protocol):
     ) -> np.ndarray: ...
 
 
-def closest_point_between_sources(source_a: HasCoordinates, source_b: HasCoordinates):
+def closest_point_between_sources(
+    source_a: HasCoordinates, source_b: HasCoordinates
+) -> tuple[np.ndarray, np.ndarray]:
+    """Find the closest point between two sources that have local coordinates.
+
+    Parameters
+    ----------
+    source_a : HasCoordinates
+        The first source. Must have a two-dimensional fault coordinate system.
+    source_b : HasCoordinates
+        The first source. Must have a two-dimensional fault coordinate system.
+
+    Raises
+    ------
+    ValueError
+        Raised when we are unable to converge on the closest points between sources.
+
+    Returns
+    -------
+    source_a_coordinates : np.ndarray
+        The source-local coordinates of the closest point on source a.
+    source_b_coordinates : np.ndarray
+        The source-local coordinates of the closest point on source b.
+    """
+
     def fault_coordinate_distance(fault_coordinates: np.ndarray) -> float:
         source_a_global_coordinates = (
             source_a.fault_coordinates_to_wgs_depth_coordinates(fault_coordinates[:2])
@@ -539,11 +626,4 @@ def closest_point_between_sources(source_a: HasCoordinates, source_b: HasCoordin
             f"Optimisation failed to converge for provided sources: {res.message}"
         )
 
-    source_a_coordinates = source_a.fault_coordinates_to_wgs_depth_coordinates(
-        res.x[:2]
-    )
-    source_b_coordinates = source_b.fault_coordinates_to_wgs_depth_coordinates(
-        res.x[2:]
-    )
-
-    return source_a_coordinates, source_b_coordinates
+    return res.x[:2], res.x[2:]
