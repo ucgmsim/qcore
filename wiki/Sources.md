@@ -62,8 +62,23 @@ because their local coordinate system is just a single point.
 
 _IMAGE OF DIFFERENT COORDINATE SYSTEMS HERE_
 
-To make the source module easy to use, we have elected to normalise all the coordinate systems so that the coordinate systems are always points $(s, d)$ where $0 \leq s \leq 1$ and $0 \leq d \leq 1$. Note that this means the boundary of any geometry always corresponds to the same set of points 
-$\{(0, t)\,|\, 0 \leq t \leq 1\} \cup \{(s, 0)\,|\, 0 \leq s \leq 1\} \cup \{(1, t) \,|\, 0 \leq t \leq 1\} \cup \{(s, 1)\,|\, 0 \leq s \leq 1\}$.
+To make the source module easy to use, we have elected to normalise
+all the coordinate systems so that the coordinate systems are always
+points $(s, d)$ where $0 \leq s \leq 1$ and $0 \leq d \leq 1$. Note
+that this means the boundary of any geometry always corresponds to the
+same set of points $\{(0, t)\,|\, 0 \leq t \leq 1\} \cup \{(s, 0)\,|\,
+0 \leq s \leq 1\} \cup \{(1, t) \,|\, 0 \leq t \leq 1\} \cup \{(s,
+1)\,|\, 0 \leq s \leq 1\}$.
+
+
+Sources defined in `qcore.sources` will have two methods for converting back and forth between fault local and global coordinate systems:
+
+1. `fault_coordinates_to_wgs_depth_coordinates`: Going from fault-local coordinates to global coordinates.
+2. `wgs_depth_coordinates_to_fault_coordinates`: Going from global
+   coordinates to fault-local coordinates **if the global coordinates
+   lie in the source geometry**. Sources will raise a `ValueError` if
+   the supplied coordinates is not in the domain.
+
 
 ## Answering Geometry Questions with the Sources Module
 
