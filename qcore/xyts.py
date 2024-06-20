@@ -342,7 +342,7 @@ class XYTSFile:
         x_min, y_min = np.min(corners, axis=0)
         x_max, y_max = np.max(corners, axis=0)
 
-        return (x_min, x_max, y_min, y_max)
+        return (float(x_min), float(x_max), float(y_min), float(y_max))
 
     def tslice_get(
         self, step: int, comp: int = -1, outfile: Optional[Union[Path, str]] = None
