@@ -33,14 +33,14 @@ central location. This is the aim of the `qcore.sources` module.
 
 A *source geometry* is an object with two properties:
 
-1. A geometric definition of it's bounds. For a fault plane, this is it's corners, for a point-source the bounds are the point itself.
+1. A geometric definition of its bounds. For a fault plane, this is its corners, for a point-source the bounds are the point itself.
 2. A _local coordinate system_. This local coordinate system is
-   essential for finding points inside the fault. EMOD3D has it's own
+   essential for finding points inside the fault. EMOD3D has its own
    definitions of fault-local coordinates, for example, which we pass
    as `shyp` and `dhyp` parameters to `genslip` and friends.
    
 Note that this definition does not require the geometry to be flat
-like a plane, or connected, or anything. It's is simply a closed and
+like a plane, or connected, or anything. It is simply a closed and
 bounded region with coordinates. The choice to define geometry in this
 way deliberately vague to be flexible.
    
@@ -49,7 +49,7 @@ way deliberately vague to be flexible.
 While we have five types of source-modelling (per [Source Modelling for GMSim](https://wiki.canterbury.ac.nz/display/QuakeCore/Source+Modelling+for+GMSim)), there are essentially only three source geometries we work with:
 
 1. **Point Source Geometry**: This is a 0-dimensional geometry consisting of a single point. The `qcore.sources` module uses the `Point` class to model the source geometry for a point.
-2. **Plane Geometry**: This a 2-dimensional source geometry consisting of a single plane. The extents of the geometry are it's corners. The `qcore.sources` module uses the `Plane` class to model single plane geometry.
+2. **Plane Geometry**: This a 2-dimensional source geometry consisting of a single plane. The extents of the geometry are its corners. The `qcore.sources` module uses the `Plane` class to model single plane geometry.
 3. **Multi-Planar Geometry**: This is a 2-dimensional source geometry consisting of a number of connected planes. The extents of the geometry are the corners of the end fault planes. The `qcore.sources` module uses the `Fault` class to model multi-planar geometry.
 
 Note that the term *2-dimensional* here refers to the dimensions of
@@ -96,7 +96,7 @@ corners = source.fault_coordinates_to_wgs_depth_coordinates(np.array([[0, 0], # 
                                                                       ]]))
 ```
 
-Q: How can I find the basic parameters of the geometry (strike, dip, rake, etc)?
+Q: How can I find the basic parameters of the geometry (strike, dip, rake, etc.)?
 A: A `Plane` source has these defined as properties computed from the corners you supply to construct the source
 ```python
 plane = Plane(...)
