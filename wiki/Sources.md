@@ -77,7 +77,7 @@ Sources defined in `qcore.sources` will have two methods for converting back and
 2. `wgs_depth_coordinates_to_fault_coordinates`: Going from global
    coordinates to fault-local coordinates **if the global coordinates
    lie in the source geometry**. Sources will raise a `ValueError` if
-   the supplied coordinates is not in the domain.
+   the supplied coordinates are not in the domain.
 
 
 ## Answering Geometry Questions with the Sources Module
