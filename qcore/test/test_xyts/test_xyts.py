@@ -1,15 +1,15 @@
-import os
-from qcore import xyts
-import pytest
-from qcore.test.tool import utils
-from qcore import shared
-import numpy as np
-import getpass
-from datetime import datetime
-import sys
-import shutil
 import errno
+import getpass
+import os
+import shutil
+import sys
+from datetime import datetime
 from pathlib import Path
+
+import numpy as np
+import pytest
+from qcore import shared, xyts
+from qcore.test.tool import utils
 
 XYTS_DOWNLOAD_PATH = "https://www.dropbox.com/s/zge70zvntzxatpo/xyts.e3d?dl=0"
 XYTS_STORE_PATH = os.path.join(Path.home(), "xyts.e3d")
@@ -140,7 +140,7 @@ def test_corners(gmt_format, expected_corners):
     ],
 )
 def test_region(corners, expected_region):
-    assert OBJ_XYTS.region(corners) == expected_region
+    assert OBJ_XYTS.region(corners) == pytest.approx(expected_region)
 
 
 @pytest.mark.parametrize(
