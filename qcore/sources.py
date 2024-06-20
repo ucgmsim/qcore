@@ -365,7 +365,7 @@ class Plane:
         """
 
         try:
-            plane_coordinates = self.global_coordinates_to_plane_coordinates(
+            plane_coordinates = self.wgs_depth_coordinates_to_fault_coordinates(
                 global_coordinates
             )
             return np.all(
