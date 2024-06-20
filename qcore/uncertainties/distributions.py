@@ -1,79 +1,127 @@
-import random
+"""
+
+This module provides functions to generate random values from a few quake-specific distributions.
+
+Default scaling parameters are applied to the weibull and rand_shyp
+distributions to match rupture ddhyp and shyp generation values.
+
+Functions:
+- truncated_normal: Generates random values from a truncated normal distribution.
+- truncated_weibull: Generates random values from a truncated Weibull distribution.
+- truncated_weibull_expected_value: Calculates the expected value of a truncated Weibull distribution.
+- truncated_log_normal: Generates random values from a truncated log-normal distribution.
+- rand_shyp: Generates random hypocentre values along the length of a fault.
+"""
+
+from typing import Optional
 
 import numpy as np
-from scipy.stats import truncnorm, weibull_min
+import scipy as sp
 
 
-def relative_uniform(mean, scale_factor):
-    """Returns a value from a uniform distribution where the min and max
-    are scaled relative to the middle value given as the mean"""
-    return random.uniform(mean * (1 - scale_factor), mean * (1 + scale_factor))
+def truncated_normal(mean: float, std_dev: float, std_dev_limit: float = 2) -> float:
+    """
+    Generate a random value from a truncated normal distribution.
+
+    Parameters
+    ----------
+    mean : float
+        Mean of the normal distribution.
+    std_dev : float
+        Standard deviation of the normal distribution.
+    std_dev_limit : float, optional
+        Number of standard deviations to limit the truncation (default is 2).
+
+    Returns
+    -------
+    float
+        Random value from the truncated normal distribution.
+    """
+    return sp.stats.truncnorm(
+        -std_dev_limit, std_dev_limit, loc=mean, scale=std_dev
+    ).rvs()
 
 
-def uniform(mean, half_range):
-    return random.uniform(mean - half_range, mean + half_range)
+def truncated_weibull(
+    upper_value: float,
+    c: float = 3.353,
+    scale_factor: float = 0.612,
+    seed: Optional[int] = None,
+) -> float:
+    """
+    Generate a random value from a truncated Weibull distribution.
+
+    Parameters
+    ----------
+    upper_value : float
+        Upper value for truncation of the Weibull distribution.
+    c : float, optional
+        Shape parameter of the Weibull distribution (default is 3.353).
+    scale_factor : float, optional
+        Scale factor of the Weibull distribution (default is 0.612).
+    seed : int or None, optional
+        Random seed for reproducibility (default is None).
+
+    Returns
+    -------
+    float
+        Random value from the truncated Weibull distribution.
+    """
+    return upper_value * sp.stats.truncweibull_min(
+        c, 0, 1 / scale_factor, scale=scale_factor
+    ).rvs(random_state=seed)
 
 
-def truncated_normal(mean, std_dev, std_dev_limit=2):
-    return float(
-        truncnorm(-std_dev_limit, std_dev_limit, loc=mean, scale=std_dev).rvs()
+def truncated_weibull_expected_value(
+    upper_value: float, c: float = 3.353, scale_factor: float = 0.612
+) -> float:
+    """
+    Calculate the expected value for a truncated Weibull distribution.
+
+    Parameters
+    ----------
+    upper_value : float
+        Upper value for truncation of the Weibull distribution.
+    c : float, optional
+        Shape parameter of the Weibull distribution (default is 3.353).
+    scale_factor : float, optional
+        Scale factor of the Weibull distribution (default is 0.612).
+
+    Returns
+    -------
+    float
+        Expected value for the truncated Weibull distribution.
+    """
+    return (
+        upper_value
+        * sp.stats.truncweibull_min(c, 0, 1 / scale_factor, scale=scale_factor).expect()
     )
 
 
-def bounded_truncated_normal(mean, upper_limit, lower_limit):
-    dist_range = upper_limit - lower_limit
-    return float(
-        truncnorm(
-            (mean - lower_limit) / dist_range,
-            (upper_limit - mean) / dist_range,
-            loc=mean,
-            scale=dist_range,
-        ).rvs()
-    )
+def truncated_log_normal(
+    mean: float, std_dev: float, std_dev_limit: float = 2, seed: Optional[int] = None
+) -> float:
+    """
+    Generate a random value from a truncated log-normal distribution.
 
+    Parameters
+    ----------
+    mean : float
+        Mean of the log-normal distribution.
+    std_dev : float
+        Standard deviation of the log-normal distribution.
+    std_dev_limit : float, optional
+        Number of standard deviations to limit the truncation (default is 2).
+    seed : int or None, optional
+        Random seed for reproducibility (default is None).
 
-def weibull(k=3.353, scale_factor=0.612):
-    """Weibull distribution. Defaults are for nhm2srf dhypo generation"""
-    return scale_factor * np.random.weibull(k)
-
-
-def truncated_weibull(truncation_threshold, k=3.353, scale_factor=0.612):
-    """Forces the weibull distribution to have a value less than some threshold.
-    Used for generating hypocentre down dip with default values and a threshold of 1.
-    With these parameters there is a 0.56% chance of the value being greater than 1, so this is a good enough solution."""
-    return_value = 2 * truncation_threshold
-    while return_value > truncation_threshold:
-        return_value = weibull(k=k, scale_factor=scale_factor)
-    return return_value
-
-
-def proper_weibull(k=3.353, scale_factor=0.612):
-    return weibull_min(c=k, scale=scale_factor).rvs()
-
-
-def proper_truncated_weibull(
-    upper_truncation_threshold, lower_truncation_threshold, k=3.353, scale_factor=0.612
-):
-    dist = weibull_min(c=k, scale=scale_factor)
-    upper_value, lower_value = dist.cdf(
-        (upper_truncation_threshold, lower_truncation_threshold)
-    )
-    dist_range = upper_value - lower_value
-    val = (
-        dist.cdf(
-            np.random.uniform(lower_truncation_threshold, upper_truncation_threshold)
-        )
-        - lower_value
-    ) / dist_range
-    # if val < lower_truncation_threshold or val > upper_truncation_threshold:
-    #     print("Broken")
-    # print(val, dist_range, upper_value, lower_value, upper_truncation_threshold, lower_truncation_threshold)
-    return val
-
-
-def truncated_log_normal(mean, std_dev, std_dev_limit=2, seed=None) -> float:
+    Returns
+    -------
+    float
+        Random value from the truncated log-normal distribution.
+    """
     return np.exp(
-        truncnorm(
+        sp.stats.truncnorm(
             -std_dev_limit,
             std_dev_limit,
             loc=np.log(np.asarray(mean).astype(np.float64)),
@@ -82,23 +130,13 @@ def truncated_log_normal(mean, std_dev, std_dev_limit=2, seed=None) -> float:
     )
 
 
-def bounded_truncated_log_normal(mean, upper_limit, lower_limit) -> float:
-    dist_range = upper_limit - lower_limit
-    return np.exp(
-        truncnorm(
-            (mean - lower_limit) / dist_range,
-            (upper_limit - mean) / dist_range,
-            loc=np.log(np.asarray(mean).astype(np.float64)),
-            scale=dist_range,
-        ).rvs()
-    )
+def rand_shyp() -> float:
+    """
+    Generate a random hypocentre value along the length of a fault.
 
-
-def rand_shyp():
-    """Generates a value for the hypocentre along the length of the fault. Uses defaults from nhm2srf"""
-    # normal distribution
-    shyp_mu = 0.0
-    shyp_sigma = 0.25
-
-    shyp = truncated_normal(shyp_mu, shyp_sigma)
-    return shyp
+    Returns
+    -------
+    float
+        Random value from a truncated normal distribution (mean=0, std_dev=0.25).
+    """
+    return truncated_normal(0, 0.25)
