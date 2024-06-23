@@ -678,7 +678,7 @@ def path_from_corners(
     if output is not None:
         with open(output, "w", encoding="utf-8") as mp:
             for point in corners:
-                mp.write(f"{point[0]} {point[1]}")
+                mp.write(f"{point[0]} {point[1]}\n")
     else:
         return corners
 
