@@ -6,7 +6,7 @@ import functools
 import itertools
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from subprocess import PIPE, Popen
-from typing import Any, Dict, Optional, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import numpy as np
@@ -678,7 +678,7 @@ def path_from_corners(
     if output is not None:
         with open(output, "w", encoding="utf-8") as mp:
             for point in corners:
-                mp.write(f"{point[0]} {point[1]}")
+                mp.write(f"{point[0]} {point[1]}\n")
     else:
         return corners
 
@@ -1229,3 +1229,19 @@ def spheres_intersect(
         <= np.sum(np.square(centre2 - centre1))
         <= np.square(radius2 + radius1)
     )
+
+
+def rotation_matrix(angle: float) -> np.ndarray:
+    """Returns the 2D rotation matrix for a given angle.
+
+    Parameters
+    ----------
+    angle : float
+        The angle to rotate by in radians.
+
+    Returns
+    -------
+    np.ndarray
+        The 2x2 rotation matrix.
+    """
+    return np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
