@@ -331,9 +331,7 @@ class Plane:
     def fault_coordinates_to_wgs_depth_coordinates(
         self, plane_coordinates: np.ndarray
     ) -> np.ndarray:
-        ""
-
-        "Convert plane coordinates to nztm global coordinates.
+        """Convert plane coordinates to nztm global coordinates.
 
         Parameters
         ----------
