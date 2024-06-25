@@ -17,12 +17,12 @@ Fault:
 """
 
 import dataclasses
-from typing import Protocol
+from typing import Optional, Protocol
 
 import numpy as np
 import scipy as sp
 
-from qcore import coordinates, geo
+from qcore import coordinates, geo, grid
 
 _KM_TO_M = 1000
 
@@ -277,10 +277,63 @@ class Plane:
         """
         return np.degrees(np.arcsin(np.abs(self.bottom_m) / self.width_m))
 
+    @staticmethod
+    def from_centroid_strike_dip(
+        centroid: np.ndarray,
+        strike: float,
+        dip_dir: Optional[float],
+        top: float,
+        bottom: float,
+        length: float,
+        width: float,
+    ) -> "Plane":
+        """Create a fault plane from the centroid, strike, dip_dir, top, bottom, length, and width
+
+        This is used for older descriptions of sources. Internally
+        converts everything to corners so self.strike ~ strike (but
+        not exactly due to rounding errors).
+
+        Parameters
+        ----------
+        centroid : np.ndarray
+            The centre of the fault plane in lat, lon coordinate.s
+        strike : float
+            The strike of the fault (in degrees).
+        dip_dir : Optional[float]
+            The dip direction of the fault (in degrees). If None this is assumed to be strike + 90 degrees.
+        top : float
+            The top depth of the plane (in km).
+        bottom : float
+            The bottom depth of the plane (in km).
+        length : float
+            The length of the fault plane (in km).
+        width : float
+            The width of the fault plane (in km).
+
+        Returns
+        -------
+        Plane
+            The fault plane with centre at `centroid`, and where the
+            parameters strike, dip_dir, top, bottom, length and width
+            match what is passed to this function.
+        """
+        corners = grid.grid_corners(
+            centroid,
+            strike,
+            dip_dir if dip_dir is not None else (strike + 90),
+            top,
+            bottom,
+            length,
+            width,
+        )
+        return Plane(corners)
+
     def fault_coordinates_to_wgs_depth_coordinates(
         self, plane_coordinates: np.ndarray
     ) -> np.ndarray:
-        """Convert plane coordinates to nztm global coordinates.
+        ""
+
+        "Convert plane coordinates to nztm global coordinates.
 
         Parameters
         ----------
