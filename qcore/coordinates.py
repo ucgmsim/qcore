@@ -88,7 +88,7 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
 
 def distance_between_wgs_depth_coordinates(
     point_a: np.ndarray, point_b: np.ndarray
-) -> float:
+) -> Union[float, np.ndarray]:
     """Return the distance between two points in lat, lon, depth format.
 
     Valid only for points that can be converted into NZTM format.
@@ -96,13 +96,21 @@ def distance_between_wgs_depth_coordinates(
     Parameters
     ----------
     point_a : np.ndarray
-        The first point (lat, lon, depth).
+        The first point (lat, lon, optionally depth). May have shape
+        (2,), (3,), (n, 2), (n, 3).
+
     point_b : np.ndarray
-        The second point (lat, lon, depth).
+        The second point (lat, lon, optionally depth). May have shape
+        (2, ), (3,), (n, 2), (n, 3)
 
     Returns
     -------
-    float
-        The distance (in metres) between point_a and point_b.
+    float or np.ndarray
+        The distance (in metres) between point_a and point_b. Will
+        return an array of floats if input contains multiple points
     """
+    if len(point_a.shape) > 1:
+        return np.linalg.norm(
+            wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=0
+        )
     return np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
