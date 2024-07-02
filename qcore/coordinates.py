@@ -17,6 +17,8 @@ See LINZ[0] for a description of the NZTM coordinate system.
 [0]: https://www.linz.govt.nz/guidance/geodetic-system/coordinate-systems-used-new-zealand/projections/new-zealand-transverse-mercator-2000-nztm2000
 """
 
+from typing import Union
+
 import numpy as np
 import pyproj
 
@@ -111,6 +113,6 @@ def distance_between_wgs_depth_coordinates(
     """
     if len(point_a.shape) > 1:
         return np.linalg.norm(
-            wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=0
+            wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=1
         )
     return np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
