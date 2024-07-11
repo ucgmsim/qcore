@@ -47,14 +47,6 @@ def prepare_data():
     if str(have_ver) != DATA_VERSION:
         sys.exit("data package issue, please contact repository maintainer")
 
-
-# TODO: Temporary fix to keep Jenkins testing going
-if NO_DATA_ARG in sys.argv:
-    print(f"Skip downloading {DATA_NAME}")
-    sys.argv.remove(NO_DATA_ARG)
-else:
-    prepare_data()
-
 setup(
     name=PACKAGE_NAME,
     version="1.2",
