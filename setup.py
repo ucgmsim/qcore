@@ -58,7 +58,7 @@ else:
 setup(
     name=PACKAGE_NAME,
     version="1.2",
-    packages=[PACKAGE_NAME],
+    packages=[PACKAGE_NAME, 'qcore.uncertainties'],
     url=PACKAGE_URL,
     description="QuakeCoRE Library",
     package_data={
