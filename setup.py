@@ -58,7 +58,7 @@ else:
 setup(
     name=PACKAGE_NAME,
     version="1.2",
-    packages=[PACKAGE_NAME, 'qcore.uncertainties'],
+    packages=[PACKAGE_NAME, 'qcore.uncertainties', 'qcore.uncertainties.magnitude_scaling'],
     url=PACKAGE_URL,
     description="QuakeCoRE Library",
     package_data={
