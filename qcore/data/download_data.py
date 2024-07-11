@@ -10,8 +10,6 @@ DATA_VERSION = "1.2"
 DATA_NAME = "qcore_resources.tar.xz"
 DATA_URL = f"{PACKAGE_URL}/releases/download/{DATA_VERSION}/{DATA_NAME}"
 
-NO_DATA_ARG = "--no-data"
-
 
 def extract_data(archive, destination):
     with tarfile.open(archive) as xz:
@@ -25,7 +23,7 @@ def get_version(version_path):
         return None
 
 
-def prepare_data():
+def download_data():
     loc_version = os.path.join(PACKAGE_NAME, "data", "version")
     # extract existing archive
     have_ver = get_version(loc_version)
@@ -47,4 +45,5 @@ def prepare_data():
         sys.exit("data package issue, please contact repository maintainer")
 
 
-prepare_data()
+if __name__ == "__main__":
+    download_data()
