@@ -1,8 +1,9 @@
 import os
 import sys
 import tarfile
-from urllib.request import urlretrieve
-
+import tempfile
+from pathlib import Path
+from urllib import request
 
 PACKAGE_NAME = "qcore"
 PACKAGE_URL = f"https://github.com/ucgmsim/{PACKAGE_NAME}"
@@ -16,29 +17,24 @@ def extract_data(archive, destination):
         xz.extractall(destination)
 
 
-def get_version(version_path):
-    if os.path.isfile(version_path):
-        return open(version_path).read().strip()
-    else:
+def get_version(version_path: Path):
+    if not version_path.exists():
         return None
+    with open(version_path, encoding="utf-8") as infile:
+        return infile.read().strip()
 
 
 def download_data():
-    loc_version = os.path.join(PACKAGE_NAME, "data", "version")
-    # extract existing archive
+    download_location = Path(__file__).parent
+    loc_version = download_location / "data" / "version"
+
     have_ver = get_version(loc_version)
-    if str(have_ver) != DATA_VERSION and os.path.isfile(DATA_NAME):
-        # extract available archive
-        print("checking available archive version...")
-        extract_data(DATA_NAME, PACKAGE_NAME)
-    # download missing archive
-    have_ver = get_version(loc_version)
-    print(have_ver)
     if str(have_ver) != DATA_VERSION:
         print("data package missing or incorrect version")
         print("downloading...")
-        urlretrieve(DATA_URL, DATA_NAME)
-        extract_data(DATA_NAME, PACKAGE_NAME)
+        with tempfile.NamedTemporaryFile() as data_archive_file:
+            request.urlretrieve(DATA_URL, data_archive_file.name)
+            extract_data(data_archive_file.name, download_location / "qcore")
     # final check
     have_ver = get_version(loc_version)
     if str(have_ver) != DATA_VERSION:
