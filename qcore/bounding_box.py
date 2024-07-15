@@ -50,7 +50,7 @@ class BoundingBox:
     @property
     def origin(self):
         """Returns the origin of the bounding box."""
-        return np.mean(self.corners, axis=0)
+        return coordinates.nztm_to_wgs_depth(np.mean(self.corners, axis=0))
 
     @property
     def extent_x(self):
@@ -162,8 +162,7 @@ def minimum_area_bounding_box(points: np.ndarray) -> BoundingBox:
     return BoundingBox(
         # rotating by -minimum_rotation_angle we undo the rotation applied
         # to obtain bounding_boxes.
-        minimum_bounding_box.corners
-        @ geo.rotation_matrix(-minimum_rotation_angle).T
+        minimum_bounding_box.corners @ geo.rotation_matrix(-minimum_rotation_angle).T
     )
 
 
