@@ -26,7 +26,7 @@ def get_version(version_path: Path):
 
 def download_data():
     download_location = Path(__file__).parent
-    loc_version = download_location / "data" / "version"
+    loc_version = download_location / "version"
 
     have_ver = get_version(loc_version)
     if str(have_ver) != DATA_VERSION:
