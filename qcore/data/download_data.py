@@ -34,7 +34,7 @@ def download_data():
         print("downloading...")
         with tempfile.NamedTemporaryFile() as data_archive_file:
             request.urlretrieve(DATA_URL, data_archive_file.name)
-            extract_data(data_archive_file.name, download_location / "qcore")
+            extract_data(data_archive_file.name, download_location.parent)
     # final check
     have_ver = get_version(loc_version)
     if str(have_ver) != DATA_VERSION:
