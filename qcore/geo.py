@@ -9,6 +9,7 @@ from subprocess import PIPE, Popen
 from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
+import shutil
 import numpy as np
 import scipy as sp
 
@@ -95,7 +96,7 @@ def ll2gp_multi(
     # run binary, get output
     # output is displacement (x, y) from center, in kilometres
     cmd = [
-        get_unversioned_bin("ll2xy"),
+        shutil.which("ll2xy"),
         f"mlat={mlat}",
         f"mlon={mlon}",
         "geoproj=1",
@@ -271,7 +272,7 @@ def gp2ll_multi(
     # run binary, get output
     with Popen(
         [
-            get_unversioned_bin("xy2ll"),
+            shutil.which("xy2ll"),
             f"mlat={mlat}",
             f"mlon={mlon}",
             "geoproj=1",
@@ -878,7 +879,6 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
 def oriented_bounding_planes(
     plane_dual_coordinates: np.ndarray, plane_corners: np.ndarray
 ) -> List[np.ndarray]:
-
     plane_centroid = np.average(plane_corners, axis=0)
     # For each side of the plane p1, we construct a plane orthogonal to p1
     # passing through the side.
