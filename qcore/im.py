@@ -250,7 +250,7 @@ class IM:
         Parameters
         ----------
         name : str
-            The name of the intensity measure (e.g. "PGV")
+            The name of the intensity measure (e.g. "pSA_1.0")
 
         Returns
         -------
