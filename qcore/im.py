@@ -45,23 +45,23 @@ class IMEnum(constants.ExtendedEnum):
     PGV
         Peak Ground Velocity, a measure of the maximum velocity of the ground during an earthquake.
     CAV
-        Cumulative Absolute Velocity, an intensity measure that accounts for the duration and amplitude of ground shaking.
+        Cumulative Absolute Velocity, the absolute integral of acceleration over time.
     AI
-        Arias Intensity, a measure of the total energy released during an earthquake.
+        Arias Intensity, proportional to the integral of the square of ground acceleration over time.
     Ds575
-        A specific spectral displacement measure with a 0.75-second period.
+        The duration between 5% and 75% of rupture energy dissapation.
     Ds595
-        A specific spectral displacement measure with a 0.95-second period.
+        The duration between 5% and 95% of rupture energy dissapation.
     Ds2080
-        A specific spectral displacement measure with a 2.0-second period.
+        The duration between 20% and 80% of rupture energy dissapation.
     MMI
         Modified Mercalli Intensity, a qualitative measure of the effects of an earthquake on people and structures.
     pSA
         Pseudo Spectral Acceleration, a measure of acceleration response at a specific period.
     FAS
-        Fourier Amplitude Spectrum, a measure of the amplitude of ground motion as a function of frequency.
+        Fourier Amplitude Spectrum, a measure of ground motion as a function of frequency.
     SDI
-        Spectral Displacement Index, a measure of displacement response at a specific period.
+        Inelastic spectral displacement.
     """
 
     PGA = enum.auto()
