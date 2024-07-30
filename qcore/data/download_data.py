@@ -1,14 +1,17 @@
 import os
 import sys
 import tarfile
-from urllib.request import urlretrieve
+import tempfile
+from pathlib import Path
+from typing import Annotated
+from urllib import request
 
+import typer
 
-PACKAGE_NAME = "qcore"
-PACKAGE_URL = f"https://github.com/ucgmsim/{PACKAGE_NAME}"
+app = typer.Typer()
+
 DATA_VERSION = "1.2"
-DATA_NAME = "qcore_resources.tar.xz"
-DATA_URL = f"{PACKAGE_URL}/releases/download/{DATA_VERSION}/{DATA_NAME}"
+DATA_URL = "https://www.dropbox.com/scl/fi/p5so9irbx43c9g96jr2qr/qcore_resources.tar.xz?rlkey=pgmn69e212c0zx0fauxuikgky&dl=1"
 
 
 def extract_data(archive, destination):
@@ -23,27 +26,29 @@ def get_version(version_path):
         return None
 
 
-def download_data():
-    loc_version = os.path.join(PACKAGE_NAME, "data", "version")
-    # extract existing archive
+@app.command(help="Downloads the qcore data and extracts it")
+def download_data(
+    download_location: Annotated[
+        Path, typer.Option(help="Location of the qcore/data directory")
+    ] = Path(__file__).parent,
+):
+    loc_version = download_location / "version"
+    # Get the current version
     have_ver = get_version(loc_version)
-    if str(have_ver) != DATA_VERSION and os.path.isfile(DATA_NAME):
-        # extract available archive
-        print("checking available archive version...")
-        extract_data(DATA_NAME, PACKAGE_NAME)
-    # download missing archive
-    have_ver = get_version(loc_version)
-    print(have_ver)
+
+    # Check if the data is already downloaded or a different version
     if str(have_ver) != DATA_VERSION:
         print("data package missing or incorrect version")
         print("downloading...")
-        urlretrieve(DATA_URL, DATA_NAME)
-        extract_data(DATA_NAME, PACKAGE_NAME)
-    # final check
+        with tempfile.NamedTemporaryFile() as data_archive_file:
+            request.urlretrieve(DATA_URL, data_archive_file.name)
+            extract_data(data_archive_file.name, download_location.parent)
+
+    # Version Check
     have_ver = get_version(loc_version)
     if str(have_ver) != DATA_VERSION:
         sys.exit("data package issue, please contact repository maintainer")
 
 
 if __name__ == "__main__":
-    download_data()
+    app()
