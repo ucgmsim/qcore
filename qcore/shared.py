@@ -182,6 +182,8 @@ def exe(
         If True, print out the command to run before running.
     stdin : str-like, optional
         If not None, then given to the running process as standard input.
+    kwargs : dict
+        Additional arguments, passed to Popen.
 
     Returns
     -------
