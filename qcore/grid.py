@@ -223,7 +223,7 @@ def coordinate_patchgrid(
         (ny, nx, 3)
     )
     kernel = np.full((2, 2), 1 / 2)
-    patch_grid = sp.spatial.convolve2d(meshgrid, kernel, mode="valid")
+    patch_grid = sp.signal.convolve2d(meshgrid, kernel, mode="valid")
     return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
         (ny, nx, 3)
     )
