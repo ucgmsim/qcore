@@ -34,7 +34,7 @@ pipeline {
                     echo "[ Python used ] : " `which python`
                     cd ${env.WORKSPACE}
                     echo "[ Installing ${env.JOB_NAME} ]"
-                    python setup.py install --no-data
+                    python setup.py install
                     echo "[ Run test now ]"
                     cd qcore/test
                     pytest -s
