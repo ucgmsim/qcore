@@ -5,7 +5,7 @@ Miscellaneous functions whose usage is shared across a number of repositories.
 import re
 import subprocess
 import sys
-from io import IOBase, StringIO
+from io import IOBase
 from pathlib import Path
 from typing import AnyStr, Optional, Union
 
@@ -36,19 +36,14 @@ def get_stations(
     latitudes : list[float], if locations is True
         The latitudes of the stations.
     """
-    with open(station_ffp, "r", encoding="utf-8") as source_file_handle:
-        stations_text = source_file_handle.read()
-        # have to read and replace because pandas only allows one comment
-        # character.
-        stations_text = stations_text.replace("%", "#")
-        stations = pd.read_csv(
-            StringIO(stations_text),
-            comment="#",
-            sep=r"\s+",
-            header=None,
-            names=["longitude", "latitude", "station"],
-            skipinitialspace=True,
-        )
+    stations = pd.read_csv(
+        station_ffp,
+        comment="#",
+        sep=r"\s+",
+        header=None,
+        names=["longitude", "latitude", "station"],
+        skipinitialspace=True,
+    )
 
     if not locations:
         return stations["station"].to_list()
@@ -86,6 +81,7 @@ def get_corners(
     with open(model_params_ffp, "r") as model_params_file_handle:
         corners = {}
         for line in model_params_file_handle:
+            # Matching a string "c{i}= {lon} {lat}", e.g. c1= 172.16403 -41.41359
             corner_match = re.match(
                 r"\s+c(\d)=\s+([0-9\.\-\+]+)\s+([0-9\.\-\+]+)", line
             )
@@ -114,6 +110,14 @@ def non_blocking_exe(
 
     *DO NOT USE THIS FUNCTION* Instead, call subprocess.run or
     subprocess.check_call to execute processes.
+
+    >>> non_blocking_exe('ls')
+    # Some popen object
+
+    Becomes
+
+    >>> subprocess.check_output(['ls']).decode('utf-8')
+    "file1.py\nfile2.py\n..."
 
     Parameters
     ----------
