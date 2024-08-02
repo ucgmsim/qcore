@@ -7,8 +7,9 @@ import pytest
 from qcore import geo
 
 from qcore.source_site_dist import src_site_dist as ssd
-from IM_calculation.test.test_common_set_up import INPUT, OUTPUT
 
+INPUT = "input"
+OUTPUT = "output"
 
 def test_calc_rrub_rjb(set_up):
     function = "calc_rrup_rjb"
