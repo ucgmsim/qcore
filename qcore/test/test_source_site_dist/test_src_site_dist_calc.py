@@ -4,12 +4,11 @@ import pickle
 import numpy as np
 import pytest
 
-from qcore import geo
-
-from qcore.source_site_dist import src_site_dist as ssd
+from qcore import geo, src_site_dist as ssd
 
 INPUT = "input"
 OUTPUT = "output"
+
 
 def test_calc_rrub_rjb(set_up):
     function = "calc_rrup_rjb"
@@ -39,7 +38,7 @@ BASIC_STATIONS = np.asarray(
     ]
 )
 BASIC_RX = np.asarray([0, 0, -50, -100])
-BASIC_RY = np.asarray([-1, geo.ll_dist(0, 0, 0.5, 0)-1, -1, -51])
+BASIC_RY = np.asarray([-1, geo.ll_dist(0, 0, 0.5, 0) - 1, -1, -51])
 
 HOSSACK_SRF_POINTS = np.asarray(
     [
@@ -49,9 +48,7 @@ HOSSACK_SRF_POINTS = np.asarray(
         [176.1814, -38.3221, 7.886],
     ]
 )
-HOSSACK_SRF_HEADER = [
-    {"nstrike": 2, "ndip": 2, "strike": 230.0, "length": 0.2}
-]
+HOSSACK_SRF_HEADER = [{"nstrike": 2, "ndip": 2, "strike": 230.0, "length": 0.2}]
 HOSSACK_STATIONS = np.asarray(
     [
         [
@@ -72,7 +69,7 @@ HOSSACK_STATIONS = np.asarray(
     ]
 )
 HOSSACK_RX = np.asarray([9.1180, -9.1180, 1.9987])
-HOSSACK_RY = np.asarray([1.56658241, 1.5680196 , 6.56920416])
+HOSSACK_RY = np.asarray([1.56658241, 1.5680196, 6.56920416])
 
 RELATIVE_TOLERANCE = 0.001  # 1m tolerance
 
@@ -108,7 +105,9 @@ def test_calc_rx_ry(set_up):
         locations = np.load(os.path.join(root_path, INPUT, function + "_locations.npy"))
 
         out_rx = np.load(os.path.join(root_path, OUTPUT, function + "_rx.npy"))
-        out_ry = np.asarray([-711.41646299]) # np.load(os.path.join(root_path, OUTPUT, function + "_ry.npy"))
+        out_ry = np.asarray(
+            [-711.41646299]
+        )  # np.load(os.path.join(root_path, OUTPUT, function + "_ry.npy"))
 
         rx, ry = ssd.calc_rx_ry(srf_points, srf_header, locations)
 
