@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import matplotlib.path as mpltPath
 import numpy as np
@@ -13,7 +13,7 @@ def calc_rrup_rjb(
     srf_points: np.ndarray,
     locations: np.ndarray,
     n_stations_per_iter: int = 1000,
-    return_rrup_points: bool = False,
+    return_rrup_points: Optional[bool] = False,
 ):
     """Calculates rrup and rjb distance
 
@@ -80,19 +80,31 @@ def calc_rx_ry(
     srf_points: np.ndarray,
     plane_infos: List[Dict],
     locations: np.ndarray,
-    hypocentre_origin=False,
-    type=2,
+    hypocentre_origin: Optional[bool] = False,
+    type: Optional[int] = 2,
 ):
     """
-    A wrapper script allowing external function calls to resolve to the correct location
-    :param srf_points: An array with shape (n, 3) giving the lon, lat, depth location of each subfault
-    :param plane_infos: A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True
-    :param locations: An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for
-    :param type: Allows switching between the two GC types if desired
-    :param hypocentre_origin: If True sets the Ry origin/0 point to the fault trace projection of the hypocentre. If
-    false the most upstrike subfault of the first fault trace is used. Only used for GC2.
-    :return: An array with shape (m, 2) giving the Rx, Ry values for each of the given locations
+    A wrapper script allowing external function calls to resolve to the correct location.
+
+    Parameters
+    ----------
+    srf_points : np.ndarray
+        An array with shape (n, 3) giving the lon, lat, depth location of each subfault.
+    plane_infos : List[Dict]
+        A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True.
+    locations : np.ndarray
+        An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for.
+    type : int, optional
+        Allows switching between the two GC types if desired. Default is 2.
+    hypocentre_origin : bool, optional
+        If True, sets the Ry origin/0 point to the fault trace projection of the hypocentre. If False, the most upstrike subfault of the first fault trace is used. Only used for GC2.
+
+    Returns
+    -------
+    np.ndarray
+        An array with shape (m, 2) giving the Rx, Ry values for each of the given locations.
     """
+
     if type == 1:
         return calc_rx_ry_GC1(srf_points, plane_infos, locations)
     elif type == 2:
@@ -107,12 +119,22 @@ def calc_rx_ry_GC1(
     srf_points: np.ndarray, plane_infos: List[Dict], locations: np.ndarray
 ):
     """
-    Calculates Rx and Ry distances using the cross track and along track distance calculations
-    Uses the plane nearest to each of the given locations if there are multiple
-    :param srf_points: An array with shape (n, 3) giving the lon, lat, depth location of each subfault
-    :param plane_infos: A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True
-    :param locations: An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for
-    :return: An array with shape (m, 2) giving the Rx, Ry values for each of the given locations
+    Calculates Rx and Ry distances using the cross track and along track distance calculations.
+    Uses the plane nearest to each of the given locations if there are multiple.
+
+    Parameters
+    ----------
+    srf_points : np.ndarray
+        An array with shape (n, 3) giving the lon, lat, depth location of each subfault.
+    plane_infos : List[Dict]
+        A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True.
+    locations : np.ndarray
+        An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for.
+
+    Returns
+    -------
+    np.ndarray
+        An array with shape (m, 2) giving the Rx, Ry values for each of the given locations.
     """
     r_x = np.empty(locations.shape[0])
     r_y = np.empty(locations.shape[0])
@@ -183,21 +205,32 @@ def calc_rx_ry_GC2(
     srf_points: np.ndarray,
     plane_infos: List[Dict],
     locations: np.ndarray,
-    hypocentre_origin=False,
+    hypocentre_origin: Optional[bool] = False,
 ):
     """
-    Calculates Rx and Ry distances using the cross track and along track distance calculations
-    If there are multiple fault planes the Rx, Ry values are calculated for each fault plane individually, then weighted
-    according to plane length and distance to the location
-    For one fault plane this is the same as the GC1 function
-    Wrapper that calls calc_rx_ry_GC2_multi_hypocentre
-    :param srf_points: An array with shape (n, 3) giving the lon, lat, depth location of each subfault
-    :param plane_infos: A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True
-    :param locations: An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for
-    :param hypocentre_origin: If True sets the Ry origin/0 point to the fault trace projection of the hypocentre. If
-    false the most upstrike subfault of the first fault trace is used
-    :return: An array with shape (m, 2) giving the Rx, Ry values for each of the given locations
+    Calculates Rx and Ry distances using the cross track and along track distance calculations.
+    If there are multiple fault planes, the Rx, Ry values are calculated for each fault plane individually, then weighted
+    according to plane length and distance to the location.
+    For one fault plane, this is the same as the GC1 function.
+    Wrapper that calls calc_rx_ry_GC2_multi_hypocentre.
+
+    Parameters
+    ----------
+    srf_points : np.ndarray
+        An array with shape (n, 3) giving the lon, lat, depth location of each subfault.
+    plane_infos : List[Dict]
+        A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True.
+    locations : np.ndarray
+        An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for.
+    hypocentre_origin : bool, optional
+        If True, sets the Ry origin/0 point to the fault trace projection of the hypocentre. If False, the most upstrike subfault of the first fault trace is used. Only used for GC2.
+
+    Returns
+    -------
+    np.ndarray
+        An array with shape (m, 2) giving the Rx, Ry values for each of the given locations.
     """
+
     origin_offset = 0
     # Changes the offset from the centre if hypocentre_origin is specified
     # Is extracted from the plane_infos
@@ -221,20 +254,30 @@ def calc_rx_ry_GC2_multi_hypocentre(
     srf_points: np.ndarray,
     plane_infos: List[Dict],
     locations: np.ndarray,
-    origin_offsets: np.ndarray = np.asarray([0]),
+    origin_offsets: Optional[np.ndarray] = np.asarray([0]),
 ):
     """
     Vectorised version of the GC2 calculation along multiple hypocentre locations.
-    Calculates Rx and Ry distances using the cross track and along track distance calculations
-    If there are multiple fault planes the Rx, Ry values are calculated for each fault plane individually, then weighted
-    according to plane length and distance to the location
-    For one fault plane this is the same as the GC1 function
-    :param srf_points: An array with shape (n, 3) giving the lon, lat, depth location of each subfault
-    :param plane_infos: A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True
-    :param locations: An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for
-    :param origin_offsets: An array with shape (o) with the along strike hypocentre locations from the centre of
-    the fault for multiple realisations. If not set then only one origin will be considered at the centre position.
-    :return: Two arrays with shape (o, m) giving the Rx, Ry values for each of the given locations for each hypocentre
+    Calculates Rx and Ry distances using the cross track and along track distance calculations.
+    If there are multiple fault planes, the Rx, Ry values are calculated for each fault plane individually, then weighted
+    according to plane length and distance to the location.
+    For one fault plane, this is the same as the GC1 function.
+
+    Parameters
+    ----------
+    srf_points : np.ndarray
+        An array with shape (n, 3) giving the lon, lat, depth location of each subfault.
+    plane_infos : List[Dict]
+        A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True.
+    locations : np.ndarray
+        An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for.
+    origin_offsets : np.ndarray, optional
+        An array with shape (o) with the along strike hypocentre locations from the centre of the fault for multiple realisations. If not set, then only one origin will be considered at the centre position.
+
+    Returns
+    -------
+    np.ndarray
+        Two arrays with shape (o, m) giving the Rx, Ry values for each of the given locations for each hypocentre.
     """
     # Separate the srf points into the different plane traces
     pnt_counts = [plane["nstrike"] * plane["ndip"] for plane in plane_infos]
@@ -285,13 +328,19 @@ def calc_backarc(srf_points: np.ndarray, locations: np.ndarray):
     https://user-images.githubusercontent.com/25143301/111406807-ce5bb600-8737-11eb-9c78-b909efe7d9db.png
     https://user-images.githubusercontent.com/25143301/111408728-93a74d00-873a-11eb-9afa-5e8371ee2504.png
 
-    srf_points: np.ndarray
+    Parameters
+    ----------
+    srf_points : np.ndarray
         The fault points from the srf file (qcore, srf.py, read_srf_points),
-        format (lon, lat, depth)
-    locations: np.ndarray
+        format (lon, lat, depth).
+    locations : np.ndarray
         The locations for which to calculate the distances,
-        format (lon, lat, depth)
-    :return: a numpy array returning 0 if the station is on the forearc and 1 if the station is on the backarc
+        format (lon, lat, depth).
+
+    Returns
+    -------
+    np.ndarray
+        A numpy array returning 0 if the station is on the forearc and 1 if the station is on the backarc.
     """
     n_locations = locations.shape[0]
     backarc = np.zeros(n_locations, dtype=np.int)
