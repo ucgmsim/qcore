@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 import matplotlib.path as mpltPath
 import numpy as np
@@ -13,7 +13,7 @@ def calc_rrup_rjb(
     srf_points: np.ndarray,
     locations: np.ndarray,
     n_stations_per_iter: int = 1000,
-    return_rrup_points: Optional[bool] = False,
+    return_rrup_points: bool = False,
 ):
     """Calculates rrup and rjb distance
 
@@ -80,8 +80,8 @@ def calc_rx_ry(
     srf_points: np.ndarray,
     plane_infos: List[Dict],
     locations: np.ndarray,
-    hypocentre_origin: Optional[bool] = False,
-    type: Optional[int] = 2,
+    hypocentre_origin: bool = False,
+    type: int = 2,
 ):
     """
     A wrapper script allowing external function calls to resolve to the correct location.
@@ -205,7 +205,7 @@ def calc_rx_ry_GC2(
     srf_points: np.ndarray,
     plane_infos: List[Dict],
     locations: np.ndarray,
-    hypocentre_origin: Optional[bool] = False,
+    hypocentre_origin: bool = False,
 ):
     """
     Calculates Rx and Ry distances using the cross track and along track distance calculations.
@@ -254,7 +254,7 @@ def calc_rx_ry_GC2_multi_hypocentre(
     srf_points: np.ndarray,
     plane_infos: List[Dict],
     locations: np.ndarray,
-    origin_offsets: Optional[np.ndarray] = np.asarray([0]),
+    origin_offsets: np.ndarray = np.asarray([0]),
 ):
     """
     Vectorised version of the GC2 calculation along multiple hypocentre locations.
