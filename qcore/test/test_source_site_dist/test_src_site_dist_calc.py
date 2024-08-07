@@ -113,10 +113,10 @@ def test_calc_rx_ry(sample_name):
     locations = np.load(os.path.join(root_path, INPUT, function + "_locations.npy"))
 
     out_rx = np.load(os.path.join(root_path, OUTPUT, function + "_rx.npy"))
-    out_ry = np.asarray([-711.41646299])
+    #out_ry = np.asarray([-711.41646299])
     # below is the original line.
     # replaced by https://github.com/ucgmsim/IM_calculation/commit/c5ff32c10a85c23d6503bdaebdf4dfaaf2ee6bf8
-    # out_ry = np.load(os.path.join(root_path, OUTPUT, function + "_ry.npy"))
+    out_ry = np.load(os.path.join(root_path, OUTPUT, function + "_ry.npy"))
 
     rx, ry = ssd.calc_rx_ry(srf_points, srf_header, locations)
 
