@@ -24,7 +24,7 @@ def set_up(request):
     test_data_save_dirs = []
     for i, (REALISATION, DATA_DOWNLOAD_PATH) in enumerate(REALISATIONS):
 
-        data_store_path = os.path.join(os.getcwd(), "sample" + str(i))
+        data_store_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample" + str(i))
         zip_download_path = os.path.join(data_store_path, REALISATION + ".zip")
 
         download_cmd = "wget --no-check-certificate -O {} \"{}\"".format(zip_download_path, DATA_DOWNLOAD_PATH)
@@ -51,7 +51,7 @@ def set_up(request):
                 sys.exit("{} failed to extract data folder".format(err))
 
         else:
-            print("Benchmark data folder already exits: ", data_store_path)
+            print("Benchmark data folder already exists: ", data_store_path)
 
     # Run all tests
     yield test_data_save_dirs
