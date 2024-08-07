@@ -35,9 +35,8 @@ pipeline {
                     cd ${env.WORKSPACE}
                     echo "[ Installing ${env.JOB_NAME} ]"
                     python setup.py install
-                    echo "[ Linking test data ]"
-                    cd ${env.JOB_NAME}/test
                     echo "[ Run test now ]"
+                    cd ${env.JOB_NAME}/test
                     pytest -s
                 """
             }
