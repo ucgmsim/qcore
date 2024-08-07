@@ -7,13 +7,14 @@ import numpy as np
 import pytest
 
 from qcore import geo, src_site_dist as ssd
-from qcore import shared
 
 INPUT = "input"
 OUTPUT = "output"
 
+SAMPLE_NAMES = [("sample0")]
 
-@pytest.mark.parametrize("sample_name", [("sample0")])
+
+@pytest.mark.parametrize("sample_name", SAMPLE_NAMES)
 def test_calc_rrub_rjb(sample_name):
     function = "calc_rrup_rjb"
 
@@ -97,7 +98,7 @@ def test_calc_rx_ry_basic(srf_points, srf_header, station_location, rx_bench, ry
     assert np.all(np.isclose(ry, ry_bench, rtol=RELATIVE_TOLERANCE))
 
 
-@pytest.mark.parametrize("sample_name", [("sample0")])
+@pytest.mark.parametrize("sample_name", SAMPLE_NAMES)
 def test_calc_rx_ry(sample_name):
     function = "calc_rx_ry"
 
