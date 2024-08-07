@@ -26,10 +26,11 @@ def set_up(request):
 
         data_store_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample" + str(i))
         zip_download_path = os.path.join(data_store_path, REALISATION + ".zip")
+        print(f"Downloading {DATA_DOWNLOAD_PATH} to {zip_download_path}")
 
         download_cmd = "wget --no-check-certificate -O {} \"{}\"".format(zip_download_path, DATA_DOWNLOAD_PATH)
         unzip_cmd = "unzip {} -d {}".format(zip_download_path, data_store_path)
-        # print(DATA_STORE_PATH)
+        print(data_store_path)
         test_data_save_dirs.append(data_store_path)
         if not os.path.isdir(data_store_path):
             os.makedirs(data_store_path, exist_ok=True)
