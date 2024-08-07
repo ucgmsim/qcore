@@ -37,10 +37,6 @@ pipeline {
                     python setup.py install
                     echo "[ Linking test data ]"
                     cd ${env.JOB_NAME}/test
-                    rm -rf sample0
-                    mkdir sample0
-#                    ln -s /home/qcadmin/data/testing/${env.JOB_NAME}/sample0/input sample0
-#                    ln -s /home/qcadmin/data/testing/${env.JOB_NAME}/sample0/output sample0
                     echo "[ Run test now ]"
                     pytest -s
                 """
