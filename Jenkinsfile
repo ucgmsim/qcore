@@ -36,7 +36,7 @@ pipeline {
                     echo "[ Installing ${env.JOB_NAME} ]"
                     python setup.py install
                     echo "[ Run test now ]"
-                    cd qcore/test
+                    cd ${env.JOB_NAME}/test
                     pytest -s
                 """
             }
