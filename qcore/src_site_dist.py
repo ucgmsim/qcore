@@ -1,3 +1,8 @@
+"""
+Originally written form IM_calculation, but is relocated and modified for qcore.
+History of this file:
+https://github.com/ucgmsim/IM_calculation/commits/afa9bf02d5e197300e3a91f87a9136b4ebcabd62/IM_calculation/source_site_dist/src_site_dist.py
+"""
 from typing import List, Dict
 
 import matplotlib.path as mpltPath
