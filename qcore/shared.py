@@ -31,10 +31,10 @@ def get_stations(
     -------
     stations : list[str]
         A list of station names in the file.
-    longitudes : list[float], if locations is True
-        The longitudes of the stations.
     latitudes : list[float], if locations is True
         The latitudes of the stations.
+    longitudes : list[float], if locations is True
+        The longitudes of the stations.
     """
     stations = pd.read_csv(
         station_ffp,
@@ -49,8 +49,8 @@ def get_stations(
         return stations["station"].to_list()
     return (
         stations["station"].to_list(),
-        stations["longitude"].to_list(),
         stations["latitude"].to_list(),
+        stations["longitude"].to_list(),
     )
 
 
