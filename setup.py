@@ -18,6 +18,7 @@ setup(
         "dataclasses",
         "alphashape",
         "descartes",
+        "pandas",
         "pyproj",
         "shapely",
         "numba",
