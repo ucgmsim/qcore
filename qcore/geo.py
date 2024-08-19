@@ -289,7 +289,7 @@ def gp2ll_multi(
         )[0].decode()
 
     # lon, lat
-    return [list(map(float, line.split())) for line in stdout.rstrip().split("\n")]
+    return [list(map(float, line.split())) for line in stdout.rstrip().split("\n") if len(line)>0] #prevents [[]]
 
 
 def gp2ll(
