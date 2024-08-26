@@ -149,7 +149,7 @@ def ll2gp_multi(
 
 def oriented_bearing_wrt_normal(
     from_direction: np.ndarray, to_direction: np.ndarray, normal: np.ndarray
-) -> float:
+) -> np.float64:
     """Compute the oriented bearing between two directions with respect to a normal.
 
     This function is useful to calculate, for example, strike and dip
