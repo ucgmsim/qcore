@@ -1,6 +1,6 @@
 import os
-from setuptools import setup
 
+from setuptools import setup
 
 setup(
     name="qcore",
@@ -13,7 +13,7 @@ setup(
     },
     include_package_data=True,
     install_requires=[
-        "numpy",
+        "numpy<2",
         "scipy>=0.16",
         "dataclasses",
         "alphashape",
