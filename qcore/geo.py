@@ -199,7 +199,7 @@ def oriented_bearing_wrt_normal(
     to_dir_hat = to_direction / np.linalg.norm(to_direction)
     angle_signed = np.arccos(np.dot(from_dir_hat, to_dir_hat))
     orientation = np.sign(np.dot(np.cross(from_direction, to_direction), normal))
-    return np.degrees(angle_signed * orientation) % 360
+    return np.degrees(angle_signed * (orientation or 1)) % 360
 
 
 def ll2gp(
@@ -878,7 +878,6 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
 def oriented_bounding_planes(
     plane_dual_coordinates: np.ndarray, plane_corners: np.ndarray
 ) -> List[np.ndarray]:
-
     plane_centroid = np.average(plane_corners, axis=0)
     # For each side of the plane p1, we construct a plane orthogonal to p1
     # passing through the side.
