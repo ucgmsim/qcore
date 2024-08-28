@@ -7,7 +7,7 @@ Functions
 - wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
     Converts WGS84 coordinates (latitude, longitude, depth) to NZTM coordinates.
 - nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
-    Converts NZTM coordinates (x, y, depth) to WGS84 coordinates.
+    Converts NZTM coordinates (y, x, depth) to WGS84 coordinates.
 
 References
 ----------
@@ -44,7 +44,13 @@ def wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
     -------
     np.ndarray
         An array with the same shape as wgs_depth_coordinates containing NZTM
-        coordinates x, y and, optionally, depth.
+        coordinates y, x and, optionally, depth.
+
+    Raises
+    ------
+    ValueError
+        If the given coordinates are not in the valid range to be converted
+        to NZTM coordinates.
 
     Examples
     --------
@@ -56,7 +62,13 @@ def wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
     array([[5.92021456e+06, 1.75731133e+06, 1.00000000e+02],
            [5.42725716e+06, 1.74893148e+06, 0.00000000e+00]])
     """
-    return np.array(_WGS2NZTM.transform(*wgs_depth_coordinates.T)).T
+    nztm_coordinates = np.array(_WGS2NZTM.transform(*wgs_depth_coordinates.T)).T
+    if not np.all(np.isfinite(nztm_coordinates)):
+        raise ValueError(
+            "Latitude and longitude coordinates given are invalid (did you input lon, lat instead of lat, lon?)"
+        )
+
+    return nztm_coordinates
 
 
 def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
@@ -67,13 +79,18 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
     ----------
     nztm_coordinates : np.ndarray
         An array of shape (N, 3), (N, 2), (2,) or (3,) containing NZTM
-        coordinates x, y and, optionally, depth.
+        coordinates y, x and, optionally, depth.
 
     Returns
     -------
     np.ndarray
         An array with the same shape as nztm_coordinates containing WGS84
         coordinates latitude, longitude and, optionally, depth.
+
+    Raises
+    ------
+    ValueError
+        If the given NZTM coordinates are not valid.
 
     Examples
     --------
@@ -85,7 +102,12 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
                                  [5.42725716e+06, 1.74893148e+06, 0]]))
     array([[-36.8509, 174.7645, 100], [-41.2924, 174.7787, 100]])
     """
-    return np.array(_NZTM2WGS.transform(*nztm_coordinates.T)).T
+    wgs_coordinates = np.array(_NZTM2WGS.transform(*nztm_coordinates.T)).T
+    if not np.all(np.isfinite(wgs_coordinates)):
+        raise ValueError(
+            "NZTM coordinates given are invalid (did you input x, y instead of y, x?)"
+        )
+    return wgs_coordinates
 
 
 def distance_between_wgs_depth_coordinates(
