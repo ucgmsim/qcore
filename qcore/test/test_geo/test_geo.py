@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 import scipy as sp
+from hypothesis import given
+from hypothesis import strategies as st
 
 from qcore import geo
 from qcore.test.tool import utils
@@ -92,6 +94,22 @@ def test_ll_shift(
 )
 def test_avg_wbearing(test_angles, output_degrees):
     assert geo.avg_wbearing(test_angles) == output_degrees
+
+
+@given(target_bearing=st.floats(0, 360))
+def test_oriented_bearing_wrt_normal(target_bearing: float):
+    to_direction = np.array(
+        [np.cos(np.radians(target_bearing)), np.sin(np.radians(target_bearing)), 0]
+    )
+    from_direction = np.array([1, 0, 0])
+    up_direction = np.array([0, 0, 1])
+    calculated_bearing = geo.oriented_bearing_wrt_normal(
+        from_direction, to_direction, up_direction
+    )
+    assert (calculated_bearing == pytest.approx(target_bearing, abs=0.1)) or (
+        target_bearing == pytest.approx(360, abs=0.1)
+        and calculated_bearing == pytest.approx(0, abs=0.1)
+    )
 
 
 @pytest.mark.parametrize(
