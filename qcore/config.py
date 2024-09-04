@@ -73,7 +73,7 @@ def determine_machine_config(hostname: str = node()) -> Tuple[str, str]:
     config_path = Path(__file__).resolve().parent / "configs" / basename
     return machine, str(config_path)
 
-# TODO:  For Python > 3.9, use Optional[Path | str]
+# TODO:  Use  Optional[Path | str] if Maui and Nurion support newer Python (3.10+)
 def get_machine_config(
     hostname: str = node(), config_path: Optional[Union[Path, str]] = None
 ) -> ConfigDict:
