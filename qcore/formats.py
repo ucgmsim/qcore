@@ -160,7 +160,7 @@ def load_generic_station_file(
     lat_col: column index of lat (default 1 for .ll file)
     other_cols : column indices of other columns to load eg eg. [3,5,6]
     other_names : column names of other_cols eg. ["vs30","z1p0","z2p5"]
-    sep : delimiter (by default "\s+" (whitespace) for .ll file
+    sep : delimiter (by default "\\s+" (whitespace) for .ll file
     skiprows : number of rows to skip (if header rows exist)
 
     Returns
