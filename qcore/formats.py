@@ -144,7 +144,7 @@ def load_generic_station_file(
     lat_col: int = 1,
     other_cols=[],
     other_names=[],
-    sep="\s+",
+    sep=r"\s+",
     skiprows=0,
 ):
     """
@@ -220,7 +220,7 @@ def load_vs30_file(vs30_file: str):
     :return: pd.DataFrame
         station as index and columns vs30
     """
-    return pd.read_csv(vs30_file, sep="\s+", index_col=0, header=None, names=["vs30"])
+    return pd.read_csv(vs30_file, sep=r"\s+", index_col=0, header=None, names=["vs30"])
 
 
 def load_z_file(z_file: str):
