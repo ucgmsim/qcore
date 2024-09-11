@@ -144,7 +144,7 @@ def load_generic_station_file(
     lat_col: int = 1,
     other_cols=[],
     other_names=[],
-    sep="\s+",
+    sep=r"\s+",
     skiprows=0,
 ):
     """
@@ -160,7 +160,7 @@ def load_generic_station_file(
     lat_col: column index of lat (default 1 for .ll file)
     other_cols : column indices of other columns to load eg eg. [3,5,6]
     other_names : column names of other_cols eg. ["vs30","z1p0","z2p5"]
-    sep : delimiter (by default "\s+" (whitespace) for .ll file
+    sep : delimiter (by default "\\s+" (whitespace) for .ll file
     skiprows : number of rows to skip (if header rows exist)
 
     Returns
@@ -220,7 +220,7 @@ def load_vs30_file(vs30_file: str):
     :return: pd.DataFrame
         station as index and columns vs30
     """
-    return pd.read_csv(vs30_file, sep="\s+", index_col=0, header=None, names=["vs30"])
+    return pd.read_csv(vs30_file, sep=r"\s+", index_col=0, header=None, names=["vs30"])
 
 
 def load_z_file(z_file: str):
