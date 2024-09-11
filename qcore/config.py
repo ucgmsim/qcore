@@ -27,7 +27,7 @@ from enum import Enum, auto
 from json import load
 from pathlib import Path
 from platform import node
-from typing import Optional, Tuple, TypedDict
+from typing import Optional, Tuple, TypedDict, Union
 
 
 class ConfigDict(TypedDict):
@@ -43,7 +43,7 @@ class ConfigDict(TypedDict):
 
 MACHINE_MAPPINGS = {
     r"ni\d{4}|maui.*": "maui",
-    r"wb\d{4}|mahuika.*": "mahuika",
+    r"wb\d{4}|wmc\d{3}|mahuika.*": "mahuika",
     r".*stampede.*": "stampede2",
     r"(login|node|nurion).*": "nurion",
 }
@@ -75,7 +75,7 @@ def determine_machine_config(hostname: str = node()) -> Tuple[str, str]:
 
 
 def get_machine_config(
-    hostname: str = node(), config_path: Optional[Path | str] = None
+    hostname: str = node(), config_path: Optional[Union[Path, str]] = None
 ) -> ConfigDict:
     """Get the current machine config.
 
