@@ -41,9 +41,15 @@ class ConfigDict(TypedDict):
     MAX_CH_PER_JOB: int
 
 
+# Mahuika partitions node names (maybe not complete. obtained from squeue output)
+# - long/large: wbnXXX
+# - bigmem: wblXXX
+# - hugemem: wclXXX, wbhXXX, wchXXX
+# - milan: wmlXXX, wmcXXX
+
 MACHINE_MAPPINGS = {
     r"ni\d{4}|maui.*": "maui",
-    r"wb\d{4}|wmc\d{3}|mahuika.*": "mahuika",
+    r"wbn\d{3}|wbl\d{3}|wcl\d{3}|wbh\d{3}|wch\d{3}|wmc\d{3}|wml\d{3}|mahuika.*": "mahuika",
     r".*stampede.*": "stampede2",
     r"(login|node|nurion).*": "nurion",
 }
@@ -72,6 +78,7 @@ def determine_machine_config(hostname: str = node()) -> Tuple[str, str]:
 
     config_path = Path(__file__).resolve().parent / "configs" / basename
     return machine, str(config_path)
+
 
 # TODO:  Use  Optional[Path | str] if Maui and Nurion support newer Python (3.10+)
 def get_machine_config(
