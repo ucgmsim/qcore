@@ -142,7 +142,7 @@ def distance_between_wgs_depth_coordinates(
     return np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
 
 
-def nztm_bearing_correction(
+def nztm_bearing_to_great_circle_bearing(
     origin: np.ndarray, distance: float, nztm_bearing: float
 ) -> float:
     """Correct a NZTM bearing to match a great circle bearing.
@@ -178,8 +178,8 @@ def nztm_bearing_correction(
     return geo.ll_bearing(*origin[::-1], *nztm_heading[::-1])
 
 
-def ll_bearing_correction(
-    origin: np.ndarray, distance: float, ll_bearing: float
+def great_circle_bearing_to_nztm_bearing(
+    origin: np.ndarray, distance: float, great_circle_bearing: float
 ) -> float:
     """Correct a great circle bearing to match a NZTM bearing.
 
@@ -205,10 +205,14 @@ def ll_bearing_correction(
         The equivalent bearing such that:
         `geo.ll_shift`(*`origin`, `distance`, `ll_bearing`) ≅ nztm_heading.
     """
-    ll_heading = np.array(geo.ll_shift(*origin, distance, ll_bearing))
+    great_circle_heading = np.array(
+        geo.ll_shift(*origin, distance, great_circle_bearing)
+    )
 
     return geo.oriented_bearing_wrt_normal(
         np.array([1, 0, 0]),
-        np.append(wgs_depth_to_nztm(ll_heading) - wgs_depth_to_nztm(origin), 0),
+        np.append(
+            wgs_depth_to_nztm(great_circle_heading) - wgs_depth_to_nztm(origin), 0
+        ),
         np.array([0, 0, 1]),
     )
