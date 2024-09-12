@@ -22,6 +22,8 @@ from typing import Union
 import numpy as np
 import pyproj
 
+from qcore import geo
+
 # Module level conversion constants for internal use only.
 _WGS_CODE = 4326
 _NZTM_CODE = 2193
@@ -138,3 +140,79 @@ def distance_between_wgs_depth_coordinates(
             wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=1
         )
     return np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
+
+
+def nztm_bearing_to_great_circle_bearing(
+    origin: np.ndarray, distance: float, nztm_bearing: float
+) -> float:
+    """Correct a NZTM bearing to match a great circle bearing.
+
+    This function can be used to translate bearings computed from NZTM
+    coordinates into equivalent bearings in great-circle geometry.
+    Primarily useful in ensuring tools like NZVM and EMOD3D agree on
+    domain corners with newer code using NZTM. This correction is
+    larger as the origin moves farther south, as the nztm bearing varies,
+    and (slightly) as distance increases.
+
+    Parameters
+    ----------
+    origin : np.ndarray
+        The origin point to compute the bearing from.
+    distance : float
+        The distance to shift.
+    nztm_bearing : float
+        The NZTM bearing for the final point.
+
+    Returns
+    -------
+    float
+        The equivalent bearing such that:
+        `geo.ll_shift`(*`origin`, `distance`, bearing) ≅ `nztm_heading`.
+    """
+    nztm_heading = nztm_to_wgs_depth(
+        wgs_depth_to_nztm(origin)
+        + distance
+        * 1000
+        * np.array([np.cos(np.radians(nztm_bearing)), np.sin(np.radians(nztm_bearing))])
+    )
+    return geo.ll_bearing(*origin[::-1], *nztm_heading[::-1])
+
+
+def great_circle_bearing_to_nztm_bearing(
+    origin: np.ndarray, distance: float, great_circle_bearing: float
+) -> float:
+    """Correct a great circle bearing to match a NZTM bearing.
+
+    This function can be used to translate bearings computed from
+    great-circle geometry to equivalent bearings in NZTM coordinates.
+    Primarily useful in ensuring tools like NZVM and EMOD3D agree on
+    domain corners with newer code using NZTM. This correction is
+    larger as the origin moves farther south, as the nztm bearing
+    varies, and (slightly) as distance increases.
+
+    Parameters
+    ----------
+    origin : np.ndarray
+        The origin point to compute the bearing from.
+    distance : float
+        The distance to shift.
+    ll_bearing : float
+        The great circle bearing for the final point.
+
+    Returns
+    -------
+    float
+        The equivalent bearing such that:
+        `geo.ll_shift`(*`origin`, `distance`, `ll_bearing`) ≅ nztm_heading.
+    """
+    great_circle_heading = np.array(
+        geo.ll_shift(*origin, distance, great_circle_bearing)
+    )
+
+    return geo.oriented_bearing_wrt_normal(
+        np.array([1, 0, 0]),
+        np.append(
+            wgs_depth_to_nztm(great_circle_heading) - wgs_depth_to_nztm(origin), 0
+        ),
+        np.array([0, 0, 1]),
+    )
