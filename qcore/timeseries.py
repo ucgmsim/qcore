@@ -758,7 +758,7 @@ class BBSeis:
         # read header - strings
         self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(
             bbf, count=3, dtype="|S256"
-        ).astype(np.unicode_)
+        ).astype(np.str_)
 
         # load station info
         bbf.seek(self.HEAD_SIZE)
