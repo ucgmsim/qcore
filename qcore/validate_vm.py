@@ -185,15 +185,17 @@ def validate_vm_files(vm_dir: str, srf: str = None):
     return True, ""
 
 
-def validate_vm_bounds(polygon: np.array, srf_bounds: Optional[npt.ArrayLike] = []):
+def validate_vm_bounds(
+    polygon: npt.ArrayLike, srf_bounds: Optional[npt.ArrayLike] = []
+):
     """
     Validates the VM domain against the DEM and the srf bounds
 
     Parameters
     ----------
-    polygon : np.array
+    polygon : np.ndarray or list/tuple
         Corners of the VM domain. Formatted as [[lon, lat], [lon, lat], [lon, lat], [lon, lat]]
-    srf_bounds : np.ndarray , list etc, optional
+    srf_bounds : np.ndarray or list/tuple, optional
         Corners of SRF planes. Can be multiple planes,  Formatted as [plane1, plane2,...] where plane1=[[lon,lat],[lon,lat],[lon,lat],[lon,lat]]
 
     Returns
