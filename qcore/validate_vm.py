@@ -16,10 +16,14 @@ fi
 
 import argparse
 from pathlib import Path
+from typing import Optional
 
 import matplotlib.path as mpltPath
 import numpy as np
+import numpy.typing as npt
+from shapely.geometry import Point, Polygon
 
+from qcore import coordinates
 from qcore.utils import load_yaml
 from qcore.constants import VM_PARAMS_FILE_NAME, VMParams
 from qcore.srf import get_bounds
@@ -181,37 +185,42 @@ def validate_vm_files(vm_dir: str, srf: str = None):
     return True, ""
 
 
-def validate_vm_bounds(polygon, srf_bounds=None):
+def validate_vm_bounds(polygon: np.array, srf_bounds: Optional[npt.ArrayLike] = []):
     """
     Validates the VM domain against the DEM and the srf bounds
-    :param polygon: A list of (lon, lat) tuples giving the corners of the VM
-    :param srf: A list of (lon, lat) tuples giving the corners of the VM. Not used if None
-    :return: A list of error messages resulting from this validation
+
+    Parameters
+    ----------
+    polygon : np.array
+        Corners of the VM domain. Formatted as [[lon, lat], [lon, lat], [lon, lat], [lon, lat]]
+    srf_bounds : np.ndarray , list etc, optional
+        Corners of SRF planes. Can be multiple planes,  Formatted as [plane1, plane2,...] where plane1=[[lon,lat],[lon,lat],[lon,lat],[lon,lat]]
+
+    Returns
+    -------
+    A list of error messages resulting from this validation
     """
+
     errors = []
 
     for lon, lat in polygon:
         if lon < MIN_LON or lon > MAX_LON or lat < MIN_LAT or lat > MAX_LAT:
             errors.append(f"VM extents not contained within NZVM DEM: {lon}, {lat}")
-    # Check SRF is within bounds of the VM if it is given
-    if srf_bounds is not None:
-        edges = []
-        for index, start_point in enumerate(polygon):
-            end_point = polygon[(index + 1) % len(polygon)]
-            lons = (
-                np.linspace(
-                    start_point[0],
-                    end_point[0],
-                    int(max(ll_dist(*start_point, *end_point), 3)),
-                )
-                % 360
-            )
-            lats = compute_intermediate_latitudes(start_point, end_point, lons)
-            edges.extend(list(zip(lons, lats)))
-        path = mpltPath.Path(edges)
-        for bounds in srf_bounds:
-            if not all(path.contains_points(bounds)):
-                errors.append("Srf extents not contained within velocity model corners")
+
+    vm_polygon = Polygon(
+        coordinates.wgs_depth_to_nztm(
+            np.array(polygon)[:, [1, 0]]
+        )  # [lon, lat] to [lat, lon]
+    )
+
+    all_inside = all(
+        vm_polygon.contains(Point(coordinates.wgs_depth_to_nztm(np.array([lat, lon]))))
+        for plane in srf_bounds
+        for lon, lat in plane
+    )
+    if not all_inside:
+        errors.append("Srf extents not contained within velocity model corners")
+
     return errors
 
 
