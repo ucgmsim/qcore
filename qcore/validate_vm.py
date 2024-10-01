@@ -209,19 +209,22 @@ def validate_vm_bounds(
         if lon < MIN_LON or lon > MAX_LON or lat < MIN_LAT or lat > MAX_LAT:
             errors.append(f"VM extents not contained within NZVM DEM: {lon}, {lat}")
 
-    vm_polygon = Polygon(
-        coordinates.wgs_depth_to_nztm(
-            np.array(polygon)[:, [1, 0]]
-        )  # [lon, lat] to [lat, lon]
-    )
+    if len(srf_bounds) > 0:
+        vm_polygon = Polygon(
+            coordinates.wgs_depth_to_nztm(
+                np.array(polygon)[:, [1, 0]]
+            )  # [lon, lat] to [lat, lon]
+        )
 
-    all_inside = all(
-        vm_polygon.contains(Point(coordinates.wgs_depth_to_nztm(np.array([lat, lon]))))
-        for plane in srf_bounds
-        for lon, lat in plane
-    )
-    if not all_inside:
-        errors.append("Srf extents not contained within velocity model corners")
+        all_inside = all(
+            vm_polygon.contains(
+                Point(coordinates.wgs_depth_to_nztm(np.array([lat, lon])))
+            )
+            for plane in srf_bounds
+            for lon, lat in plane
+        )
+        if not all_inside:
+            errors.append("Srf extents not contained within velocity model corners")
 
     return errors
 
