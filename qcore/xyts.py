@@ -185,9 +185,9 @@ class XYTSFile:
         # determine endianness, an x-y timeslice has 1 z value
         nz = np.fromfile(xytf, dtype=">i4", count=7)[-1]
         if nz == 0x00000001:
-            endian = ">"
+            self.endian = ">"
         elif nz == 0x01000000:
-            endian = "<"
+            self.endian = "<"
         else:
             xytf.close()
             raise ValueError("File is not an XY timeslice file: %s" % (xyts_path))
@@ -195,11 +195,11 @@ class XYTSFile:
 
         # read header
         (self.x0, self.y0, self.z0, self.t0) = np.fromfile(
-            xytf, dtype="%si4" % (endian), count=4
+            xytf, dtype="%si4" % (self.endian), count=4
         )
         if proc_local_file:
             (self.local_nx, self.local_ny, self.local_nz) = np.fromfile(
-                xytf, dtype="%si4" % (endian), count=3
+                xytf, dtype="%si4" % (self.endian), count=3
             )
 
         (
@@ -207,9 +207,9 @@ class XYTSFile:
             self.ny,
             self.nz,
             self.nt,
-        ) = np.fromfile(xytf, dtype="%si4" % (endian), count=4)
+        ) = np.fromfile(xytf, dtype="%si4" % (self.endian), count=4)
         self.dx, self.dy, self.hh, self.dt, self.mrot, self.mlat, self.mlon = (
-            np.fromfile(xytf, dtype="%sf4" % (endian), count=7)
+            np.fromfile(xytf, dtype="%sf4" % (self.endian), count=7)
         )
         xytf.close()
         # dt is sensitive to float error eg 0.2 stores as 0.199999 (dangerous)
@@ -249,7 +249,7 @@ class XYTSFile:
         if proc_local_file:
             self.data = np.memmap(
                 xyts_path,
-                dtype="%sf4" % (endian),
+                dtype="%sf4" % (self.endian),
                 mode="r",
                 offset=72,
                 shape=(self.nt, len(self.comps), self.local_ny, self.local_nx),
@@ -258,7 +258,7 @@ class XYTSFile:
             # memory map for data section
             self.data = np.memmap(
                 xyts_path,
-                dtype="%sf4" % (endian),
+                dtype="%sf4" % (self.endian),
                 mode="r",
                 offset=60,
                 shape=(self.nt, len(self.comps), self.ny, self.nx),
