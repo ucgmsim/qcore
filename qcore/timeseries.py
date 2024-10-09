@@ -6,18 +6,19 @@ Shared functions to work on time-series.
 """
 
 import base64
-from glob import glob
-from io import BytesIO
 import math
 import os
+from glob import glob
+from io import BytesIO
 from pathlib import Path
-from subprocess import Popen, PIPE
-from typing import Union, Set
+from subprocess import PIPE, Popen
+from typing import Set, Union
+
+import pandas as pd
 
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
 from qcore.formats import load_e3d_par
 from qcore.utils import compare_versions
-
 
 try:
     from scipy.signal import butter, resample
@@ -32,6 +33,7 @@ except NameError:
     pass
 except ImportError:
     from qcore.sosfiltfilt import sosfiltfilt
+
 import numpy as np
 
 rfft = np.fft.rfft
@@ -387,20 +389,8 @@ class LFSeis:
         for i, s in enumerate(self.seis):
             nstats[i] = np.fromfile(s, dtype=self.i4, count=1)
         # container for station data
-        stations = np.rec.array(
-            np.zeros(
-                np.sum(nstats),
-                dtype=[
-                    ("x", "i4"),
-                    ("y", "i4"),
-                    ("z", "i4"),
-                    ("seis_idx", "i4", 2),
-                    ("lat", "f4"),
-                    ("lon", "f4"),
-                    ("name", "|S8"),
-                ],
-            )
-        )
+
+        stations = pd.DataFrame()
         # populate station data from headers
         for i, s in enumerate(self.seis):
             with open(s) as f:
@@ -434,24 +424,27 @@ class LFSeis:
                         }
                     ),
                 )
-            stations_n["seis_idx"][:, 0] = i
-            stations_n["seis_idx"][:, 1] = np.arange(nstats[i])
-            stations[stations_n["stat_pos"]] = stations_n[
-                list(stations_n.dtype.names[1:])
-            ]
-        # protect against duplicated stations between processes
-        # results in too many stations entries created, last ones are empty
-        # important to keep indexes correct, only remove empty items from end
-        if stations.name[-1] == "":
-            stations = stations[: -np.argmin((stations.name == "")[::-1])]
-        # store station names as unicode (python 3 strings)
-        stat_type = stations.dtype.descr
-        stat_type[6] = stat_type[6][0], "U7"
-        self.stations = np.rec.fromrecords(stations, dtype=stat_type)
+                stations_n = pd.DataFrame(
+                    {
+                        "stat_pos": stations_n["stat_pos"],
+                        "x": stations_n["x"],
+                        "y": stations_n["y"],
+                        "z": stations_n["z"],
+                        "seis_file": i,
+                        "seis_idx": np.arange(nstats[i]),
+                        "lat": stations_n["lat"],
+                        "lon": stations_n["lon"],
+                        "name": [name.decode("utf-8") for name in stations_n["name"]],
+                    }
+                )
+                stations_n["seis_file"] = i
+                stations_n["seis_idx"] = np.arange(nstats[i])
+            stations = pd.concat([stations, stations_n])
 
-        self.nstat = self.stations.size
-        # allow indexing by station names
-        self.stat_idx = dict(list(zip(self.stations.name, np.arange(self.nstat))))
+        stations = stations[stations["name"] != ""]
+
+        self.nstat = len(stations)
+        self.stations = stations.set_index("name")
 
         # information for timeseries retrieval
         self.ts_pos = 4 + nstats * self.HEAD_STAT
@@ -472,7 +465,8 @@ class LFSeis:
         Returns timeseries (velocity, cm/s) for station.
         station: station name, must exist
         """
-        file_no, file_idx = self.stations[self.stat_idx[station]]["seis_idx"]
+        file_no = self.stations.loc[station, "seis_file"]
+        file_idx = self.stations.loc[station, "seis_idx"]
         ts = np.empty((self.nt, 3))
         with open(self.seis[file_no], "r") as data:
             data.seek(self.ts_pos[file_no] + file_idx * self.N_COMP * 4)
@@ -523,7 +517,7 @@ class LFSeis:
         if dt is None:
             dt = self.dt
         acc = f == "acc"
-        for s in self.stations.name:
+        for s in self.stations.index:
             self.vel2txt(s, prefix=prefix, title=prefix, dt=dt, acc=acc)
 
 
