@@ -107,7 +107,7 @@ def validate_vm_params(vm_params: str, srf: str = None):
     if srf is not None:
         srf_bounds = get_bounds(srf)
     else:
-        srf_bounds = None
+        srf_bounds = []
     errors.extend(validate_vm_bounds(polygon, srf_bounds))
 
     if errors:
@@ -177,7 +177,7 @@ def validate_vm_files(vm_dir: str, srf: str = None):
         if srf is not None:
             srf_bounds = get_bounds(srf)
         else:
-            srf_bounds = None
+            srf_bounds = []
         errors.extend(validate_vm_bounds(polygon, srf_bounds))
 
     if errors:
