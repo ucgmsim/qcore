@@ -149,7 +149,7 @@ def ll2gp_multi(
 
 def oriented_bearing_wrt_normal(
     from_direction: np.ndarray, to_direction: np.ndarray, normal: np.ndarray
-) -> float:
+) -> np.float64:
     """Compute the oriented bearing between two directions with respect to a normal.
 
     This function is useful to calculate, for example, strike and dip
@@ -199,7 +199,10 @@ def oriented_bearing_wrt_normal(
     to_dir_hat = to_direction / np.linalg.norm(to_direction)
     angle_signed = np.arccos(np.dot(from_dir_hat, to_dir_hat))
     orientation = np.sign(np.dot(np.cross(from_direction, to_direction), normal))
-    return np.degrees(angle_signed * orientation) % 360
+    # If the from_direction ~ +/- to_direction, orientation (and so
+    # bearing) will be zero. The expression (orientation or 1) ensures
+    # that bearings of 180 degrees are handled correctly.
+    return np.degrees(angle_signed * (orientation or 1)) % 360
 
 
 def ll2gp(
@@ -289,7 +292,7 @@ def gp2ll_multi(
         )[0].decode()
 
     # lon, lat
-    return [list(map(float, line.split())) for line in stdout.rstrip().split("\n")]
+    return [list(map(float, line.split())) for line in stdout.rstrip().split("\n") if len(line)>0] #prevents [[]]
 
 
 def gp2ll(
@@ -878,7 +881,6 @@ def orthogonal_plane(pi: np.ndarray, p: np.ndarray, q: np.ndarray) -> np.ndarray
 def oriented_bounding_planes(
     plane_dual_coordinates: np.ndarray, plane_corners: np.ndarray
 ) -> List[np.ndarray]:
-
     plane_centroid = np.average(plane_corners, axis=0)
     # For each side of the plane p1, we construct a plane orthogonal to p1
     # passing through the side.

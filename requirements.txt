@@ -6,3 +6,4 @@ descartes
 pyproj
 shapely
 numba
+hypothesis[numpy]
