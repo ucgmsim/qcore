@@ -244,6 +244,7 @@ def timeseries_to_text(
     edist: float = 0.0,
     az: float = 0.0,
     baz: float = 0.0,
+    title: str = "",
 ):
     """
     Store timeseries data into a text file.
@@ -274,11 +275,13 @@ def timeseries_to_text(
         The azimuth forward A->B in degrees, by default 0.0
     baz : float, optional
         The azimuth backwards B->A in degrees, by default 0.0
+    title : str, optional
+        The optional title added to header
     """
     nt = timeseries.shape[0]
     with open(filename, "wb") as txt:
         # same format strings as fdbin2wcc
-        txt.write(("%-10s %3s\n" % (stat, comp)).encode())
+        txt.write(("%-10s %3s %s\n" % (stat, comp, title)).encode())
         txt.write(
             (
                 "%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n"
@@ -523,8 +526,19 @@ class LFSeis:
         if dt is None:
             dt = self.dt
         acc = f == "acc"
+
+        # prefix is assumed to have directory bit that ends with / and filename prefix
+        # if prefix ends with /, its prefix_filename is empty
+        # otherwise, prefix_filename is the last part of the prefix
+        # eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+        # eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+
+        prefix_chunks=prefix.split("/")
+        prefix_filename = prefix_chunks[-1]
+        prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
+        prefix_dirname.mkdir(parents=True,exist_ok=True)
         for s in self.stations.name:
-            self.vel2txt(s, prefix=prefix, title=prefix, dt=dt, acc=acc)
+            self.vel2txt(s, prefix=prefix, title=prefix_filename, dt=dt, acc=acc)
 
 
 ###
@@ -702,8 +716,18 @@ class HFSeis:
         """
         if dt is None:
             dt = self.dt
+        # prefix is assumed to have directory bit that ends with / and filename prefix
+        # if prefix ends with /, its prefix_filename is empty
+        # otherwise, prefix_filename is the last part of the prefix
+        # eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+        # eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+
+        prefix_chunks=prefix.split("/")
+        prefix_filename = prefix_chunks[-1]
+        prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
+        prefix_dirname.mkdir(parents=True,exist_ok=True)
         for s in self.stations.name:
-            self.acc2txt(s, prefix=prefix, title=prefix, dt=dt)
+            self.acc2txt(s, prefix=prefix, title=prefix_filename, dt=dt)
 
 
 ###
@@ -833,7 +857,7 @@ class BBSeis:
                 timeseries_to_text(
                     c,
                     f"{prefix}{station}.{self.COMP_NAME[i]}",
-                    dt,
+                    self.dt,
                     station,
                     self.COMP_NAME[i],
                     start_sec=self.start_sec,
@@ -850,8 +874,20 @@ class BBSeis:
         For compatibility. Should run slices in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
         """
+        # prefix is assumed to have directory bit that ends with / and filename prefix
+        # if prefix ends with /, its prefix_filename is empty
+        # otherwise, prefix_filename is the last part of the prefix
+        # eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+        # eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+
+        prefix_chunks=prefix.split("/")
+        prefix_filename = prefix_chunks[-1]
+        prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
+        prefix_dirname.mkdir(parents=True,exist_ok=True)
         for s in self.stations.name:
-            self.save_txt(s, prefix=prefix, title=prefix, f=f)
+            self.save_txt(s, prefix=prefix, title=prefix_filename, f=f)
+
+
 
     def save_ll(self, path):
         """
