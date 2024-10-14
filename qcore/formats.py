@@ -300,7 +300,7 @@ def load_fault_selection_file(fault_selection_file):
                     else:
                         count = int(count)
                 elif len(line_parts) == 3:
-                    count = line_parts[1]
+                    count = int(line_parts[1])
                     skip_count = line_parts[2]
                     if skip_count.endswith("r"):
                         skip_count = int(skip_count[:-1])
