@@ -528,13 +528,12 @@ class LFSeis:
         ----------
         prefix : str, optional, default="./"
             The prefix is an output path combined with an optional filename prefix.
-            If prefix ends with /, its prefix_filename is empty, otherwise, prefix_filename is the last part of the prefix
             eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
             eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
-        dt : float, optional
-            The time step of the data, by default None
-        f : str, optional
-            The type of data to save, by default "acc". Options are "acc" and "vel"
+        dt : float, optional, default=None
+            The time step of the data
+        f : str, optional, default="vel"
+            The type of data to save. Options are "acc" and "vel"
         """
 
         if dt is None:
@@ -720,17 +719,13 @@ class HFSeis:
         """
         Creates waveforms in text files for all stations.
 
-        Note: This function is not designed to be used other than for single/debug use.
-        Make a parallel wrapper for any "real" use cases.
-        Produces text files previously done by script called `winbin-aio`.
-        For compatibility. Consecutive file indexes in parallel for performance.
+        Note: For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
 
         Parameters
         ----------
         prefix : str, optional, default="./"
             The prefix is an output path combined with an optional filename prefix.
-            If prefix ends with /, its prefix_filename is empty, otherwise, prefix_filename is the last part of the prefix
             eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
             eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
         dt : float, optional
@@ -889,12 +884,13 @@ class BBSeis:
     def all2txt(self, prefix="./", f="acc"):
         """
         Extracts waveform data from the binary file and produces output in text format.
+        Note: For compatibility. Should run slices in parallel for performance.
+        Slowest part is numpy formating numbers into text and number of lines.
 
         Parameters
         ----------
         prefix : str, optional, default="./"
             The prefix is an output path combined with an optional filename prefix.
-            If prefix ends with /, its prefix_filename is empty, otherwise, prefix_filename is the last part of the prefix
             eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
             eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
         f : str, optional
