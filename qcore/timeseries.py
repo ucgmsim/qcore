@@ -502,10 +502,10 @@ class LFSeis:
         else:
             f = self.vel
         for i, c in enumerate(f(station, dt=dt).T):
-            seis2txt(
+            timeseries_to_text(
                 c,
+                f"{prefix}{station}.{self.COMP_NAME[i]}",
                 dt,
-                prefix,
                 station,
                 self.COMP_NAME[i],
                 start_sec=self.start_sec,
@@ -683,10 +683,10 @@ class HFSeis:
             dt = self.dt
         stat_idx = self.stat_idx[station]
         for i, c in enumerate(self.acc(station, dt=dt).T):
-            seis2txt(
+            timeseries_to_text(
                 c,
+                f"{prefix}{station}.{self.COMP_NAME[i]}",
                 dt,
-                prefix,
                 station,
                 self.COMP_NAME[i],
                 start_sec=self.start_sec,
@@ -758,7 +758,7 @@ class BBSeis:
         # read header - strings
         self.lf_dir, self.lf_vm, self.hf_file = np.fromfile(
             bbf, count=3, dtype="|S256"
-        ).astype(np.str_)
+        ).astype(np.unicode_)
 
         # load station info
         bbf.seek(self.HEAD_SIZE)
@@ -830,10 +830,10 @@ class BBSeis:
         xyz = []
         for i, c in enumerate(f(station).T):
             xyz.append(
-                seis2txt(
+                timeseries_to_text(
                     c,
-                    self.dt,
-                    prefix,
+                    f"{prefix}{station}.{self.COMP_NAME[i]}",
+                    dt,
                     station,
                     self.COMP_NAME[i],
                     start_sec=self.start_sec,
