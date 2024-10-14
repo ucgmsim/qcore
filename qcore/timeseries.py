@@ -517,26 +517,34 @@ class LFSeis:
 
     def all2txt(self, prefix="./", dt=None, f="vel"):
         """
-        NOTE: This function is not designed to be used other than for single/debug use.
+        Creates waveforms in text files for all stations.
+        Note: This function is not designed to be used other than for single/debug use.
         Make a parallel wrapper for any "real" use cases.
         Produces text files previously done by script called `winbin-aio`.
         For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
+
+        Parameters
+        ----------
+        prefix : str, optional, default="./"
+            The prefix is an output path combined with an optional filename prefix.
+            If prefix ends with /, its prefix_filename is empty, otherwise, prefix_filename is the last part of the prefix
+            eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+            eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+        dt : float, optional
+            The time step of the data, by default None
+        f : str, optional
+            The type of data to save, by default "acc". Options are "acc" and "vel"
         """
+
         if dt is None:
             dt = self.dt
         acc = f == "acc"
 
-        # prefix is assumed to have directory bit that ends with / and filename prefix
-        # if prefix ends with /, its prefix_filename is empty
-        # otherwise, prefix_filename is the last part of the prefix
-        # eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
-        # eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
-
-        prefix_chunks=prefix.split("/")
+        prefix_chunks = prefix.split("/")
         prefix_filename = prefix_chunks[-1]
         prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
-        prefix_dirname.mkdir(parents=True,exist_ok=True)
+        prefix_dirname.mkdir(parents=True, exist_ok=True)
         for s in self.stations.name:
             self.vel2txt(s, prefix=prefix, title=prefix_filename, dt=dt, acc=acc)
 
@@ -710,22 +718,32 @@ class HFSeis:
 
     def all2txt(self, prefix="./", dt=None):
         """
-        Produces outputs as if the HF binary produced individual text files.
-        For compatibility. Should run slices in parallel for performance.
+        Creates waveforms in text files for all stations.
+
+        Note: This function is not designed to be used other than for single/debug use.
+        Make a parallel wrapper for any "real" use cases.
+        Produces text files previously done by script called `winbin-aio`.
+        For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
+
+        Parameters
+        ----------
+        prefix : str, optional, default="./"
+            The prefix is an output path combined with an optional filename prefix.
+            If prefix ends with /, its prefix_filename is empty, otherwise, prefix_filename is the last part of the prefix
+            eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+            eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+        dt : float, optional
+            The time step of the data, by default None
         """
+
         if dt is None:
             dt = self.dt
-        # prefix is assumed to have directory bit that ends with / and filename prefix
-        # if prefix ends with /, its prefix_filename is empty
-        # otherwise, prefix_filename is the last part of the prefix
-        # eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
-        # eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
 
-        prefix_chunks=prefix.split("/")
+        prefix_chunks = prefix.split("/")
         prefix_filename = prefix_chunks[-1]
         prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
-        prefix_dirname.mkdir(parents=True,exist_ok=True)
+        prefix_dirname.mkdir(parents=True, exist_ok=True)
         for s in self.stations.name:
             self.acc2txt(s, prefix=prefix, title=prefix_filename, dt=dt)
 
@@ -870,24 +888,24 @@ class BBSeis:
 
     def all2txt(self, prefix="./", f="acc"):
         """
-        Produces outputs as if the HF binary produced individual text files.
-        For compatibility. Should run slices in parallel for performance.
-        Slowest part is numpy formating numbers into text and number of lines.
-        """
-        # prefix is assumed to have directory bit that ends with / and filename prefix
-        # if prefix ends with /, its prefix_filename is empty
-        # otherwise, prefix_filename is the last part of the prefix
-        # eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
-        # eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+        Extracts waveform data from the binary file and produces output in text format.
 
-        prefix_chunks=prefix.split("/")
+        Parameters
+        ----------
+        prefix : str, optional, default="./"
+            The prefix is an output path combined with an optional filename prefix.
+            If prefix ends with /, its prefix_filename is empty, otherwise, prefix_filename is the last part of the prefix
+            eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+            eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+        f : str, optional
+            The type of data to save, by default "acc". Options are "acc" and "vel"
+        """
+        prefix_chunks = prefix.split("/")
         prefix_filename = prefix_chunks[-1]
         prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
-        prefix_dirname.mkdir(parents=True,exist_ok=True)
+        prefix_dirname.mkdir(parents=True, exist_ok=True)
         for s in self.stations.name:
             self.save_txt(s, prefix=prefix, title=prefix_filename, f=f)
-
-
 
     def save_ll(self, path):
         """
