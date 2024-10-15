@@ -515,7 +515,7 @@ class LFSeis:
                 title=title,
             )
 
-    def all2txt(self, prefix="./", dt=None, f="vel"):
+    def all2txt(self, prefix: str = "./", dt: float = None, f: str = "vel"):
         """
         Creates waveforms in text files for all stations.
         Note: This function is not designed to be used other than for single/debug use.
@@ -715,7 +715,7 @@ class HFSeis:
                 title=title,
             )
 
-    def all2txt(self, prefix="./", dt=None):
+    def all2txt(self, prefix: str = "./", dt: float = None):
         """
         Creates waveforms in text files for all stations.
 
@@ -881,7 +881,7 @@ class BBSeis:
         if prefix is None:
             return xyz
 
-    def all2txt(self, prefix="./", f="acc"):
+    def all2txt(self, prefix: str = "./", f: str = "acc"):
         """
         Extracts waveform data from the binary file and produces output in text format.
         Note: For compatibility. Should run slices in parallel for performance.
