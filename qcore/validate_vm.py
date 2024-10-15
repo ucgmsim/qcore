@@ -225,23 +225,22 @@ def validate_vm_bounds(polygon: npt.ArrayLike, srf_bounds: npt.ArrayLike):
     """
 
     errors = []
+    assert len(srf_bounds) > 0, "No srf bounds given"
 
-    if len(srf_bounds) > 0:
-        vm_polygon = Polygon(
-            coordinates.wgs_depth_to_nztm(
-                np.array(polygon)[:, [1, 0]]
-            )  # [lon, lat] to [lat, lon]
-        )
+    # Check if the SRF domain is within the VM domain
+    vm_polygon = Polygon(
+        coordinates.wgs_depth_to_nztm(
+            np.array(polygon)[:, [1, 0]]
+        )  # [lon, lat] to [lat, lon]
+    )
 
-        all_inside = all(
-            vm_polygon.contains(
-                Point(coordinates.wgs_depth_to_nztm(np.array([lat, lon])))
-            )
-            for plane in srf_bounds
-            for lon, lat in plane
-        )
-        if not all_inside:
-            errors.append("Srf extents not contained within velocity model corners")
+    all_inside = all(
+        vm_polygon.contains(Point(coordinates.wgs_depth_to_nztm(np.array([lat, lon]))))
+        for plane in srf_bounds
+        for lon, lat in plane
+    )
+    if not all_inside:
+        errors.append("Srf extents not contained within velocity model corners")
 
     return errors
 
