@@ -104,11 +104,10 @@ def validate_vm_params(vm_params: str, srf: str = None):
         vm_params_dict[VMParams.extent_x.value],
         vm_params_dict[VMParams.extent_y.value],
     )
+    errors.extend(validate_region(polygon))
     if srf is not None:
         srf_bounds = get_bounds(srf)
-    else:
-        srf_bounds = []
-    errors.extend(validate_vm_bounds(polygon, srf_bounds))
+        errors.extend(validate_vm_bounds(polygon, srf_bounds))
 
     if errors:
         return False, "\n".join(errors)
@@ -174,29 +173,25 @@ def validate_vm_files(vm_dir: str, srf: str = None):
                 lon, lat = map(float, line.split())
                 lon = lon % 360
                 polygon.append((lon, lat))
+
+        errors.extend(validate_region(polygon))
         if srf is not None:
             srf_bounds = get_bounds(srf)
-        else:
-            srf_bounds = []
-        errors.extend(validate_vm_bounds(polygon, srf_bounds))
+            errors.extend(validate_vm_bounds(polygon, srf_bounds))
 
     if errors:
         return False, "\n".join(errors)
     return True, ""
 
 
-def validate_vm_bounds(
-    polygon: npt.ArrayLike, srf_bounds: Optional[npt.ArrayLike] = []
-):
+def validate_region(polygon):
     """
-    Validates the VM domain against the DEM and the srf bounds
+    Validates the region of the VM against the NZVM DEM
 
     Parameters
     ----------
-    polygon : np.ndarray or list/tuple
-        Corners of the VM domain. Formatted as [[lon, lat], [lon, lat], [lon, lat], [lon, lat]]
-    srf_bounds : np.ndarray or list/tuple, optional
-        Corners of SRF planes. Can be multiple planes,  Formatted as [plane1, plane2,...] where plane1=[[lon,lat],[lon,lat],[lon,lat],[lon,lat]]
+    polygon : list
+        A list of (lon, lat) tuples giving the corners of the VM
 
     Returns
     -------
@@ -205,9 +200,31 @@ def validate_vm_bounds(
 
     errors = []
 
+    # Check if the VM domain is within the NZVM DEM
     for lon, lat in polygon:
         if lon < MIN_LON or lon > MAX_LON or lat < MIN_LAT or lat > MAX_LAT:
             errors.append(f"VM extents not contained within NZVM DEM: {lon}, {lat}")
+
+    return errors
+
+
+def validate_vm_bounds(polygon: npt.ArrayLike, srf_bounds: npt.ArrayLike):
+    """
+    Validates the VM domain against the srf bounds
+
+    Parameters
+    ----------
+    polygon : np.ndarray or list/tuple
+        Corners of the VM domain. Formatted as [[lon, lat], [lon, lat], [lon, lat], [lon, lat]]
+    srf_bounds : np.ndarray or list/tuple
+        Corners of SRF planes. Can be multiple planes,  Formatted as [plane1, plane2,...] where plane1=[[lon,lat],[lon,lat],[lon,lat],[lon,lat]]
+
+    Returns
+    -------
+    A list of error messages resulting from this validation
+    """
+
+    errors = []
 
     if len(srf_bounds) > 0:
         vm_polygon = Polygon(
