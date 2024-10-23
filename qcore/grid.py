@@ -256,4 +256,4 @@ def gridpoint_count_in_length(length: float, resolution: float) -> int:
     int
         The number of gridpoints that fit into length.
     """
-    return int(np.round(length / resolution + 2))
+    return int(np.ceil(length / resolution + 1))
