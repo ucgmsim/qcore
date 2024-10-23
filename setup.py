@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     name="qcore",
     version="1.2",
-    packages=["qcore", "qcore.uncertainties", "qcore.uncertainties.magnitude_scaling"],
+    packages=["qcore"],
     url="https://github.com/ucgmsim/qcore",
     description="QuakeCoRE Library",
     package_data={
