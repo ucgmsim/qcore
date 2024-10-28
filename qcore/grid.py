@@ -14,6 +14,7 @@ gridpoint_count_in_length
 """
 
 import numpy as np
+import scipy as sp
 
 from qcore import coordinates
 
@@ -191,6 +192,47 @@ def coordinate_meshgrid(
     return coordinates.nztm_to_wgs_depth(nztm_meshgrid).reshape((ny, nx, 3))
 
 
+def coordinate_patchgrid(
+    origin: np.ndarray, x_upper: np.ndarray, y_bottom: np.ndarray, resolution: float
+) -> np.ndarray:
+    """Creates a grid of patches in a bounded plane region.
+    Given the bounds of a rectangular planar region, create a grid of
+    (lat, lon, depth) coordinates spaced at close to resolution metres apart
+    in the strike and dip directions. These coordinates are the centre of
+    patches with area resolution * resolution m^2.
+    Parameters
+    ----------
+    origin : np.ndarray
+        Coordinates of the origin point (lat, lon, depth).
+    x_upper : np.ndarray
+        Coordinates of the upper x boundary (lat, lon, depth).
+    y_bottom : np.ndarray
+        Coordinates of the bottom y boundary (lat, lon, depth).
+    resolution : float
+        Resolution of the meshgrid (in metres).
+    Returns
+    -------
+    np.ndarray
+        The patch grid of the rectangular planar region. Has shape (ny, nx), where
+        ny is the number of points in the origin->y_bottom direction and nx the number of
+        points in the origin->x_upper direction.
+    """
+    meshgrid = coordinate_meshgrid(origin, x_upper, y_bottom, resolution)
+    ny, nx = meshgrid.shape[:2]
+    meshgrid = coordinates.wgs_depth_to_nztm(meshgrid.reshape((-1, 3))).reshape(
+        (ny, nx, 3)
+    )
+    kernel = np.full((2, 2), 1 / 4)
+    patch_grid = np.zeros((ny - 1, nx - 1, 3))
+    for i in range(3):
+        patch_grid[:, :, i] = sp.signal.convolve2d(
+            meshgrid[:, :, i].reshape((ny, nx)), kernel, mode="valid"
+        )
+    return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
+        patch_grid.shape
+    )
+
+
 def gridpoint_count_in_length(length: float, resolution: float) -> int:
     """Calculate the number of gridpoints that fit into a given length.
 
@@ -214,4 +256,4 @@ def gridpoint_count_in_length(length: float, resolution: float) -> int:
     int
         The number of gridpoints that fit into length.
     """
-    return int(np.round(length / resolution + 2))
+    return int(np.ceil(length / resolution + 1))
