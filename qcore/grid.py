@@ -224,7 +224,7 @@ def coordinate_patchgrid(
     y_bottom : np.ndarray
         Coordinates of the bottom y boundary (lat, lon, depth).
     resolution : float
-        Resolution of the meshgrid (in metres).
+        Resolution of the patchgrid (in metres).
     nx : int, optional
         The number of x gridpoints. If given, the resolution argument has no effect.
     ny : int, optional
@@ -237,7 +237,7 @@ def coordinate_patchgrid(
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
     """
-    meshgrid = coordinate_meshgrid(origin, x_upper, y_bottom, resolution, nx=nx, ny=ny)
+    meshgrid = coordinate_meshgrid(origin, x_upper, y_bottom, resolution, nx=nx + 1 if nx is not None else nx, ny=ny + 1 if ny is not None else ny)
     ny, nx = meshgrid.shape[:2]
     meshgrid = coordinates.wgs_depth_to_nztm(meshgrid.reshape((-1, 3))).reshape(
         (ny, nx, 3)
