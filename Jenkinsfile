@@ -34,7 +34,7 @@ pipeline {
                     echo "[ Python used ] : " `which python`
                     cd ${env.WORKSPACE}
                     echo "[ Installing ${env.JOB_NAME} ]"
-                    python setup.py install
+                    pip install -e .
                     echo "[ Run test now ]"
                     cd ${env.JOB_NAME}/test
                     pytest -s
