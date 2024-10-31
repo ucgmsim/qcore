@@ -19,9 +19,6 @@ qcore = "qcore"
 [tool.setuptools.package-data]
 "qcore" = ["configs/*.json", "data/*", "data/*/*", "data/*/*/*"]
 
-[tool.setuptools.include-package-data]
-"qcore" = true
-
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
