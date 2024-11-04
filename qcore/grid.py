@@ -13,6 +13,8 @@ gridpoint_count_in_length
     Calculate the number of gridpoints that fit into a given length.
 """
 
+from typing import Optional
+
 import numpy as np
 import scipy as sp
 
@@ -91,6 +93,8 @@ def coordinate_meshgrid(
     x_upper: np.ndarray,
     y_bottom: np.ndarray,
     resolution: float,
+    nx: Optional[int] = None,
+    ny: Optional[int] = None,
 ) -> np.ndarray:
     """Creates a meshgrid of points in a bounded plane region.
 
@@ -124,6 +128,10 @@ def coordinate_meshgrid(
         Coordinates of the bottom y boundary (lat, lon, depth).
     resolution : float
         Resolution of the meshgrid (in metres).
+    nx : int, optional
+        The number of x gridpoints. If given, the resolution argument has no effect.
+    ny : int, optional
+        The number of y gridpoints. If given, the resolution argument has no effect.
 
     Returns
     -------
@@ -141,8 +149,8 @@ def coordinate_meshgrid(
     length_x = np.linalg.norm(x_upper - origin)
     length_y = np.linalg.norm(y_bottom - origin)
 
-    nx = gridpoint_count_in_length(length_x, resolution)
-    ny = gridpoint_count_in_length(length_y, resolution)
+    nx = nx or gridpoint_count_in_length(length_x, resolution)
+    ny = ny or gridpoint_count_in_length(length_y, resolution)
 
     # We first create a meshgrid of coordinates across a flat rectangle like the following
     #
@@ -193,13 +201,20 @@ def coordinate_meshgrid(
 
 
 def coordinate_patchgrid(
-    origin: np.ndarray, x_upper: np.ndarray, y_bottom: np.ndarray, resolution: float
+    origin: np.ndarray,
+    x_upper: np.ndarray,
+    y_bottom: np.ndarray,
+    resolution: float,
+    nx: Optional[int] = None,
+    ny: Optional[int] = None,
 ) -> np.ndarray:
     """Creates a grid of patches in a bounded plane region.
+
     Given the bounds of a rectangular planar region, create a grid of
     (lat, lon, depth) coordinates spaced at close to resolution metres apart
     in the strike and dip directions. These coordinates are the centre of
     patches with area resolution * resolution m^2.
+
     Parameters
     ----------
     origin : np.ndarray
@@ -209,7 +224,12 @@ def coordinate_patchgrid(
     y_bottom : np.ndarray
         Coordinates of the bottom y boundary (lat, lon, depth).
     resolution : float
-        Resolution of the meshgrid (in metres).
+        Resolution of the patchgrid (in metres).
+    nx : int, optional
+        The number of x gridpoints. If given, the resolution argument has no effect.
+    ny : int, optional
+        The number of y gridpoints. If given, the resolution argument has no effect.
+
     Returns
     -------
     np.ndarray
@@ -217,7 +237,7 @@ def coordinate_patchgrid(
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
     """
-    meshgrid = coordinate_meshgrid(origin, x_upper, y_bottom, resolution)
+    meshgrid = coordinate_meshgrid(origin, x_upper, y_bottom, resolution, nx=nx + 1 if nx is not None else nx, ny=ny + 1 if ny is not None else ny)
     ny, nx = meshgrid.shape[:2]
     meshgrid = coordinates.wgs_depth_to_nztm(meshgrid.reshape((-1, 3))).reshape(
         (ny, nx, 3)
