@@ -1,51 +1,103 @@
+"""
+Module for determining and loading machine-specific configurations.
+
+This module provides functionality for identifying the machine type based
+on its hostname and retrieving the corresponding configuration settings. The
+module also defines key configuration parameters through an enumeration for
+better clarity and type safety.
+
+Functions
+---------
+determine_machine_config
+  Determine the machine type and construct the path to the machine's
+  configuration JSON file based on the hostname.
+get_machine_config
+  A function that loads the machine configuration from a JSON file. It can
+  use a default path based on the machine type or an optional overridden path.
+
+Usage
+-----
+1. Use `determine_machine_config` to identify the machine and get the path to its configuration file.
+2. Use `get_machine_config` to load the configuration data from the JSON file.
+3. The `ConfigKeys` enumeration can be used to access configuration keys in a type-safe manner.
+"""
+
+import re
 from enum import Enum, auto
 from json import load
-from os.path import join, abspath, dirname
+from pathlib import Path
 from platform import node
+from typing import Optional, Tuple, TypedDict, Union
 
 
-class __KnownMachines(Enum):
-    # Enum intended for local use only
-    # The platform config in slurm gm workflow creates a dynamic machines enum
-    local = auto()
-    maui = auto()
-    mahuika = auto()
-    stampede2 = auto()
-    nurion = auto()
+class ConfigDict(TypedDict):
+    """A type-annotation describing the machine config keys and their types."""
+
+    tools_dir: str
+    cores_per_node: int
+    memory_per_core: float
+    MAX_JOB_WCT: int
+    MAX_JOB_WCT: int
+    MAX_CH_PER_JOB: int
 
 
-def determine_machine_config(hostname=node()):
+# Mahuika partitions node names (maybe not complete. obtained from squeue output)
+# - long/large: wbnXXX
+# - bigmem: wblXXX
+# - hugemem: wclXXX, wbhXXX, wchXXX
+# - milan: wmlXXX, wmcXXX
+
+MACHINE_MAPPINGS = {
+    r"ni\d{4}|maui.*": "maui",
+    r"wbn\d{3}|wbl\d{3}|wcl\d{3}|wbh\d{3}|wch\d{3}|wmc\d{3}|wml\d{3}|mahuika.*": "mahuika",
+    r".*stampede.*": "stampede2",
+    r"(login|node|nurion).*": "nurion",
+}
+
+
+def determine_machine_config(hostname: str = node()) -> Tuple[str, str]:
+    """Determines the machine name eg: nodes ni0002 and maui01 belong to maui.
+
+    Parameters
+    ----------
+    hostname : str
+        The hostname of the machine.
+
+    Returns
+    -------
+    Tuple[str, str]
+        A tuple of the machine this host belongs to and path to the machine config JSON file.
     """
-    Manages multiple configurations for different machines.
-    Determines the machine name eg: nodes ni0002 and maui01 belong to maui.
-    :return: machine name, config file
-    """
-    if (hostname.startswith("ni") and len(hostname) == 8) or hostname.startswith(
-        __KnownMachines.maui.name
-    ):
-        machine = __KnownMachines.maui.name
-    elif (hostname.startswith("wb") and len(hostname) == 6) or hostname.startswith(
-        __KnownMachines.mahuika.name
-    ):
-        machine = __KnownMachines.mahuika.name
-    elif hostname.find("stampede") > -1:
-        machine = __KnownMachines.stampede2.name
-    elif (
-        hostname.startswith("login")
-        or hostname.startswith("node")
-        or hostname.startswith(__KnownMachines.nurion.name)
-    ):
-        machine = __KnownMachines.nurion.name
+    for hostname_pattern, machine in MACHINE_MAPPINGS.items():
+        if re.match(hostname_pattern, hostname):
+            break
     else:
-        machine = __KnownMachines.local.name
+        machine = "local"
 
     basename = f"machine_{machine}.json"
 
-    config_path = join(dirname(abspath(__file__)), "configs", basename)
-    return machine, config_path
+    config_path = Path(__file__).resolve().parent / "configs" / basename
+    return machine, str(config_path)
 
 
-def get_machine_config(hostname=node(), config_path=None):
+# TODO:  Use  Optional[Path | str] if Maui and Nurion support newer Python (3.10+)
+def get_machine_config(
+    hostname: str = node(), config_path: Optional[Union[Path, str]] = None
+) -> ConfigDict:
+    """Get the current machine config.
+
+    Parameters
+    ----------
+    hostname : str, defaults to $HOSTNAME
+        The hostname to get machine config for.
+    config_path : Optional[Path | str]
+        An optional path to override the machine config.
+
+    Returns
+    -------
+    ConfigDict
+        The dictionary containing the machine config.
+    """
     if config_path is None:
         _, config_path = determine_machine_config(hostname)
     with open(config_path, "r") as machine_config_file:
@@ -53,6 +105,8 @@ def get_machine_config(hostname=node(), config_path=None):
 
 
 class ConfigKeys(Enum):
+    """The configuration keys supported in the config. See also ConfigDict."""
+
     tools_dir = auto()
     cores_per_node = auto()
     memory_per_core = auto()
@@ -62,5 +116,7 @@ class ConfigKeys(Enum):
 
 
 host, host_config_path = determine_machine_config()
-qconfig = get_machine_config(config_path=host_config_path)
-module_requirments = join(qconfig["tools_dir"], "module_requirements")
+qconfig: ConfigDict = get_machine_config(config_path=host_config_path)
+module_requirments = str(
+    Path(qconfig[ConfigKeys.tools_dir.name]) / "module_requirements"
+)

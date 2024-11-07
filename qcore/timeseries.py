@@ -244,6 +244,7 @@ def timeseries_to_text(
     edist: float = 0.0,
     az: float = 0.0,
     baz: float = 0.0,
+    title: str = "",
 ):
     """
     Store timeseries data into a text file.
@@ -274,11 +275,13 @@ def timeseries_to_text(
         The azimuth forward A->B in degrees, by default 0.0
     baz : float, optional
         The azimuth backwards B->A in degrees, by default 0.0
+    title : str, optional
+        The optional title added to header
     """
     nt = timeseries.shape[0]
     with open(filename, "wb") as txt:
         # same format strings as fdbin2wcc
-        txt.write(("%-10s %3s\n" % (stat, comp)).encode())
+        txt.write(("%-10s %3s %s\n" % (stat, comp, title)).encode())
         txt.write(
             (
                 "%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n"
@@ -502,29 +505,47 @@ class LFSeis:
         else:
             f = self.vel
         for i, c in enumerate(f(station, dt=dt).T):
-            seis2txt(
+            timeseries_to_text(
                 c,
+                f"{prefix}{station}.{self.COMP_NAME[i]}",
                 dt,
-                prefix,
                 station,
                 self.COMP_NAME[i],
                 start_sec=self.start_sec,
                 title=title,
             )
 
-    def all2txt(self, prefix="./", dt=None, f="vel"):
+    def all2txt(self, prefix: str = "./", dt: float = None, f: str = "vel"):
         """
-        NOTE: This function is not designed to be used other than for single/debug use.
+        Creates waveforms in text files for all stations.
+        Note: This function is not designed to be used other than for single/debug use.
         Make a parallel wrapper for any "real" use cases.
         Produces text files previously done by script called `winbin-aio`.
         For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
+
+        Parameters
+        ----------
+        prefix : str, optional, default="./"
+            The prefix is an output path combined with an optional filename prefix.
+            eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+            eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+        dt : float, optional, default=None
+            The time step of the data
+        f : str, optional, default="vel"
+            The type of data to save. Options are "acc" and "vel"
         """
+
         if dt is None:
             dt = self.dt
         acc = f == "acc"
+
+        prefix_chunks = prefix.split("/")
+        prefix_filename = prefix_chunks[-1]
+        prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
+        prefix_dirname.mkdir(parents=True, exist_ok=True)
         for s in self.stations.name:
-            self.vel2txt(s, prefix=prefix, title=prefix, dt=dt, acc=acc)
+            self.vel2txt(s, prefix=prefix, title=prefix_filename, dt=dt, acc=acc)
 
 
 ###
@@ -683,10 +704,10 @@ class HFSeis:
             dt = self.dt
         stat_idx = self.stat_idx[station]
         for i, c in enumerate(self.acc(station, dt=dt).T):
-            seis2txt(
+            timeseries_to_text(
                 c,
+                f"{prefix}{station}.{self.COMP_NAME[i]}",
                 dt,
-                prefix,
                 station,
                 self.COMP_NAME[i],
                 start_sec=self.start_sec,
@@ -694,16 +715,32 @@ class HFSeis:
                 title=title,
             )
 
-    def all2txt(self, prefix="./", dt=None):
+    def all2txt(self, prefix: str = "./", dt: float = None):
         """
-        Produces outputs as if the HF binary produced individual text files.
-        For compatibility. Should run slices in parallel for performance.
+        Creates waveforms in text files for all stations.
+
+        Note: For compatibility. Consecutive file indexes in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
+
+        Parameters
+        ----------
+        prefix : str, optional, default="./"
+            The prefix is an output path combined with an optional filename prefix.
+            eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+            eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+        dt : float, optional
+            The time step of the data, by default None
         """
+
         if dt is None:
             dt = self.dt
+
+        prefix_chunks = prefix.split("/")
+        prefix_filename = prefix_chunks[-1]
+        prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
+        prefix_dirname.mkdir(parents=True, exist_ok=True)
         for s in self.stations.name:
-            self.acc2txt(s, prefix=prefix, title=prefix, dt=dt)
+            self.acc2txt(s, prefix=prefix, title=prefix_filename, dt=dt)
 
 
 ###
@@ -830,10 +867,10 @@ class BBSeis:
         xyz = []
         for i, c in enumerate(f(station).T):
             xyz.append(
-                seis2txt(
+                timeseries_to_text(
                     c,
+                    f"{prefix}{station}.{self.COMP_NAME[i]}",
                     self.dt,
-                    prefix,
                     station,
                     self.COMP_NAME[i],
                     start_sec=self.start_sec,
@@ -844,14 +881,27 @@ class BBSeis:
         if prefix is None:
             return xyz
 
-    def all2txt(self, prefix="./", f="acc"):
+    def all2txt(self, prefix: str = "./", f: str = "acc"):
         """
-        Produces outputs as if the HF binary produced individual text files.
-        For compatibility. Should run slices in parallel for performance.
+        Extracts waveform data from the binary file and produces output in text format.
+        Note: For compatibility. Should run slices in parallel for performance.
         Slowest part is numpy formating numbers into text and number of lines.
+
+        Parameters
+        ----------
+        prefix : str, optional, default="./"
+            The prefix is an output path combined with an optional filename prefix.
+            eg. prefix = "dir1/dir2/XXX", prefix_filename = "XXX" and prefix_dirname = "dir1/dir2"
+            eg. prefix = "dir1/dir2/", prefix_filename = "" and prefix_dirname = "dir1/dir2"
+        f : str, optional
+            The type of data to save, by default "acc". Options are "acc" and "vel"
         """
+        prefix_chunks = prefix.split("/")
+        prefix_filename = prefix_chunks[-1]
+        prefix_dirname = Path("/".join(prefix_chunks[:-1])).resolve()
+        prefix_dirname.mkdir(parents=True, exist_ok=True)
         for s in self.stations.name:
-            self.save_txt(s, prefix=prefix, title=prefix, f=f)
+            self.save_txt(s, prefix=prefix, title=prefix_filename, f=f)
 
     def save_ll(self, path):
         """

@@ -1,3 +1,4 @@
+pandas
 pytest
 pytest-black
 alphashape
@@ -5,3 +6,4 @@ descartes
 pyproj
 shapely
 numba
+hypothesis[numpy]
