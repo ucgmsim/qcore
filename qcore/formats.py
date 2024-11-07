@@ -2,9 +2,10 @@
 Functions and classes to load data that doesn't belong elsewhere.
 """
 
-import pandas as pd
-import numpy as np
 import argparse
+
+import numpy as np
+import pandas as pd
 
 
 def load_im_file(csv_file, all_psa=False, comp=None):
@@ -266,16 +267,27 @@ def load_rrup_file(rrup_file: str):
 
 def load_fault_selection_file(fault_selection_file):
     """
-    Loads a fault selection file, returning a dictionary of fault:count pairs
-    :param fault_selection_file: The relative or absolute path to the fault selection file
-    :return: A dictionary of fault:count pairs for all faults found in the file
+      Loads a fault selection file, returning a dictionary of fault: (count, start_num) pairs.
+
+    Parameters
+    ----------
+    fault_selection_file : str
+        The relative or absolute path to the fault selection file.
+        The file contains a list of faults to be used in the simulation, with an optional count and start number.
+
+    Returns
+    -------
+    dict
+        A dictionary of fault: (count, start) pairs for all faults found in the file.
     """
+
     faults = {}
     with open(fault_selection_file) as fault_file:
         for lineno, line in enumerate(fault_file.readlines()):
             if len(line) == 0 or len(line.lstrip()) == 0 or line.lstrip()[0] == "#":
                 # Line is either empty only whitespace or commented out
                 continue
+            skip_count = 0
             try:
                 line_parts = line.split()
                 fault = line_parts[0]
@@ -287,8 +299,13 @@ def load_fault_selection_file(fault_selection_file):
                         count = int(count[:-1])
                     else:
                         count = int(count)
-                else:
-                    raise ValueError()
+                elif len(line_parts) == 3:
+                    count = int(line_parts[1])
+                    skip_count = line_parts[2]
+                    if skip_count.endswith("r"):
+                        skip_count = int(skip_count[:-1])
+                    else:
+                        skip_count = int(skip_count)
             except ValueError:
                 raise ValueError(
                     "Error encountered on line {lineno} when loading fault selection file {fault_selection_file}. "
@@ -304,7 +321,10 @@ def load_fault_selection_file(fault_selection_file):
                         fault
                     )
                 )
-            faults.update({fault: count})
+
+            faults.update(
+                {fault: (count, skip_count + 1)}
+            )  # if skip_count is 0, it will start from 1
 
     return faults
 
