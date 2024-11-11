@@ -75,7 +75,7 @@ def wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
 
 def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
     """
-    Convert NZTM coordinates (x, y, depth) to WGS84 coordinates.
+    Convert NZTM coordinates (y, x, depth) to WGS84 coordinates.
 
     Parameters
     ----------
