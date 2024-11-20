@@ -1258,11 +1258,11 @@ def point_to_segment_distance(
     Parameters
     ----------
     p : npt.ArrayLike
-        The first point of the line segment.
+        A point to measure distance to.
     q : npt.ArrayLike
-        The second point of the line segment.
+        The first point of the line segment.
     r : npt.ArrayLike
-        A third point to measure distance to.
+        The second point of the line segment.
 
     Returns
     -------
@@ -1276,6 +1276,9 @@ def point_to_segment_distance(
 
     qr = r - q
     qp = p - q
+
+    if np.allclose(qr, 0):
+        raise ValueError("Degenerate line segment q -> r!")
 
     t = np.clip(np.dot(qp, qr) / np.dot(qr, qr), 0, 1)
 

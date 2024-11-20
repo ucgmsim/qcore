@@ -320,3 +320,33 @@ def test_closest_line_seg(l, m, l_closest_point, m_closest_point):
     (l_computed, m_computed) = geo.closest_points_between_line_segments(*l, *m)
     assert np.allclose(l_computed, l_closest_point)
     assert np.allclose(m_computed, m_closest_point)
+
+
+@pytest.mark.parametrize(
+    "p, q, r, expected_distance",
+    [
+        # Point lies on the segment
+        ([1, 0], [2, 0], [0, 0], 0.0),
+        # Point is off the segment, perpendicular distance
+        ([1, 1], [2, 0], [0, 0], 1.0),
+        # Point coincides with one endpoint
+        ([0, 0], [2, 0], [0, 0], 0.0),
+        # Closest point is one of the end points
+        ([3, 4], [2, 0], [0, 0], np.sqrt((3 - 2) ** 2 + 4**2)),
+        # Vertical segment
+        ([1, 1], [0, 2], [0, 0], 1.0),
+        # Horizontal segment
+        ([1, 1], [2, 0], [0, 0], 1.0),
+        # Diagonal segment
+        ([1, 0], [2, 2], [0, 0], np.sqrt(0.5)),
+    ],
+)
+def test_point_to_segment_distance(p, q, r, expected_distance):
+    """Test the point_to_segment_distance function with various cases."""
+    assert geo.point_to_segment_distance(p, q, r) == pytest.approx(expected_distance)
+
+
+def test_point_to_segement_degenerate():
+    """Test the failure case of a degenerate line."""
+    with pytest.raises(ValueError):
+        geo.point_to_segment_distance([1, 1], [0, 0], [0, 0])
