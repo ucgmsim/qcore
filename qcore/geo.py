@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import numpy as np
+import numpy.typing as npt
 import scipy as sp
 
 from qcore.binary_version import get_unversioned_bin
@@ -1247,3 +1248,37 @@ def rotation_matrix(angle: float) -> np.ndarray:
         The 2x2 rotation matrix.
     """
     return np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+
+
+def point_to_segment_distance(
+    p: npt.ArrayLike, q: npt.ArrayLike, r: npt.ArrayLike
+) -> float:
+    """Compute the shortest distance between a point and a line segment.
+
+    Parameters
+    ----------
+    p : npt.ArrayLike
+        The first point of the line segment.
+    q : npt.ArrayLike
+        The second point of the line segment.
+    r : npt.ArrayLike
+        A third point to measure distance to.
+
+    Returns
+    -------
+    float
+        The distance between r and the closest point on the line
+        segment pq to r.
+    """
+    p = np.asarray(p)
+    q = np.asarray(q)
+    r = np.asarray(r)
+
+    qr = r - q
+    qp = p - q
+
+    t = np.clip(np.dot(qp, qr) / np.dot(qr, qr), 0, 1)
+
+    closest_point = q + t * qr
+
+    return float(np.linalg.norm(p - closest_point))
