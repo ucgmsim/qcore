@@ -1255,6 +1255,8 @@ def point_to_segment_distance(
 ) -> float:
     """Compute the shortest distance between a point and a line segment.
 
+    See [1] for a concise explanation of the calculations involved.
+
     Parameters
     ----------
     p : npt.ArrayLike
@@ -1269,6 +1271,10 @@ def point_to_segment_distance(
     float
         The distance between r and the closest point on the line
         segment pq to r.
+
+    References
+    ----------
+    [1]: https://math.stackexchange.com/questions/2193720/find-a-point-on-a-line-segment-which-is-the-closest-to-other-point-not-on-the-li/2193733#2193733
     """
     p = np.asarray(p)
     q = np.asarray(q)
