@@ -445,8 +445,9 @@ class LFSeis:
         # protect against duplicated stations between processes
         # results in too many stations entries created, last ones are empty
         # important to keep indexes correct, only remove empty items from end
-        if stations.name[-1] == "":
-            stations = stations[: -np.argmin((stations.name == "")[::-1])]
+        if stations.name[-1] in ["", b""]:
+            stations = stations[: -np.argmin((stations.name == stations.name[-1])[::-1])]
+
         # store station names as unicode (python 3 strings)
         stat_type = stations.dtype.descr
         stat_type[6] = stat_type[6][0], "U7"
