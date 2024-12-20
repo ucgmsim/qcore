@@ -17,7 +17,7 @@ dynamic = ["dependencies"]
 qcore = "qcore"
 
 [tool.setuptools.package-data]
-"qcore" = ["configs/*.json", "data/*", "data/*/*", "data/*/*/*"]
+"qcore" = ["configs/*.json", "data/*", "data/*/*", "data/*/*/*", "registry/registry.txt"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

@@ -4,6 +4,7 @@ pytest-black
 alphashape
 descartes
 pyproj
+pooch
 shapely
 numba
 hypothesis[numpy]
