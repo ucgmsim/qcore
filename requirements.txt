@@ -5,6 +5,7 @@ alphashape
 descartes
 pyproj
 pooch
+requests
 shapely
 numba
 hypothesis[numpy]
