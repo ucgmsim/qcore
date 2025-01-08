@@ -1,8 +1,10 @@
 import re
-from pathlib import Path
+from pathlib import PurePath, Path
 from typing import Optional
 
+
 import pooch
+import filelock
 import requests
 
 
@@ -70,3 +72,36 @@ def qcore_registry(
     )
 
     return qcore_pooch
+
+
+def fetch_file(
+    registry: pooch.Pooch, filepath: PurePath, lock_timeout: int = 60
+) -> Path:
+    """Return a path to the pooch registry file.
+
+    This function checks if pooch would download or update the requested
+    file path. If it does, then it acquire a lock on this file and pooch
+    performs the action. Otherwise we simply return the file.
+
+    Parameters
+    ----------
+    registry : pooch.Pooch
+        The registry to download the file from.
+    filepath : PurePath
+        The registry file path to download (relative to the root of the registry).
+    lock_timeout : int, default = 60
+        The file lock timeout.
+
+    Returns
+    -------
+    Path
+        The path to the downloaded file in local storage.
+    """
+    local_path = registry.abspath / filepath
+    known_hash = registry.registry[local_path]
+    if pooch.core.download_action(local_path, known_hash) != "fetch":
+        lock_path = registry.abspath / filepath.with_suffix(filepath.suffix + ".lock")
+        with filelock.FileLock(lock_path, timeout=lock_timeout):
+            return Path(registry.fetch(filepath))
+    else:
+        return Path(registry.fetch(filepath))
