@@ -8,16 +8,25 @@ import filelock
 import requests
 
 
-def get_latest_registry_version() -> str:
-    """Get the latest registry version from the main branch of the registry repository.
+def resolve_git_reference(reference: str = "main") -> str:
+    """Resolve a git reference to a commit.
+
+    Parameters
+    ----------
+    reference : str, default = 'main'
+        The git reference to resolve. Could be a commit, tag or branch.
 
     Returns
     -------
     str
-        The latest sha256 hash of the main branch in the ucgmsim/registry repo.
+        The sha256sum of the commit pointed to by `reference`. If `reference`
+        is a commit, this does nothing.
     """
+    if re.match("[a-z0-9]{40,}", reference):
+        return reference
+
     with requests.get(
-        "https://api.github.com/repos/ucgmsim/registry/commits/main", timeout=30
+        f"https://api.github.com/repos/ucgmsim/registry/commits/{reference}", timeout=30
     ) as repo_data:
         return repo_data.json()[
             "sha"
