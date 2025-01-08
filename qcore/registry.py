@@ -25,7 +25,7 @@ def get_latest_registry_version() -> str:
 def qcore_registry(
     cache_path: Path = pooch.os_cache("quakecore"),
     registry: Optional[dict[str, str]] = None,
-    version: Optional[str] = None,
+    reference: Optional[str] = None,
 ) -> pooch.Pooch:
     """
     Creates and returns a Pooch registry object for managing file downloads.
@@ -36,17 +36,24 @@ def qcore_registry(
         The directory where files will be cached. Defaults to the OS cache
         directory for "quakecore".
     registry : dict[str, str], optional
-        Registry database to use. Consists of
+        Registry database to use. A registry database consists of paths
+        relative to the root of the registry repo as keys, and sha256
+        checksums as values.
+    reference : str, optional
+        The commit hash, branch or tag (in git parlance, a reference) to
+        source the data files for. If not supplied, will use latest commit
+        on the `main` branch.
+
     Returns
     -------
     pooch.Pooch
         A Pooch object configured to manage the quakecore registry.
     """
-    if not version:
-        version = get_latest_registry_version()
+    if not reference:
+        reference = get_latest_registry_version()
 
     with requests.get(
-        f"https://raw.githubusercontent.com/ucgmsim/registry/{version}/registry.txt",
+        f"https://raw.githubusercontent.com/ucgmsim/registry/{reference}/registry.txt",
         timeout=30,
     ) as registry_file:
         registry = dict(
@@ -57,8 +64,8 @@ def qcore_registry(
 
     qcore_pooch = pooch.create(
         path=cache_path,
-        base_url=f"https://raw.githubusercontent.com/ucgmsim/registry/{version}",
-        version=f"0.0+{version}",
+        base_url=f"https://raw.githubusercontent.com/ucgmsim/registry/{reference}",
+        version=f"0.0+{reference}",
         registry=registry,
     )
 
