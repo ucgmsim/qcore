@@ -35,7 +35,7 @@ def resolve_git_reference(reference: str = "main") -> str:
 
 def qcore_registry(
     cache_path: Path = pooch.os_cache("quakecore"),
-    registry: Optional[dict[str, str]] = None,
+    registry: Optional[dict[Path | str, str]] = None,
     reference: Optional[str] = None,
 ) -> pooch.Pooch:
     """
@@ -60,24 +60,25 @@ def qcore_registry(
     pooch.Pooch
         A Pooch object configured to manage the quakecore registry.
     """
-    if not reference:
-        reference = get_latest_registry_version()
+    if not registry:
+        if not reference:
+            reference = get_latest_registry_version()
 
-    with requests.get(
-        f"https://raw.githubusercontent.com/ucgmsim/registry/{reference}/registry.txt",
-        timeout=30,
-    ) as registry_file:
-        registry = dict(
-            tuple(reversed(tuple(re.split(" +", line.strip()))))
-            for line in registry_file.text.splitlines()
-            if line.strip()
-        )
+        with requests.get(
+            f"https://raw.githubusercontent.com/ucgmsim/registry/{reference}/registry.txt",
+            timeout=30,
+        ) as registry_file:
+            registry = dict(
+                tuple(reversed(tuple(re.split(" +", line.strip()))))
+                for line in registry_file.text.splitlines()
+                if line.strip()
+            )
 
     qcore_pooch = pooch.create(
         path=cache_path,
         base_url=f"https://raw.githubusercontent.com/ucgmsim/registry/{reference}",
         version=f"0.0+{reference}",
-        registry=registry,
+        registry={str(k): v for k, v in registry.items()},
     )
 
     return qcore_pooch
@@ -107,10 +108,10 @@ def fetch_file(
         The path to the downloaded file in local storage.
     """
     local_path = registry.abspath / filepath
-    known_hash = registry.registry[local_path]
-    if pooch.core.download_action(local_path, known_hash) != "fetch":
+    known_hash = registry.registry[str(filepath)]
+    if pooch.core.download_action(local_path, known_hash)[0] != "fetch":
         lock_path = registry.abspath / filepath.with_suffix(filepath.suffix + ".lock")
         with filelock.FileLock(lock_path, timeout=lock_timeout):
-            return Path(registry.fetch(filepath))
+            return Path(registry.fetch(str(filepath)))
     else:
-        return Path(registry.fetch(filepath))
+        return Path(registry.fetch(str(filepath)))
