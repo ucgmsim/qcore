@@ -1,10 +1,9 @@
 import re
-from pathlib import PurePath, Path
+from pathlib import Path, PurePath
 from typing import Optional
 
-
-import pooch
 import filelock
+import pooch
 import requests
 
 
@@ -60,9 +59,10 @@ def qcore_registry(
     pooch.Pooch
         A Pooch object configured to manage the quakecore registry.
     """
+    if not reference:
+        reference = resolve_git_reference()
+
     if not registry:
-        if not reference:
-            reference = get_latest_registry_version()
 
         with requests.get(
             f"https://raw.githubusercontent.com/ucgmsim/registry/{reference}/registry.txt",
