@@ -90,7 +90,7 @@ def fetch_file(
     """Return a path to the pooch registry file.
 
     This function checks if pooch would download or update the requested
-    file path. If it does, then it acquire a lock on this file and pooch
+    file path. If it will, then it acquires a lock on this file and pooch
     performs the action. Otherwise we simply return the file.
 
     Parameters
