@@ -3,7 +3,10 @@ pytest
 pytest-black
 alphashape
 descartes
+filelock
 pyproj
+pooch
+requests
 shapely
 numba
 hypothesis[numpy]
