@@ -10,3 +10,5 @@ requests
 shapely
 numba
 hypothesis[numpy]
+typer
+docstring_parser
