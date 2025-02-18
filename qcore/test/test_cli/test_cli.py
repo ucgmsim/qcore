@@ -43,14 +43,14 @@ def test_from_docstring(capsys: pytest.CaptureFixture[str]):
     # Ensure the docstring is unchanged
     assert example_command.__doc__ == DOCSTRING
     # Run `--help` and check output
-    with capsys.disabled():
-        result = runner.invoke(app, ["--help"])
-        assert result.exit_code == 0
-        assert "Example command." in result.output
-        assert "This is the first parameter." in result.output
-        assert "This is an optional parameter." in result.output
-        result = runner.invoke(app, ["0", "--param2", "b"])
-        assert result.stdout.strip() == "Hello World 0 b"
+
+    result = runner.invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "Example command." in result.output
+    assert "This is the first parameter." in result.output
+    assert "This is an optional parameter." in result.output
+    result = runner.invoke(app, ["0", "--param2", "b"])
+    assert result.stdout.strip() == "Hello World 0 b"
 
     example_command(1, "c")
     captured = capsys.readouterr()
