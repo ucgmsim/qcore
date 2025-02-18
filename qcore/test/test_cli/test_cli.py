@@ -39,7 +39,6 @@ def test_from_docstring(capsys: pytest.CaptureFixture[str]):
             This is an optional parameter.
         """
         print("Hello World", param1, param2)
-        pass
 
     # Ensure the docstring is unchanged
     assert example_command.__doc__ == DOCSTRING
