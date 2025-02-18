@@ -1,54 +1,53 @@
+
 pipeline {
-    agent any
-    environment {
-        TEMP_DIR="/tmp/${env.JOB_NAME}/${env.ghprbActualCommit}"
-    } 
+    agent {
+        docker { image 'python:3.13' }
+    }
     stages {
-        stage('Setting up env') {
+        stage('Installing OS Dependencies') {
             steps {
-                echo "[[ Start virtual environment ]]"   
+                echo "[[ Install GMT ]]"
                 sh """
-                    echo "[ Current directory ] : " `pwd`
-                    echo "[ Environment Variables ] "
-                    env
-# Each stage needs custom setting done again. By default /bin/python is used.
-                    source /home/qcadmin/py310/bin/activate
-                    mkdir -p $TEMP_DIR
-                    python -m venv $TEMP_DIR/venv
-# activate new virtual env
-                    source $TEMP_DIR/venv/bin/activate
-                    echo "[ Python used ] : " `which python`
-                    cd ${env.WORKSPACE}
-                    echo "[ Install dependencies ]"
-                    pip install -r requirements.txt
-                    
+                   apt-get update
+                   apt-get install -y gmt libgmt-dev libgmt6 ghostscript
+                """
+                echo "[[ Install uv ]]"
+                sh """
+                    curl -LsSf https://astral.sh/uv/install.sh | sh
                 """
             }
         }
+        stage('Setting up env') {
+            steps {
+                echo "[[ Start virtual environment ]]"
+                sh """
+                    source ~/.local/bin/env sh
+                    cd ${env.WORKSPACE}
+                    uv venv
+                    source .venv/bin/activate
+                    uv pip install -e .
+                """
+            }
+        }
+        stage('Downloading data') {
+            steps {
+                sh """
+                    cd ${env.WORKSPACE}
+                    source .venv/bin/activate
+                    python -c "from qcore.data import download_data; download_data.download_data()"
+                """
+            }
+        }
+
         stage('Run regression tests') {
             steps {
-                echo '[[ Run pytest ]]' 
                 sh """
-# activate virtual environment again
-                    source $TEMP_DIR/venv/bin/activate
-                    echo "[ Python used ] : " `which python`
                     cd ${env.WORKSPACE}
-                    echo "[ Installing ${env.JOB_NAME} ]"
-                    pip install -e .
-                    echo "[ Run test now ]"
-                    cd ${env.JOB_NAME}/test
+                    source .venv/bin/activate
+                    cd qcore/test
                     pytest -s
                 """
             }
-        }
-    }
-
-    post {
-        always {
-            echo '[[ Tear down the environments ]]'
-            sh """
-                rm -rf $TEMP_DIR
-            """
         }
     }
 }
