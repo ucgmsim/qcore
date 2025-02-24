@@ -8,6 +8,7 @@ pyproj
 pooch
 requests
 shapely
+numpy
 numba
 hypothesis[numpy]
 typer
