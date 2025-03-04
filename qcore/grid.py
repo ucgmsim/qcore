@@ -242,8 +242,8 @@ def coordinate_patchgrid(
         coordinates.wgs_depth_to_nztm, (origin, x_upper, y_bottom)
     )
 
-    v_x = x_upper - origin  # Vector along x direction
-    v_y = y_bottom - origin  # Vector along y direction
+    v_x = x_upper - origin
+    v_y = y_bottom - origin
 
     len_x = np.linalg.norm(v_x)
     len_y = np.linalg.norm(v_y)
