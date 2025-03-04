@@ -254,6 +254,10 @@ def coordinate_patchgrid(
         ny = max(1, round(len_y / resolution))
 
     alpha, beta = np.meshgrid(
+        # The 1 / (2 * nx) term is to ensure that the patches are centred on the grid points.
+        # 1 / nx is the length of a patch, so the centre of the patch is 1 / (2 * nx) from the edge.
+        # the last patch is 1 / (2 * nx) from the edge, so the last grid point at 1 - 1 / (2 * nx).
+        # Similarly for ny.
         np.linspace(1 / (2 * nx), 1 - 1 / (2 * nx), nx),
         np.linspace(1 / (2 * ny), 1 - 1 / (2 * ny), ny),
         indexing="ij",
