@@ -252,6 +252,7 @@ def coordinate_patchgrid(
         nx = max(1, round(len_x / resolution))
     if ny is None:
         ny = max(1, round(len_y / resolution))
+
     alpha, beta = np.meshgrid(
         np.linspace(1 / (2 * nx), 1 - 1 / (2 * nx), nx),
         np.linspace(1 / (2 * ny), 1 - 1 / (2 * ny), ny),
@@ -261,12 +262,6 @@ def coordinate_patchgrid(
     X = origin[0] + alpha * v_x[0] + beta * v_y[0]
     Y = origin[1] + alpha * v_x[1] + beta * v_y[1]
     Z = origin[2] + alpha * v_x[2] + beta * v_y[2]
-
-    patch_grid = np.stack((X, Y, Z), axis=-1)
-
-    return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
-        patch_grid.shape
-    )
 
     patch_grid = np.stack((X, Y, Z), axis=-1)
 
