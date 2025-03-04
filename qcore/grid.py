@@ -208,7 +208,8 @@ def coordinate_patchgrid(
     nx: Optional[int] = None,
     ny: Optional[int] = None,
 ) -> np.ndarray:
-    """Creates a grid of patches in a bounded plane region.
+    """
+    Creates a grid of patches in a bounded plane region.
 
     Given the bounds of a rectangular planar region, create a grid of
     (lat, lon, depth) coordinates spaced at close to resolution metres apart
@@ -233,21 +234,42 @@ def coordinate_patchgrid(
     Returns
     -------
     np.ndarray
-        The patch grid of the rectangular planar region. Has shape (ny, nx), where
+        The patch grid of the rectangular planar region. Has shape (ny, nx, 3), where
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
     """
-    meshgrid = coordinate_meshgrid(origin, x_upper, y_bottom, resolution, nx=nx + 1 if nx is not None else nx, ny=ny + 1 if ny is not None else ny)
-    ny, nx = meshgrid.shape[:2]
-    meshgrid = coordinates.wgs_depth_to_nztm(meshgrid.reshape((-1, 3))).reshape(
-        (ny, nx, 3)
+    origin, x_upper, y_bottom = map(
+        coordinates.wgs_depth_to_nztm, (origin, x_upper, y_bottom)
     )
-    kernel = np.full((2, 2), 1 / 4)
-    patch_grid = np.zeros((ny - 1, nx - 1, 3))
-    for i in range(3):
-        patch_grid[:, :, i] = sp.signal.convolve2d(
-            meshgrid[:, :, i].reshape((ny, nx)), kernel, mode="valid"
-        )
+
+    v_x = x_upper - origin  # Vector along x direction
+    v_y = y_bottom - origin  # Vector along y direction
+
+    len_x = np.linalg.norm(v_x)
+    len_y = np.linalg.norm(v_y)
+
+    if nx is None:
+        nx = max(1, round(len_x / resolution))
+    if ny is None:
+        ny = max(1, round(len_y / resolution))
+    alpha, beta = np.meshgrid(
+        np.linspace(1 / (2 * nx), 1 - 1 / (2 * nx), nx),
+        np.linspace(1 / (2 * ny), 1 - 1 / (2 * ny), ny),
+        indexing="ij",
+    )
+
+    X = origin[0] + alpha * v_x[0] + beta * v_y[0]
+    Y = origin[1] + alpha * v_x[1] + beta * v_y[1]
+    Z = origin[2] + alpha * v_x[2] + beta * v_y[2]
+
+    patch_grid = np.stack((X, Y, Z), axis=-1)
+
+    return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
+        patch_grid.shape
+    )
+
+    patch_grid = np.stack((X, Y, Z), axis=-1)
+
     return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
         patch_grid.shape
     )
