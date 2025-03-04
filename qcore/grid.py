@@ -259,11 +259,7 @@ def coordinate_patchgrid(
         indexing="ij",
     )
 
-    X = origin[0] + alpha * v_x[0] + beta * v_y[0]
-    Y = origin[1] + alpha * v_x[1] + beta * v_y[1]
-    Z = origin[2] + alpha * v_x[2] + beta * v_y[2]
-
-    patch_grid = np.stack((X, Y, Z), axis=-1)
+    patch_grid = origin + alpha[..., np.newaxis] * v_x + beta[..., np.newaxis] * v_y
 
     return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
         patch_grid.shape
