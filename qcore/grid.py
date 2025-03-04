@@ -16,7 +16,6 @@ gridpoint_count_in_length
 from typing import Optional
 
 import numpy as np
-import scipy as sp
 
 from qcore import coordinates
 
