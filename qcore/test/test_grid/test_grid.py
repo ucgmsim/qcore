@@ -86,6 +86,17 @@ def test_coordinate_meshgrid_x_boundary():
     )
 
 
+def test_coordinate_patchgrid_different_nx_ny():
+    """Test the coordinate_meshgrid function to verify nx/ny parameters"""
+    origin = np.array([-43.5, 172.5, 5000])  # (lat, lon, depth in m)
+    x_upper = np.array([-43.45498004, 172.50037108, 5000.0])
+    y_bottom = np.array([-43.50025372, 172.56184531, 5000.0])
+    ny = 3
+    nx = 5
+    meshgrid = grid.coordinate_patchgrid(origin, x_upper, y_bottom, nx=nx, ny=ny)
+    assert meshgrid.shape == (ny, nx, 3)
+
+
 def test_coordinate_patchgrid():
     """Test the coordinate_meshgrid function to verify grid creation"""
     origin = np.array([-43.5, 172.5, 5000])  # (lat, lon, depth in m)
@@ -106,6 +117,11 @@ def test_coordinate_patchgrid():
         ) == pytest.approx(resolution, abs=1e-2)
 
     ny, nx = meshgrid.shape[:2]
+    width = coordinates.distance_between_wgs_depth_coordinates(y_bottom, origin)
+    length = coordinates.distance_between_wgs_depth_coordinates(x_upper, origin)
+    assert ny == round(length / resolution)
+    assert nx == round(width / resolution)
+
     assert nx > 1 and ny > 1  # There should be multiple grid points in both directions
 
     # Check if the depths are consistent

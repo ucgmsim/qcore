@@ -203,7 +203,7 @@ def coordinate_patchgrid(
     origin: np.ndarray,
     x_upper: np.ndarray,
     y_bottom: np.ndarray,
-    resolution: float,
+    resolution: Optional[float] = None,
     nx: Optional[int] = None,
     ny: Optional[int] = None,
 ) -> np.ndarray:
@@ -247,10 +247,8 @@ def coordinate_patchgrid(
     len_x = np.linalg.norm(v_x)
     len_y = np.linalg.norm(v_y)
 
-    if nx is None:
-        nx = max(1, round(len_x / resolution))
-    if ny is None:
-        ny = max(1, round(len_y / resolution))
+    nx = nx or max(1, round(len_x / resolution))
+    ny = ny or max(1, round(len_y / resolution))
 
     alpha, beta = np.meshgrid(
         # The 1 / (2 * nx) term is to ensure that the patches are centred on the grid points.
@@ -262,7 +260,9 @@ def coordinate_patchgrid(
         indexing="ij",
     )
 
-    patch_grid = origin + alpha[..., np.newaxis] * v_x + beta[..., np.newaxis] * v_y
+    patch_grid = np.transpose(
+        origin + alpha[..., np.newaxis] * v_x + beta[..., np.newaxis] * v_y, (1, 0, 2)
+    )
 
     return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
         patch_grid.shape
