@@ -13,6 +13,7 @@ from subprocess import PIPE, Popen
 from typing import Set, Union
 
 import numpy as np
+import numpy.typing as npt
 import xarray as xr
 from scipy.signal import butter, resample, sosfiltfilt
 
