@@ -260,7 +260,10 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
     for file_idx, seis_file in enumerate(seis_files):
         with open(seis_file, "rb") as f:
             # Read number of stations in this file
-            nstat_file = np.fromfile(f, dtype=i4, count=1)[0]
+            try:
+                nstat_file = np.fromfile(f, dtype=i4, count=1)[0]
+            except IndexError:
+                continue
 
             # Read station headers
             dtype_header = np.dtype(
