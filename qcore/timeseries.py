@@ -155,7 +155,7 @@ _HEAD_STAT = 48  # Header size per station
 _N_COMP = 9  # Number of components in LF seis files
 
 
-def _lfseis_dtypes(seis_file: Path) -> tuple[str, np.dtype, np.dtype]:
+def _lfseis_dtypes(seis_file: Path) -> tuple[str, str, str]:
     """Determine the data types for reading LF seis files.
 
     Parameters
@@ -195,7 +195,7 @@ def _lfseis_dtypes(seis_file: Path) -> tuple[str, np.dtype, np.dtype]:
         i4 = f"{endian}i4"
         f4 = f"{endian}f4"
 
-        return endian, np.dtype(i4), np.dtype(f4)
+        return endian, i4, f4
 
 
 def read_lfseis(outbin: Path | str) -> xr.Dataset:
