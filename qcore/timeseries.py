@@ -257,7 +257,6 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
     velocity_waveforms_files = []
 
     # Read all station data and waveforms in a single pass per file
-    station_offset = 0
     for file_idx, seis_file in enumerate(seis_files):
         with open(seis_file, "rb") as f:
             # Read number of stations in this file
@@ -287,13 +286,13 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
             for i, name_bytes in enumerate(station_headers["name"]):
                 name = name_bytes.decode("utf-8", errors="replace").strip("\x00")
                 station_names_files.append(name)
-
+            ts_pos = 4 + nstat_file * _HEAD_STAT
+            f.seek(ts_pos)
             # Read waveform data for all stations in this file
-            waveform_data = np.fromfile(f, dtype=f4, count=nstat_file * nt * _N_COMP)
-            waveform_data = waveform_data.reshape(nstat_file, nt, _N_COMP)
+            waveform_data = np.fromfile(f, dtype=f"3{endian}f4", count=nt).reshape(
+                nstat, nt, 3
+            )
             velocity_waveforms_files.append(waveform_data)
-
-            station_offset += nstat_file
 
     x_coords = np.concatenate(x_coords_files, axis=0)
     y_coords = np.concatenate(y_coords_files, axis=0)
