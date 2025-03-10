@@ -152,7 +152,7 @@ def _velocity_to_acceleration(
 
 
 _HEAD_STAT = 48  # Header size per station
-_N_COMP = 3  # Number of components (x, y, z)
+_N_COMP = 9  # Number of components in LF seis files
 
 
 def _lfseis_dtypes(seis_file: Path) -> tuple[str, np.dtype, np.dtype]:
@@ -177,14 +177,14 @@ def _lfseis_dtypes(seis_file: Path) -> tuple[str, np.dtype, np.dtype]:
 
         if (
             file_size
-            == 4 + np.int64(nstat) * HEAD_STAT + np.int64(nstat) * nt * N_COMP * 4
+            == 4 + np.int64(nstat) * _HEAD_STAT + np.int64(nstat) * nt * _N_COMP * 4
         ):
             endian = "<"
         elif (
             file_size
             == 4
-            + np.int64(nstat.byteswap()) * HEAD_STAT
-            + np.int64(nstat.byteswap()) * nt.byteswap() * N_COMP * 4
+            + np.int64(nstat.byteswap()) * _HEAD_STAT
+            + np.int64(nstat.byteswap()) * nt.byteswap() * _N_COMP * 4
         ):
             endian = ">"
             nt = nt.byteswap()
