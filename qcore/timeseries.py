@@ -295,7 +295,7 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
             f.seek(ts_pos)
             # Read waveform data for all stations in this file
             waveform_data = np.fromfile(f, dtype=f"3{endian}f4", count=nt).reshape(
-                nstat, nt, 3
+                nstat_file, nt, 3
             )
             velocity_waveforms_files.append(waveform_data)
 
