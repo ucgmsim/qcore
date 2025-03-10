@@ -264,15 +264,20 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
 
             # Read station headers
             dtype_header = np.dtype(
-                [
-                    ("x", i4),
-                    ("y", i4),
-                    ("z", i4),
-                    ("pad1", f"{i4}, 4"),  # 16 bytes padding
-                    ("lat", f4),
-                    ("lon", f4),
-                    ("name", "S8"),
-                ]
+                {
+                    "names": [
+                        "stat_pos",
+                        "x",
+                        "y",
+                        "z",
+                        "seis_idx",
+                        "lat",
+                        "lon",
+                        "name",
+                    ],
+                    "formats": [_i4, _i4, _i4, _i4, (_i4, 2), _f4, _f4, "|S8"],
+                    "offsets": [0, 4, 8, 12, 16, 32, 36, 40],
+                }
             )
 
             station_headers = np.fromfile(f, dtype=dtype_header, count=nstat_file)
