@@ -248,7 +248,7 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
     )
 
     # Prepare arrays for station data and waveforms
-    station_names_files = []
+    station_names = []
     x_coords_files = []
     y_coords_files = []
     z_coords_files = []
@@ -293,7 +293,7 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
             # Convert station names
             for i, name_bytes in enumerate(station_headers["name"]):
                 name = name_bytes.decode("utf-8", errors="replace").strip("\x00")
-                station_names_files.append(name)
+                station_names.append(name)
             ts_pos = 4 + nstat_file * _HEAD_STAT
             f.seek(ts_pos)
             # Read waveform data for all stations in this file
