@@ -251,7 +251,6 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
     station_names = []
     x_coords_files = []
     y_coords_files = []
-    z_coords_files = []
     lat_coords_files = []
     lon_coords_files = []
     velocity_waveforms_files = []
@@ -286,7 +285,6 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
             station_headers = np.fromfile(f, dtype=dtype_header, count=nstat_file)
             x_coords_files.append(station_headers["x"])
             y_coords_files.append(station_headers["y"])
-            z_coords_files.append(station_headers["z"])
             lat_coords_files.append(station_headers["lat"])
             lon_coords_files.append(station_headers["lon"])
 
@@ -304,7 +302,6 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
 
     x_coords = np.concatenate(x_coords_files, axis=0)
     y_coords = np.concatenate(y_coords_files, axis=0)
-    z_coords = np.concatenate(z_coords_files, axis=0)
     lat_coords = np.concatenate(lat_coords_files, axis=0)
     lon_coords = np.concatenate(lon_coords_files, axis=0)
     velocity_waveforms = np.concatenate(velocity_waveforms_files, axis=0)
@@ -315,7 +312,6 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
         station_names = [station_names[i] for i in valid_indices]
         x_coords = x_coords[valid_indices]
         y_coords = y_coords[valid_indices]
-        z_coords = z_coords[valid_indices]
         lat_coords = lat_coords[valid_indices]
         lon_coords = lon_coords[valid_indices]
         velocity_waveforms = velocity_waveforms[valid_indices]
@@ -343,7 +339,6 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
             "component": ["x", "y", "z"],
             "x": ("station", x_coords),
             "y": ("station", y_coords),
-            "z": ("station", z_coords),
             "lat": ("station", lat_coords),
             "lon": ("station", lon_coords),
         },
