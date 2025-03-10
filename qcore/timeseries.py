@@ -275,7 +275,7 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
                         "lon",
                         "name",
                     ],
-                    "formats": [_i4, _i4, _i4, _i4, (_i4, 2), _f4, _f4, "|S8"],
+                    "formats": [i4, i4, i4, i4, (i4, 2), f4, f4, "|S8"],
                     "offsets": [0, 4, 8, 12, 16, 32, 36, 40],
                 }
             )
