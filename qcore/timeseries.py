@@ -311,7 +311,7 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
 
     # Filter out any empty stations if present
     valid_indices = np.array([i for i, name in enumerate(station_names) if name])
-    if len(valid_indices) < total_stations:
+    if len(valid_indices) < len(station_names):
         station_names = [station_names[i] for i in valid_indices]
         x_coords = x_coords[valid_indices]
         y_coords = y_coords[valid_indices]
