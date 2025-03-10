@@ -151,37 +151,30 @@ def _velocity_to_acceleration(
     return (velocities - shifted) / dt
 
 
-def read_lfseis(outbin: Path | str) -> xr.Dataset:
-    """Read LF station seismograms.
+_HEAD_STAT = 48  # Header size per station
+_N_COMP = 3  # Number of components (x, y, z)
+
+
+def _lfseis_dtypes(seis_file: Path) -> tuple[str, np.dtype, np.dtype]:
+    """Determine the data types for reading LF seis files.
 
     Parameters
     ----------
-    outbin : Pathlike
-        Path to the OutBin directory containing seis files. Should contain `*seis-*.e3d` files.
+    seis_file : Path
+        Path to the LF seis file.
 
     Returns
     -------
-    xr.Dataset
-        xarray Dataset containing LF seis data.
-
-    Raises
-    ------
-    ValueError
-        If the directory does not contain LF seis files.
+    tuple[str, np.dtype, np.dtype]
+        Tuple containing the endianess, header dtype, and waveform dtype.
     """
-    # Constants from the original code
-    HEAD_STAT = 48  # Header size per station
-    N_COMP = 3  # Number of components (x, y, z)
+    with open(seis_file, "rb") as f:
+        nstat_first = np.fromfile(f, dtype="<i4", count=1)[0]
+        f.seek(0)  # Reset position
 
-    outbin = Path(outbin)
-    seis_files = list(sorted(outbin.glob("*seis-*.e3d")))
-    if not seis_files:
-        raise ValueError(f"No LF seis files found in {outbin}")
-
-    # Determine endianness by checking file size
-    file_size = seis_files[0].stat().st_size
-    with open(seis_files[0], "rb") as f:
         nstat, nt = np.fromfile(f, dtype="<i4", count=6)[0::5]
+        file_size = seis_file.stat().st_size
+
         if (
             file_size
             == 4 + np.int64(nstat) * HEAD_STAT + np.int64(nstat) * nt * N_COMP * 4
@@ -199,11 +192,50 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
         else:
             raise ValueError(f"File is not an LF seis file: {seis_files[0]}")
 
-        _i4 = f"{endian}i4"
-        _f4 = f"{endian}f4"
+        i4 = f"{endian}i4"
+        f4 = f"{endian}f4"
 
-        # Read common metadata
-        dt, resolution, rotation = np.fromfile(f, dtype=_f4, count=3)
+        return endian, np.dtype(i4), np.dtype(f4)
+
+
+def read_lfseis(outbin: Path | str) -> xr.Dataset:
+    """Read LF station seismograms in a single pass.
+
+    Parameters
+    ----------
+    outbin : Pathlike
+        Path to the OutBin directory containing seis files. Should contain `*seis-*.e3d` files.
+
+    Returns
+    -------
+    xr.Dataset
+        xarray Dataset containing LF seis data.
+
+    Raises
+    ------
+    ValueError
+        If the directory does not contain LF seis files.
+    """
+    # Constants
+
+    outbin = Path(outbin)
+    seis_files = list(sorted(outbin.glob("*seis-*.e3d")))
+    if not seis_files:
+        raise ValueError(f"No LF seis files found in {outbin}")
+
+    header_file = next(
+        seis_file for seis_file in seis_files if seis_file.stat().st_size
+    )
+    endian, i4, f4 = _lfseis_dtypes(header_file)
+
+    # Read common metadata
+    with open(header_file, "rb") as f:
+        f.seek(
+            20
+        )  # 4 * i4 for nstat, station index, x, y, z grid point of the first station
+        nt = np.fromfile(f, dtype=i4, count=1)[0]
+        dt, resolution, rotation = np.fromfile(f, dtype=f4, count=3)
+    # Determine endianness and metadata from first file
 
     # Calculate rotation matrix
     theta = np.radians(rotation)
@@ -215,99 +247,71 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
         ]
     )
 
-    # Load nstats to determine total size
-    nstats = np.zeros(len(seis_files), dtype="i")
-    for i, s in enumerate(seis_files):
-        with open(s, "rb") as f:
-            nstats[i] = np.fromfile(f, dtype=_i4, count=1)[0]
+    # Prepare arrays for station data and waveforms
+    station_names_files = []
+    x_coords_files = []
+    y_coords_files = []
+    z_coords_files = []
+    lat_coords_files = []
+    lon_coords_files = []
+    velocity_waveforms_files = []
 
-    # Container for station data
-    total_stations = np.sum(nstats)
-    stations = np.recarray(
-        total_stations,
-        dtype=[
-            ("x", "i4"),
-            ("y", "i4"),
-            ("z", "i4"),
-            ("seis_idx", "i4", 2),
-            ("lat", "f4"),
-            ("lon", "f4"),
-            ("name", "U8"),
-        ],
-    )
-
-    # Prepare arrays for waveform data
-    velocity_waveforms = np.zeros((total_stations, nt, 3), dtype=np.float32)
-
-    # Read station data and waveforms
+    # Read all station data and waveforms in a single pass per file
     station_offset = 0
-    for i, seis_file in enumerate(seis_files):
+    for file_idx, seis_file in enumerate(seis_files):
         with open(seis_file, "rb") as f:
             # Read number of stations in this file
-            nstat_file = np.fromfile(f, dtype=_i4, count=1)[0]
+            nstat_file = np.fromfile(f, dtype=i4, count=1)[0]
 
             # Read station headers
-            stations_data = np.fromfile(
-                f,
-                count=nstat_file,
-                dtype=np.dtype(
-                    {
-                        "names": [
-                            "stat_pos",
-                            "x",
-                            "y",
-                            "z",
-                            "seis_idx",
-                            "lat",
-                            "lon",
-                            "name",
-                        ],
-                        "formats": [_i4, _i4, _i4, _i4, (_i4, 2), _f4, _f4, "|S8"],
-                        "offsets": [0, 4, 8, 12, 16, 32, 36, 40],
-                    }
-                ),
+            dtype_header = np.dtype(
+                [
+                    ("x", i4),
+                    ("y", i4),
+                    ("z", i4),
+                    ("pad1", f"{i4}, 4"),  # 16 bytes padding
+                    ("lat", f4),
+                    ("lon", f4),
+                    ("name", "S8"),
+                ]
             )
 
-            # Set seis_idx for tracking file and position within file
-            stations_data["seis_idx"][:, 0] = i
-            stations_data["seis_idx"][:, 1] = np.arange(nstat_file)
+            station_headers = np.fromfile(f, dtype=dtype_header, count=nstat_file)
+            x_coords_files.append(station_headers["x"])
+            y_coords_files.append(station_headers["y"])
+            z_coords_files.append(station_headers["z"])
+            lat_coords_files.append(station_headers["lat"])
+            lon_coords_files.append(station_headers["lon"])
 
-            # Store station data
-            for field in ["x", "y", "z", "seis_idx", "lat", "lon"]:
-                stations[field][station_offset : station_offset + nstat_file] = (
-                    stations_data[field]
-                )
+            # Convert station names
+            for i, name_bytes in enumerate(station_headers["name"]):
+                name = name_bytes.decode("utf-8", errors="replace").strip("\x00")
+                station_names_files.append(name)
 
-            # Convert station names from bytes to unicode
-            for j in range(nstat_file):
-                name_bytes = stations_data["name"][j]
-                stations.name[station_offset + j] = name_bytes.decode(
-                    "utf-8", errors="replace"
-                ).strip("\x00")
+            # Read waveform data for all stations in this file
+            waveform_data = np.fromfile(f, dtype=f4, count=nstat_file * nt * _N_COMP)
+            waveform_data = waveform_data.reshape(nstat_file, nt, _N_COMP)
+            velocity_waveforms_files.append(waveform_data)
 
-            # Calculate position of time series data
-            ts_pos = 4 + nstat_file * HEAD_STAT
-            f.seek(ts_pos)
+            station_offset += nstat_file
 
-            # Read the waveform data
-            for j in range(nstat_file):
-                # Read first time step
-                first_step = np.fromfile(f, dtype=f"3{endian}f4", count=1)[0]
-                velocity_waveforms[station_offset + j, 0, :] = first_step
+    x_coords = np.concatenate(x_coords_files, axis=0)
+    y_coords = np.concatenate(y_coords_files, axis=0)
+    z_coords = np.concatenate(z_coords_files, axis=0)
+    lat_coords = np.concatenate(lat_coords_files, axis=0)
+    lon_coords = np.concatenate(lon_coords_files, axis=0)
+    velocity_waveforms = np.concatenate(velocity_waveforms_files, axis=0)
 
-                # Read remaining time steps
-                remaining_data = np.fromfile(f, dtype=f"3{endian}f4", count=(nt - 1))
-                velocity_waveforms[station_offset + j, 1:, :] = remaining_data.reshape(
-                    nt - 1, 3
-                )
-
-        station_offset += nstat_file
-
-    # Check for duplicated stations and remove empty entries at the end
-    if stations.name[-1] == "":
-        last_valid_index = len(stations) - np.argmin((stations.name == "")[::-1])
-        stations = stations[:last_valid_index]
-        velocity_waveforms = velocity_waveforms[:last_valid_index]
+    # Filter out any empty stations if present
+    valid_indices = np.array([i for i, name in enumerate(station_names) if name])
+    if len(valid_indices) < total_stations:
+        station_names = [station_names[i] for i in valid_indices]
+        x_coords = x_coords[valid_indices]
+        y_coords = y_coords[valid_indices]
+        z_coords = z_coords[valid_indices]
+        lat_coords = lat_coords[valid_indices]
+        lon_coords = lon_coords[valid_indices]
+        velocity_waveforms = velocity_waveforms[valid_indices]
 
     # Apply rotation matrix to velocity data
     rotated_velocity = np.einsum("ijk,kl->ijl", velocity_waveforms, rotation_matrix)
@@ -327,16 +331,14 @@ def read_lfseis(outbin: Path | str) -> xr.Dataset:
             ),
         },
         coords={
-            "station": np.array([name.strip() for name in stations.name]),
+            "station": station_names,
             "time": time,
             "component": ["x", "y", "z"],
-            "x": ("station", stations.x),
-            "y": ("station", stations.y),
-            "z": ("station", stations.z),
-            "lat": ("station", stations.lat),
-            "lon": ("station", stations.lon),
-            "file_index": ("station", stations.seis_idx[:, 0]),
-            "station_index": ("station", stations.seis_idx[:, 1]),
+            "x": ("station", x_coords),
+            "y": ("station", y_coords),
+            "z": ("station", z_coords),
+            "lat": ("station", lat_coords),
+            "lon": ("station", lon_coords),
         },
         attrs={
             "resolution": resolution,
