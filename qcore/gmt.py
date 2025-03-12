@@ -2907,7 +2907,6 @@ class GMTPlot:
         scale=1,
         resource_region="NZ",
     ):
-        topo = topo or GMT_DATA.fetch("data/Topo/srtm_NZ.grd")
         """
         Adds land/water/features to map.
         highway: thickness of highway paths or None
@@ -2915,6 +2914,7 @@ class GMTPlot:
         road: thickness of road paths or None
         road_colour: colour of road paths
         """
+        topo = topo or GMT_DATA.fetch("data/Topo/srtm_NZ.grd")
         # auto sizing factor calculation
         try:
             region = list(map(float, self.history("R").split("/")))
