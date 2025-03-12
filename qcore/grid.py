@@ -236,6 +236,20 @@ def coordinate_patchgrid(
         The patch grid of the rectangular planar region. Has shape (ny, nx, 3), where
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
+
+    Note
+    ----
+    The patch grid may have different sizes than given in as resolution if the resolution does not divide the lengths of the sides of the plane evenly.
+
+    Example
+    -------
+    >>> origin = np.array([-43.5321, 172.6362, 0.0])  # Christchurch, NZ
+    >>> x_upper = np.array([-43.5311, 172.6462, 0.0]) # ~800m to the east
+    >>> y_bottom = np.array([-43.5421, 172.6362, 0.0]) # ~1.2km to the south
+    >>> resolution = 100  # 100 meters
+    >>> grid = coordinate_patchgrid(origin, x_upper, y_bottom, resolution)
+    >>> grid.shape
+    (12, 8, 3)
     """
     origin, x_upper, y_bottom = map(
         coordinates.wgs_depth_to_nztm, (origin, x_upper, y_bottom)
