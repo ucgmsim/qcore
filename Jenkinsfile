@@ -29,16 +29,6 @@ pipeline {
                 """
             }
         }
-        stage('Downloading data') {
-            steps {
-                sh """
-                    cd ${env.WORKSPACE}
-                    source .venv/bin/activate
-                    python -c "from qcore.data import download_data; download_data.download_data()"
-                """
-            }
-        }
-
         stage('Run regression tests') {
             steps {
                 sh """
