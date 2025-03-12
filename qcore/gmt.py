@@ -10,16 +10,84 @@ add support for different interpolation methods
 avg_ll calculated elsewhere should be local function that works over equator
 """
 
-from distutils.spawn import find_executable
 import math
 import os
-from pkg_resources import resource_filename
+from distutils.spawn import find_executable
 from shutil import copyfile, move
 from subprocess import PIPE, Popen
 from sys import byteorder
 from time import time
 
 import numpy as np
+import pooch
+
+GMT_DATA = pooch.create(
+    pooch.os_cache("qcore"),
+    base_url="",
+    registry={
+        "data/Paths/water/NZ.gmt": "sha256:9abdd22ee120ce50613d3745825caeac5fc6f9ccec3bc80a4bc33d6de6cbd218",
+        "data/Topo/srtm_KR.grd": "sha256:cc59be8e9ee8cabb75587c040fd67597eb02116e225eeae89949e6f924058325",
+        "data/Topo/srtm_NZ.grd": "sha256:adb3eb43cd20be468b15cba52f8953538bf7523361f1f2d7b68dbf74113cc06c",
+        "data/Paths/water/KR.gmt": "sha256:9950b917d3f4e239e908f93f65705424082ae55f072d6a7926bb56298c2f5b28",
+        "data/Topo/srtm_KR_i5.grd": "sha256:adbacea622607b91438fee68999ebc7c8dd9eb35b3230708a9a5a21fc0de472b",
+        "data/regions.ll": "sha256:17ad7202395af54dea08f93f0b9ed8438fcb05834bc12242fa4fb770395ba899",
+        "data/Paths/coastline/NZ.gmt": "sha256:31660def8f51d6d827008e6f20507153cfbbfbca232cd661da7f214aff1c9ce3",
+        "data/Paths/highway/NZ.gmt": "sha256:fd03908ecd137fa0bd20184081d7b499d23bc44e4154dad388b3ba8c89893e62",
+        "data/version": "sha256:44804414f85bef9588f60086587fd6e8871b39123c831ec129624f4d81a95fea",
+        "data/cpt/nz_topo_grey1.cpt": "sha256:39305ac0739757337241a602a2dca71d0981a9fcc0e3240388b078669f1b3f84",
+        "data/cpt/hot-orange-log.cpt": "sha256:c56a2b43690468753489ff56817197ef7faab456a979c2dd9bb6bab80947dc14",
+        "data/cpt/slip.cpt": "sha256:e243f96aad43ea58fb0a1ed4c566d1e5d587abaf286a367dcd2be60a395dfc28",
+        "data/Paths/highway/KR.gmt": "sha256:bf2cbc7efd7e6fb8d3265ed421eda61fbe768fc6ddc5ed0f5c8f06ece023f909",
+        "data/cpt/hot-orange.cpt": "sha256:dace12cae5d803a4842af83e1ebee151cd797fede9238e1860574423a3aa7838",
+        "data/cpt/liquefaction_susceptibility.cpt": "sha256:29fb2b4e0fca678d5c28ad49d34411a0c411257b0843c94fc27ad23bfe4030cf",
+        "data/cpt/palm_springs_nz_topo.cpt": "sha256:8bb174d0fb86ea0181e8216cb75c04128aec29121aa1eae6a65344c4c84884b1",
+        "data/cpt/mmi.cpt": "sha256:4607b77a230b2ff33f8ff700ddd502df1c4c3604af01c64215d699e81bea5590",
+        "data/cpt/trise.cpt": "sha256:3711884ab8a216f102a1f60cdc4cfbb1aca3f3ab54fb08f1ae768eda77b88047",
+        "data/cpt/landslide_susceptibility.cpt": "sha256:1dbf19be72e42181da0f60d8a081c97a29da64b1473ae10f011061532dad218f",
+        "data/cpt/landslide_susceptibility_nolabel.cpt": "sha256:936d8f7cebb34e91ceff2f02a8a14923db280367020a879f9861584703f63e64",
+        "data/cpt/mmi-labels.cpt": "sha256:9b93ccfa22a3719eae931423a0fe67fa91dbbcfda008b792d136ecf07f0deffe",
+        "data/cpt/palm_springs_1.cpt": "sha256:487694eecd04dbc90619a3fa156a971c000efe364d4bd9d808ef5cde00c7e773",
+        "data/cpt/liquefaction_susceptibility_nolabel.cpt": "sha256:e0850f6c0a0614b95d77e0df195574fdff3f68e9c1f9c84642f8985a9cba92ca",
+        "data/img/logo-right.png": "sha256:849b332b7d234a3508cf5393555d3d526097df2dcabd35df50055ac0022dbb4d",
+        "data/img/logo-left.png": "sha256:e254ee4ca2c628e673b6ce04bd1f479d707493aab036e9a012c05f94b999ffdd",
+        "data/Paths/road/KR.gmt": "sha256:99a3d6f0da95698c38dfa40e509f125f2713633612ceb2a52cf7286fa2c68358",
+        "data/Paths/road/NZ.gmt": "sha256:e01f2ac2fc4a406e1d430c2cffb2d3ef10e260b10148fd9dc92723888cc24a68",
+        "data/Topo/srtm_NZ_i5.grd": "sha256:a2bd8c148015933b845a9760559457bd42b937fdd34ecb2d72a44f25e691cae4",
+        "data/Topo/srtm_NZ_1s.grd": "sha256:1caecfefda5bf7906593dacc76eeb91123b1768d50b6fe4e3b8ee90a1a3bcdc6",
+        "data/Topo/srtm_NZ_1s_i5.grd": "sha256:9a87328e680608542b49f719d230fb92c4a6a3b110720df50c2a6ad3b6c0547f",
+    },
+    # Now specify custom URLs for some of the files in the registry.
+    urls={
+        "data/Paths/coastline/NZ.gmt": "https://www.dropbox.com/scl/fi/zkohh794y0s2189t7b1hi/NZ.gmt?rlkey=02011f4morc4toutt9nzojrw1&st=vpz2ri8x&dl=1",
+        "data/Paths/water/NZ.gmt": "https://www.dropbox.com/scl/fi/ik101lnpkn3nn6z01ckcw/NZ.gmt?rlkey=byghec0ktpj00ctgau6704rl7&st=ng70q2fz&dl=1",
+        "data/Paths/water/KR.gmt": "https://www.dropbox.com/scl/fi/gwpr5ai97bx905qmaamvb/KR.gmt?rlkey=hw9bup7u1i0p4wog91vxdwkaz&st=8jxpkhyu&dl=1",
+        "data/Paths/road/NZ.gmt": "https://www.dropbox.com/scl/fi/xu4o7gh4fd1nlolqr5kb2/NZ.gmt?rlkey=2h95i3sib6j1tjo6l4p14mlf7&st=6k1c1r5e&dl=1",
+        "data/Paths/road/KR.gmt": "https://www.dropbox.com/scl/fi/u1v08tnqfwl69kbqc6vp6/KR.gmt?rlkey=rie315iw8zdgpqclegbhdto60&st=jlbcqxhe&dl=1",
+        "data/Paths/highway/NZ.gmt": "https://www.dropbox.com/scl/fi/pycl9rapaw4h8oapnk2zx/NZ.gmt?rlkey=jup637ec1kabfq57il8q2z52i&st=5jpaxeih&dl=1",
+        "data/Paths/highway/KR.gmt": "https://www.dropbox.com/scl/fi/ogs9bwlq1qcmqkm73e7tr/KR.gmt?rlkey=eneeceqzmbifuyg2f5sdc1roc&st=hrenqhm4&dl=1",
+        "data/Topo/srtm_NZ.grd": "https://www.dropbox.com/scl/fi/mq99chc3u9nl0cqvszadj/srtm_NZ.grd?rlkey=kypozxtqfenheqz0lv0w9j9ee&st=jhhht7q3&dl=1",
+        "data/Topo/srtm_NZ_i5.grd": "https://www.dropbox.com/scl/fi/mdbtf90bq7gnmh9vzpd9u/srtm_NZ_i5.grd?rlkey=mztlms8huuacq1ygujpwo9zia&st=pkwb2wfe&dl=1",
+        "data/Topo/srtm_NZ_1s.grd": "https://www.dropbox.com/scl/fi/z3nymvy41rrxctuxh16xl/srtm_NZ_1s.grd?rlkey=ja1hmecgz3dz6zcblua64sr8t&st=x09hn3pu&dl=1",
+        "data/Topo/srtm_NZ_1s_i5.grd": "https://www.dropbox.com/scl/fi/avzaeu6zqbhp4xkfqwtrt/srtm_NZ_1s_i5.grd?rlkey=iyj82hsqyrv7w7x6o5t9191jo&st=3i48q15r&dl=1",
+        "data/Topo/srtm_KR.grd": "https://www.dropbox.com/scl/fi/ds23toeh73uj4tyza86kd/srtm_KR.grd?rlkey=knz42nbdhw0ozkarc9izp6941&st=t1v7v572&dl=1",
+        "data/Topo/srtm_KR_i5.grd": "https://www.dropbox.com/scl/fi/rtzfo07s6gjdm9xofdj6h/srtm_KR_i5.grd?rlkey=kjb0quk06z8npz13hsaizgn4i&st=a5ix7lgn&dl=1",
+        "data/regions.ll": "https://www.dropbox.com/scl/fi/073atd0ebcrmob46a8yp5/regions.ll?rlkey=g54pfbd6jr25k24vm6ohgy6dq&st=1sgbox8p&dl=1",
+        "data/cpt/trise.cpt": "https://www.dropbox.com/scl/fi/scn9qbp5g7eq6qparbr5c/trise.cpt?rlkey=a7my5euwoqoqyi3xu5340o1jt&st=3pcuy7hj&dl=1",
+        "data/cpt/slip.cpt": "https://www.dropbox.com/scl/fi/e7jwxfpeneke7g6ay4gqi/slip.cpt?rlkey=8ouopksidlsx6yy9acejspodt&st=vnq4tehy&dl=1",
+        "data/cpt/palm_springs_nz_topo.cpt": "https://www.dropbox.com/scl/fi/1thpu13lmwtwfrblgse75/palm_springs_nz_topo.cpt?rlkey=46wame3m05ae0yb3axfblmaqe&st=8qnrtd9s&dl=1",
+        "data/cpt/palm_springs_1.cpt": "https://www.dropbox.com/scl/fi/lfbjuw68be2437n5w0t57/palm_springs_1.cpt?rlkey=upzukhcz4nb2s81f8nmy9ezk7&st=dv9aipum&dl=1",
+        "data/cpt/nz_topo_grey1.cpt": "https://www.dropbox.com/scl/fi/32kmnru3gdxslcyarb5se/nz_topo_grey1.cpt?rlkey=yioo4il6rdbs520mapaniulr1&st=92gqx1jq&dl=1",
+        "data/cpt/mmi.cpt": "https://www.dropbox.com/scl/fi/wjjnwzydtfcl5v485vffy/mmi.cpt?rlkey=jvq9z8qg49fwk1uohej4v8m6r&st=ztkq2yt2&dl=1",
+        "data/cpt/mmi-labels.cpt": "https://www.dropbox.com/scl/fi/xg7i949rhtgeeqdeo6qd7/mmi-labels.cpt?rlkey=yklw07uwqjo2yn0580gwy544b&st=j4xvri1x&dl=1",
+        "data/cpt/liquefaction_susceptibility.cpt": "https://www.dropbox.com/scl/fi/2ocuygxo9qqq6v33os1r6/liquefaction_susceptibility.cpt?rlkey=wkbvwjjsl7mpc09bg7tedmztf&st=1txd338v&dl=1",
+        "data/cpt/liquefaction_susceptibility_nolabel.cpt": "https://www.dropbox.com/scl/fi/sv35h9tbtmk8oo3x6gv6a/liquefaction_susceptibility_nolabel.cpt?rlkey=hgzcvq1uwppch6n70ff22s16t&st=j327gq8d&dl=1",
+        "data/cpt/landslide_susceptibility.cpt": "https://www.dropbox.com/scl/fi/k5903mjgablxkotvoscsy/landslide_susceptibility.cpt?rlkey=rzjjatnbht021tdwc7rswgtlu&st=69rr315q&dl=1",
+        "data/cpt/landslide_susceptibility_nolabel.cpt": "https://www.dropbox.com/scl/fi/5qfrh1fv7bcscopnsttvp/landslide_susceptibility_nolabel.cpt?rlkey=tdc9xeay84k30r6s4ze1198nt&st=6n7htezq&dl=1",
+        "data/cpt/hot-orange.cpt": "https://www.dropbox.com/scl/fi/5gfr9mtykrge2fy6h4jrb/hot-orange.cpt?rlkey=pnyx5864v5ym6fhv237esjwqa&st=q1l2bxmb&dl=1",
+        "data/cpt/hot-orange-log.cpt": "https://www.dropbox.com/scl/fi/ggq31kcc5e5qdn6guihoe/hot-orange-log.cpt?rlkey=8z05lhwkqz5on0nji5yhms1gl&st=7hbbih07&dl=1",
+    },
+)
+
 
 # only needed if plotting fault planes direct from SRF
 try:
@@ -48,22 +116,6 @@ STATUS_INVALID = 1
 
 # GMT 5.2+ argument mapping
 GMT52_POS = {"map": "g", "plot": "x", "norm": "n", "rel": "j", "rel_out": "J"}
-
-# NZ DEFAULT DATA
-COAST_FILE = resource_filename("qcore", "data/Paths/coastline/NZ.gmt")
-WATER_FILE = resource_filename("qcore", "data/Paths/water/NZ.gmt")
-TOPO_FILE = resource_filename("qcore", "data/Topo/srtm_NZ.grd")
-WATERNET_CHCH = resource_filename("qcore", "data/Paths/water_network/water.gmt")
-# CPT DATA
-CPTS = {
-    "nztopo-green-brown": resource_filename(
-        "qcore", "data/cpt/palm_springs_nz_topo.cpt"
-    ),
-    "nztopo-grey1": resource_filename("qcore", "data/cpt/nz_topo_grey1.cpt"),
-    "mmi": resource_filename("qcore", "data/cpt/mmi.cpt"),
-    "slip": resource_filename("qcore", "data/cpt/slip.cpt"),
-    "trise": resource_filename("qcore", "data/cpt/trise.cpt"),
-}
 
 # awk program to get a proportion (-v p=0<1) of all segments
 segfile_proportionate_awk = r"""BEGIN { l = 0; }
@@ -129,10 +181,8 @@ def get_region(lon, lat):
     """
     Returns closest region.
     """
-    rcode = np.loadtxt(
-        resource_filename("qcore", "data/regions.ll"), usecols=0, dtype="U"
-    )
-    rloc = np.loadtxt(resource_filename("qcore", "data/regions.ll"), usecols=(1, 2))
+    rcode = np.loadtxt(GMT_DATA.fetch("data/regions.ll"), usecols=0, dtype="U")
+    rloc = np.loadtxt(GMT_DATA.fetch("data/regions.ll"), usecols=(1, 2))
     return rcode[geo.closest_location(rloc, lon, lat)[0]]
 
 
@@ -143,17 +193,13 @@ def regional_resource(region, resource="topo", mod=None):
     mod: any modifier to get different version or anything like that
     """
     if resource == "topo":
-        path = resource_filename("qcore", "data/Topo/srtm_{}.grd".format(region))
+        path = GMT_DATA.fetch("data/Topo/srtm_{}.grd".format(region))
         if mod is not None:
-            path_mod = resource_filename(
-                "qcore", "data/Topo/srtm_{}_{}.grd".format(region, mod)
-            )
+            path_mod = GMT_DATA.fetch("data/Topo/srtm_{}_{}.grd".format(region, mod))
             if os.path.isfile(path_mod):
                 path = path_mod
     else:
-        path = resource_filename(
-            "qcore", "data/Paths/{}/{}.gmt".format(resource, region)
-        )
+        path = GMT_DATA.fetch("data/Paths/{}/{}.gmt".format(resource, region))
     if os.path.isfile(path):
         return path
     return None
@@ -222,6 +268,7 @@ region_dict = {
     "KR": kr_region,
     "CASCADIA": cascadia_region,
 }
+
 
 ###
 ### ACCESSORY FUNCTIONS
@@ -348,19 +395,19 @@ def perspective_fill(width, height, view=180, tilt=90, zlevel=0):
     # bottom and top edge segments
     bs = width * s_view
     bsx = bs * s_view
-    by = math.sqrt(bs ** 2 - bsx ** 2) * s_tilt
-    bs = math.sqrt(bsx ** 2 + by ** 2)
-    bl = math.sqrt((width - bsx) ** 2 + by ** 2)
+    by = math.sqrt(bs**2 - bsx**2) * s_tilt
+    bs = math.sqrt(bsx**2 + by**2)
+    bl = math.sqrt((width - bsx) ** 2 + by**2)
     # side segments
     ss = height * s_view
     sx = ss * c_view
-    ssy = math.sqrt(ss ** 2 - sx ** 2)
+    ssy = math.sqrt(ss**2 - sx**2)
     try:
         sx = ssy / math.tan(math.atan((ssy * s_tilt) / sx))
     except ZeroDivisionError:
         sx = 0
-    ss = math.sqrt(ssy ** 2 + sx ** 2)
-    sl = math.sqrt((height - ssy) ** 2 + sx ** 2)
+    ss = math.sqrt(ssy**2 + sx**2)
+    sl = math.sqrt((height - ssy) ** 2 + sx**2)
     # result sizes
     page_x_size = abs(bl) + abs(ss)
     page_y_size = abs(bs) + abs(sl)
@@ -564,7 +611,7 @@ def abs_max(x_file, y_file, z_file, out_file, native=True):
     y = np.fromfile(y_file, dtype=fmt)[:, 2]
     z = np.fromfile(z_file, dtype=fmt)[:, 2]
 
-    result[:, 2] = np.sqrt(result[:, 2] ** 2 + y ** 2 + z ** 2)
+    result[:, 2] = np.sqrt(result[:, 2] ** 2 + y**2 + z**2)
     result.astype("f4").tofile(out_file)
 
 
@@ -673,7 +720,7 @@ def srf2map(
         # 2 sf
         cpt_max = round(percentile, 1 - int(math.floor(math.log10(abs(percentile)))))
     makecpt(
-        CPTS["slip"],
+        GMT_DATA.fetch("data/cpt/slip.cpt"),
         "%s/%s.cpt" % (out_dir, prefix),
         0,
         cpt_max,
@@ -683,6 +730,7 @@ def srf2map(
     # each plane will use a region which just fits
     # these are needed for efficient plotting
     regions = []
+
     # repeating sections
     def bin2grd(in_file, out_file):
         table2grd(
@@ -2648,7 +2696,7 @@ class GMTPlot:
                 "-R",
                 "-K",
                 "-O",
-                COAST_FILE,
+                GMT_DATA.fetch("data/Paths/coastline/NZ.gmt"),
                 "-N",
                 self.z,
             ]
@@ -2846,7 +2894,7 @@ class GMTPlot:
         land="darkgreen",
         water="lightblue",
         oceans=True,
-        topo=TOPO_FILE,
+        topo=None,
         topo_cpt="green-brown",
         coastlines="auto",
         res=None,
@@ -2859,6 +2907,7 @@ class GMTPlot:
         scale=1,
         resource_region="NZ",
     ):
+        topo = topo or GMT_DATA.fetch("data/Topo/srtm_NZ.grd")
         """
         Adds land/water/features to map.
         highway: thickness of highway paths or None
@@ -2894,10 +2943,10 @@ class GMTPlot:
             self.land(fill=land, res=res_region)
         if topo is not None:
             if topo_cpt == "green-brown":
-                topo_cpt = CPTS["nztopo-green-brown"]
+                topo_cpt = GMT_DATA.fetch("data/cpt/palm_springs_nz_topo.cpt")
             elif topo_cpt == "grey1":
-                topo_cpt = CPTS["nztopo-grey1"]
-            if topo == TOPO_FILE:
+                topo_cpt = GMT_DATA.fetch("data/cpt/nz_topo_grey1.cpt")
+            if topo == GMT_DATA.fetch("data/Topo/srtm_NZ.grd"):
                 # old default, now regional
                 self.topo(resource_region, is_region=True, cpt=topo_cpt)
             else:
@@ -2920,7 +2969,11 @@ class GMTPlot:
         if waternet is not None:
             if waternet == "auto":
                 waternet = "%sp" % (refs * 0.1)
-            self.path(WATERNET_CHCH, width=waternet, colour=waternet_colour)
+            self.path(
+                GMT_DATA.fetch("data/Paths/water_network/water.gmt"),
+                width=waternet,
+                colour=waternet_colour,
+            )
         if coastlines is not None:
             if coastlines == "auto":
                 coastlines = "%sp" % (refs * 3)
