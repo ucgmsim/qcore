@@ -13,3 +13,4 @@ numba
 hypothesis[numpy]
 typer
 docstring_parser
+xarray
