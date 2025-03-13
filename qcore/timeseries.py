@@ -167,10 +167,12 @@ def _lfseis_dtypes(seis_file: Path) -> tuple[str, str]:
 
     Returns
     -------
-    tuple[str, np.dtype, np.dtype]
+    tuple[str, str]
         Tuple containing the int and float types accounting for file endianness.
     """
     with open(seis_file, "rb") as f:
+        nstat: np.int32
+        nt: np.int32
         nstat, nt = np.fromfile(f, dtype="<i4", count=6)[0::5]
         file_size = seis_file.stat().st_size
 
@@ -183,8 +185,6 @@ def _lfseis_dtypes(seis_file: Path) -> tuple[str, str]:
             + nstat.byteswap() * nt.byteswap() * _N_COMP * 4
         ):
             endian = ">"
-            nt = nt.byteswap()
-            nstat = nstat.byteswap()
         else:
             raise ValueError(f"File is not an LF seis file: {seis_file}")
 
@@ -211,7 +211,7 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
     with open(seis_file, "rb") as f:
         # Read number of stations in this file
         try:
-            nstat_file = np.fromfile(f, dtype=i4, count=1)[0]
+            nstat_file = int(np.fromfile(f, dtype=i4, count=1)[0])
         except IndexError:
             raise ValueError(f"File {seis_file} is empty")
 
@@ -234,12 +234,13 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
         )
 
         station_headers = np.fromfile(f, dtype=dtype_header, count=nstat_file)
-        x_coords = station_headers["x"]
-        y_coords = station_headers["y"]
-        lat_coords = station_headers["lat"]
-        lon_coords = station_headers["lon"]
+        x_coords: npt.NDArray[np.int32] = station_headers["x"]
+        y_coords: npt.NDArray[np.int32] = station_headers["y"]
+        lat_coords: npt.NDArray[np.int32] = station_headers["lat"]
+        lon_coords: npt.NDArray[np.int32] = station_headers["lon"]
         # Decode station names from UTF-8 encoded bytes.
-        station_names = [
+
+        station_names: list[str] = [
             station_name.decode("utf-8", errors="replace").strip("\x00")
             for station_name in station_headers["name"]
         ]
@@ -255,7 +256,9 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
         shape=(nt, nstat_file, _N_COMP),
     )
 
-    valid_indices = np.array([i for i, name in enumerate(station_names) if name])
+    valid_indices: npt.NDArray[np.int_] = np.array(
+        [i for i, name in enumerate(station_names) if name]
+    )
     if len(valid_indices) < len(station_names):
         station_names = [station_names[i] for i in valid_indices]
         x_coords = x_coords[valid_indices]
@@ -301,7 +304,7 @@ def _lfseis_header(header_file: Path) -> tuple[int, float, float, float]:
         _ = f.seek(
             20
         )  # 4 * i4 for nstat, station index, x, y, z grid point of the first station
-        nt: int = np.fromfile(f, dtype=i4, count=1)[0]
+        nt = int(np.fromfile(f, dtype=i4, count=1)[0])
         dt, resolution, rotation = map(float, np.fromfile(f, dtype=f4, count=3))
     return nt, dt, resolution, rotation
 
