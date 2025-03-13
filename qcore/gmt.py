@@ -12,8 +12,7 @@ avg_ll calculated elsewhere should be local function that works over equator
 
 import math
 import os
-from distutils.spawn import find_executable
-from shutil import copyfile, move
+from shutil import copyfile, move, which
 from subprocess import PIPE, Popen
 from sys import byteorder
 from time import time
@@ -4279,7 +4278,7 @@ class GMTPlot:
         create_dirs: allow creation of output directory if it does not exist
         """
         png = True
-        if find_executable("gs") is None:
+        if shutil.which("gs") is None:
             print("GS not found, not creating PNG, copying PS to PNG location.")
             png = False
 
