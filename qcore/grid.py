@@ -16,7 +16,6 @@ gridpoint_count_in_length
 from typing import Optional
 
 import numpy as np
-import scipy as sp
 
 from qcore import coordinates
 
@@ -204,11 +203,12 @@ def coordinate_patchgrid(
     origin: np.ndarray,
     x_upper: np.ndarray,
     y_bottom: np.ndarray,
-    resolution: float,
+    resolution: Optional[float] = None,
     nx: Optional[int] = None,
     ny: Optional[int] = None,
 ) -> np.ndarray:
-    """Creates a grid of patches in a bounded plane region.
+    """
+    Creates a grid of patches in a bounded plane region.
 
     Given the bounds of a rectangular planar region, create a grid of
     (lat, lon, depth) coordinates spaced at close to resolution metres apart
@@ -233,21 +233,51 @@ def coordinate_patchgrid(
     Returns
     -------
     np.ndarray
-        The patch grid of the rectangular planar region. Has shape (ny, nx), where
+        The patch grid of the rectangular planar region. Has shape (ny, nx, 3), where
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
+
+    Note
+    ----
+    The patch grid may have different sizes than given in as resolution if the resolution does not divide the lengths of the sides of the plane evenly.
+
+    Example
+    -------
+    >>> origin = np.array([-43.5321, 172.6362, 0.0])  # Christchurch, NZ
+    >>> x_upper = np.array([-43.5311, 172.6462, 0.0]) # ~800m to the east
+    >>> y_bottom = np.array([-43.5421, 172.6362, 0.0]) # ~1.2km to the south
+    >>> resolution = 100  # 100 meters
+    >>> grid = coordinate_patchgrid(origin, x_upper, y_bottom, resolution)
+    >>> grid.shape
+    (12, 8, 3)
     """
-    meshgrid = coordinate_meshgrid(origin, x_upper, y_bottom, resolution, nx=nx + 1 if nx is not None else nx, ny=ny + 1 if ny is not None else ny)
-    ny, nx = meshgrid.shape[:2]
-    meshgrid = coordinates.wgs_depth_to_nztm(meshgrid.reshape((-1, 3))).reshape(
-        (ny, nx, 3)
+    origin, x_upper, y_bottom = map(
+        coordinates.wgs_depth_to_nztm, (origin, x_upper, y_bottom)
     )
-    kernel = np.full((2, 2), 1 / 4)
-    patch_grid = np.zeros((ny - 1, nx - 1, 3))
-    for i in range(3):
-        patch_grid[:, :, i] = sp.signal.convolve2d(
-            meshgrid[:, :, i].reshape((ny, nx)), kernel, mode="valid"
-        )
+
+    v_x = x_upper - origin
+    v_y = y_bottom - origin
+
+    len_x = np.linalg.norm(v_x)
+    len_y = np.linalg.norm(v_y)
+
+    nx = nx or max(1, round(len_x / resolution))
+    ny = ny or max(1, round(len_y / resolution))
+
+    alpha, beta = np.meshgrid(
+        # The 1 / (2 * nx) term is to ensure that the patches are centred on the grid points.
+        # 1 / nx is the length of a patch, so the centre of the patch is 1 / (2 * nx) from the edge.
+        # the last patch is 1 / (2 * nx) from the edge, so the last grid point at 1 - 1 / (2 * nx).
+        # Similarly for ny.
+        np.linspace(1 / (2 * nx), 1 - 1 / (2 * nx), nx),
+        np.linspace(1 / (2 * ny), 1 - 1 / (2 * ny), ny),
+        indexing="ij",
+    )
+
+    patch_grid = np.transpose(
+        origin + alpha[..., np.newaxis] * v_x + beta[..., np.newaxis] * v_y, (1, 0, 2)
+    )
+
     return coordinates.nztm_to_wgs_depth(patch_grid.reshape((-1, 3))).reshape(
         patch_grid.shape
     )
