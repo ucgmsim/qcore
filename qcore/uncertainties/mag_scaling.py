@@ -1,5 +1,5 @@
 from enum import StrEnum, auto
-from typing import Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -392,30 +392,77 @@ def get_length(fault: "Fault"):
 
 
 def mw_to_lw_scaling_relation(
-    mw: float,
-    mw_scaling_rel: MagnitudeScalingRelations,
-    rake: Union[None, float] = None,
-):
+    magnitude: float,
+    scaling_relation: MagnitudeScalingRelations,
+    rake: Optional[float] = None,
+) -> tuple[float, float]:
+    """Convert magnitude to fault length and width using specified scaling relation.
+
+    Parameters
+    ----------
+    magnitude : float
+        Moment magnitude.
+    scaling_relation : MagnitudeScalingRelations
+        Scaling relation to use for calculation.
+    rake : float, optional
+        Rake angle in degrees, required for Leonard 2014 scaling relation.
+
+    Returns
+    -------
+    tuple of float
+        (length, width) in km.
+
+    Raises
+    ------
+    ValueError
+        If scaling relation is not supported or rake is required but not provided.
     """
-    Return the fault Area from the mw and a mw Scaling relation.
-    """
-    if mw_scaling_rel == MagnitudeScalingRelations.HANKSBAKUN2002:
-        l = w = np.sqrt(mw_to_a_hanksbakun(mw))
+    # Handle area-only scaling relations
+    area_relations = {
+        MagnitudeScalingRelations.HANKSBAKUN2002: mw_to_a_hanksbakun,
+        MagnitudeScalingRelations.BERRYMANETAL2002: mw_to_a_berrymanetal,
+        MagnitudeScalingRelations.VILLAMORETAL2001: mw_to_a_villamoretal,
+        MagnitudeScalingRelations.SKARLATOUDIS2016: mw_to_a_skarlatoudis,
+        MagnitudeScalingRelations.THINGBAIJAM2017: mw_to_a_thingbaijam_2017,
+        MagnitudeScalingRelations.BLASER2010: mw_to_a_blaser_2010,
+    }
 
-    elif mw_scaling_rel == MagnitudeScalingRelations.BERRYMANETAL2002:
-        l = w = np.sqrt(mw_to_a_berrymanetal(mw))
+    if scaling_relation in area_relations:
+        area = area_relations[scaling_relation](magnitude)
+        return float(np.sqrt(area)), float(np.sqrt(area))
 
-    elif mw_scaling_rel == MagnitudeScalingRelations.VILLAMORETAL2001:
-        l = w = np.sqrt(mw_to_a_villamoretal(mw))
+    # Handle LEONARD2014 scaling relation which requires rake
+    if scaling_relation == MagnitudeScalingRelations.LEONARD2014:
+        if rake is None:
+            raise ValueError("Rake angle is required for LEONARD2014 scaling relation")
+        return mw_to_l_leonard(magnitude, rake), mw_to_w_leonard(magnitude, rake)
 
-    elif mw_scaling_rel == MagnitudeScalingRelations.LEONARD2014:
-        l, w = mw_to_lw_leonard(mw, rake)
+    # Handle relations with direct length/width functions
+    direct_lw_relations = {
+        MagnitudeScalingRelations.ALLEN2017SLAB: (
+            allen_2017.mw_to_l_allen_2017_slab,
+            allen_2017.mw_to_w_allen_2017_slab,
+        ),
+        MagnitudeScalingRelations.ALLEN2017INTERFACELINEAR: (
+            allen_2017.mw_to_l_allen_2017_linear_interface,
+            allen_2017.mw_to_w_allen_2017_linear_interface,
+        ),
+        MagnitudeScalingRelations.ALLEN2017INTERFACEBILINEAR: (
+            allen_2017.mw_to_l_allen_2017_bilinear_interface,
+            allen_2017.mw_to_w_allen_2017_bilinear_interface,
+        ),
+        MagnitudeScalingRelations.STRASSER2010SLAB: (
+            strasser_2010.mw_to_l_strasser_2010_slab,
+            strasser_2010.mw_to_w_strasser_2010_slab,
+        ),
+        MagnitudeScalingRelations.STRASSER2010INTERFACE: (
+            strasser_2010.mw_to_l_strasser_2010_interface,
+            strasser_2010.mw_to_w_strasser_2010_interface,
+        ),
+    }
 
-    elif mw_scaling_rel == MagnitudeScalingRelations.SKARLATOUDIS2016:
-        l = w = np.sqrt(mw_to_a_skarlatoudis(mw))
+    if scaling_relation in direct_lw_relations:
+        length_func, width_func = direct_lw_relations[scaling_relation]
+        return float(length_func(magnitude)), float(width_func(magnitude))
 
-    else:
-        raise ValueError("Invalid mw_scaling_rel: {}. Exiting.".format(mw_scaling_rel))
-
-    # Area
-    return l, w
+    raise ValueError(f"Scaling relation {scaling_relation} is not implemented")
