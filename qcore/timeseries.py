@@ -5,34 +5,19 @@ Shared functions to work on time-series.
 @date 13/09/2016
 """
 
-import base64
-from glob import glob
-from io import BytesIO
 import math
 import os
+import warnings
+from glob import glob
 from pathlib import Path
-from subprocess import Popen, PIPE
-from typing import Union, Set
+
+import numpy as np
+import numpy.typing as npt
+import xarray as xr
+from scipy.signal import butter, resample, sosfiltfilt
 
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
-from qcore.formats import load_e3d_par
 from qcore.utils import compare_versions
-
-
-try:
-    from scipy.signal import butter, resample
-except ImportError:
-    print("SciPy not installed. Certain functions will fail.")
-# sosfilt new in scipy 0.16
-# sosfiltfilt new in scipy 0.18
-try:
-    butter
-    from scipy.signal import sosfiltfilt
-except NameError:
-    pass
-except ImportError:
-    from qcore.sosfiltfilt import sosfiltfilt
-import numpy as np
 
 rfft = np.fft.rfft
 irfft = np.fft.irfft
@@ -119,9 +104,9 @@ def transf(
     dt = delta time in timestep (seconds)
     """
     if ft_freq is None:
-        ft_len = int(2.0 ** math.ceil(math.log(nt) / math.log(2)))
+        ft_len = int(2.0 ** np.ceil(np.log(nt) / np.log(2)))
         ft_freq = np.arange(0, ft_len / 2 + 1) / (ft_len * dt)
-    omega = 2.0 * math.pi * ft_freq
+    omega = 2.0 * np.pi * ft_freq
     Gs = rho_soil * vs_soil**2.0
     Gr = rho_rock * vs_rock**2.0
 
@@ -138,74 +123,272 @@ def transf(
     return H
 
 
-def read_ascii(filepath, meta=False, t0=False):
+def _velocity_to_acceleration(
+    velocities: npt.NDArray[np.float32], dt: float
+) -> npt.NDArray[np.float32]:
     """
-    Read timeseries data from standard ascii file to numpy array.
-    meta: also return first 2 lines (metadata) as string lists
-    t0: adjust data to start from t = 0 (uses secs and not hr:min)
+    Convert velocity to acceleration for an array of shape (ns, nt, 3).
+
+    Uses backward difference method for compatibility with original implementation.
+
+    Parameters
+    ----------
+    velocities : numpy.ndarray
+        Array of velocity data with shape (ns, nt, 3)
+    dt : float
+        Time step in seconds
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of acceleration data with the same shape as input
     """
-    with open(filepath, "r") as ts:
-        info1 = ts.readline().split()
-        info2 = ts.readline().split()
+    # Create a copy of the input array shifted one time step
+    # For each station, prepend a zero vector [0,0,0] and remove the last time step
+    ns, nt, nc = velocities.shape
+    zeros = np.zeros((ns, 1, nc))
+    shifted = np.concatenate([zeros, velocities[:, :-1, :]], axis=1)
 
-        vals = np.array(
-            list(map(float, " ".join(list(map(str.rstrip, ts.readlines()))).split()))
-        )
+    # Calculate the backward difference and scale by 1/dt
+    return (velocities - shifted) / dt
 
-    # check if header length correct for integrity
-    try:
-        assert len(vals) == int(info2[0])
-    except AssertionError:
-        print("File entries don't match NT: %s" % (filepath))
-        raise
 
-    # start from t = 0 by (truncating) or (inserting 0s) at beginning
-    if t0:
-        # t start / dt = number of missing points
-        diff = int(round(float(info2[4]) / float(info2[1])))
-        if diff < 0:
-            # remove points before t = 0
-            vals = vals[abs(diff) :]
-        elif diff > 0:
-            # insert zeros between t = 0 and start
-            vals = np.append(np.zeros(diff), vals)
+_HEAD_STAT = 48  # Header size per station
+_N_COMP = 9  # Number of components in LF seis files
 
-    if meta:
-        note = ""
-        if len(info1) >= 3:
-            note = " ".join(info1[2:])
-        # int(float()) to not crash when there is a float (invalid) in hr or min
-        return (
-            vals,
+
+def _lfseis_dtypes(seis_file: Path) -> tuple[str, str]:
+    """Determine the data types for reading LF seis files.
+
+    Parameters
+    ----------
+    seis_file : Path
+        Path to the LF seis file.
+
+    Returns
+    -------
+    tuple[str, str]
+        Tuple containing the int and float types accounting for file endianness.
+    """
+    with open(seis_file, "rb") as f:
+        nstat: np.int32
+        nt: np.int32
+        nstat, nt = np.fromfile(f, dtype="<i4", count=6)[0::5]
+        file_size = seis_file.stat().st_size
+
+        if file_size == 4 + nstat * _HEAD_STAT + nstat * nt * _N_COMP * 4:
+            endian = "<"
+        elif (
+            file_size
+            == 4
+            + nstat.byteswap() * _HEAD_STAT
+            + nstat.byteswap() * nt.byteswap() * _N_COMP * 4
+        ):
+            endian = ">"
+        else:
+            raise ValueError(f"File is not an LF seis file: {seis_file}")
+
+        i4 = f"{endian}i4"
+        f4 = f"{endian}f4"
+
+        return i4, f4
+
+
+def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
+    """Read a single LF seis file.
+
+    Parameters
+    ----------
+    seis_file : Path
+            Path to the LF seis file.
+
+    Returns
+    -------
+    xr.Dataset
+            xarray Dataset containing LF seis data.
+    """
+    i4, f4 = _lfseis_dtypes(seis_file)
+    with open(seis_file, "rb") as f:
+        # Read number of stations in this file
+        try:
+            nstat_file = int(np.fromfile(f, dtype=i4, count=1)[0])
+        except IndexError:
+            raise ValueError(f"File {seis_file} is empty")
+
+        # Read station headers
+        dtype_header = np.dtype(
             {
-                "name": info1[0],
-                "comp": info1[1],
-                "note": note,
-                "nt": int(info2[0]),
-                "dt": float(info2[1]),
-                "hr": int(float(info2[2])),
-                "min": int(float(info2[3])),
-                "sec": float(info2[4]),
-                "e_dist": float(info2[5]),
-                "az": float(info2[6]),
-                "baz": float(info2[7]),
-            },
+                "names": [
+                    "stat_pos",
+                    "x",
+                    "y",
+                    "z",
+                    "seis_idx",
+                    "lat",
+                    "lon",
+                    "name",
+                ],
+                "formats": [i4, i4, i4, i4, (i4, 2), f4, f4, "|S8"],
+                "offsets": [0, 4, 8, 12, 16, 32, 36, 40],
+            }
         )
+
+        station_headers = np.fromfile(f, dtype=dtype_header, count=nstat_file)
+        x_coords: npt.NDArray[np.int32] = station_headers["x"]
+        y_coords: npt.NDArray[np.int32] = station_headers["y"]
+        lat_coords: npt.NDArray[np.int32] = station_headers["lat"]
+        lon_coords: npt.NDArray[np.int32] = station_headers["lon"]
+        # Decode station names from UTF-8 encoded bytes.
+
+        station_names: list[str] = [
+            station_name.decode("utf-8", errors="replace").strip("\x00")
+            for station_name in station_headers["name"]
+        ]
+    nt = (seis_file.stat().st_size - 4 - nstat_file * _HEAD_STAT) // (
+        nstat_file * _N_COMP * 4
+    )
+    offset = 4 + nstat_file * _HEAD_STAT
+    waveform_data = np.memmap(
+        seis_file,
+        dtype=f4,
+        mode="r",
+        offset=offset,
+        shape=(nt, nstat_file, _N_COMP),
+    )
+
+    valid_indices: npt.NDArray[np.int_] = np.array(
+        [i for i, name in enumerate(station_names) if name]
+    )
+    if len(valid_indices) < len(station_names):
+        station_names = [station_names[i] for i in valid_indices]
+        x_coords = x_coords[valid_indices]
+        y_coords = y_coords[valid_indices]
+        lat_coords = lat_coords[valid_indices]
+        lon_coords = lon_coords[valid_indices]
+        waveform_data = waveform_data[valid_indices]
+
+    return xr.Dataset(
+        data_vars={
+            "waveforms": (
+                ["station", "time", "component"],
+                # Swap from (nt, nstat_file, _N_COMP) to (nstat_file, nt, 3)
+                np.swapaxes(waveform_data[:, :, :3], 0, 1),
+            ),
+        },
+        coords={
+            "station": station_names,
+            "component": ["x", "y", "z"],
+            "x": ("station", x_coords),
+            "y": ("station", y_coords),
+            "lat": ("station", lat_coords),
+            "lon": ("station", lon_coords),
+        },
+    )
+
+
+def _lfseis_header(header_file: Path) -> tuple[int, float, float, float]:
+    """Read the header of an LF seis file.
+
+    Parameters
+    ----------
+    header_file : Path
+        Path to the header file.
+
+    Returns
+    -------
+    tuple[int, float, float, float]
+        Tuple containing the number of timesteps, timestep, resolution, and rotation.
+    """
+    i4, f4 = _lfseis_dtypes(header_file)
+    with open(header_file, "rb") as f:
+        _ = f.seek(
+            20
+        )  # 4 * i4 for nstat, station index, x, y, z grid point of the first station
+        nt = int(np.fromfile(f, dtype=i4, count=1)[0])
+        dt, resolution, rotation = map(float, np.fromfile(f, dtype=f4, count=3))
+    return nt, dt, resolution, rotation
+
+
+def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Dataset:
+    """Read LF station seismograms in a single pass.
+
+    Parameters
+    ----------
+    outbin : Pathlike
+        Path to the OutBin directory containing seis files. Should contain `*seis-*.e3d` files.
+
+    Returns
+    -------
+    xr.Dataset
+        xarray Dataset containing LF seis data.
+
+    Raises
+    ------
+    ValueError
+        If the directory does not contain LF seis files.
+    """
+    outbin = Path(outbin)
+    seis_files = list(sorted(outbin.glob("*seis-*.e3d")))
+
+    if not seis_files:
+        raise ValueError(f"No LF seis files found in {outbin}")
+
+    header_file = next(
+        seis_file for seis_file in seis_files if seis_file.stat().st_size
+    )
+    nt, dt, resolution, rotation = _lfseis_header(header_file)
+    # Calculate rotation matrix
+    theta: float = np.radians(rotation)
+    rotation_matrix = np.array(
+        [
+            [np.cos(theta), -np.sin(theta), 0],
+            [-np.sin(theta), -np.cos(theta), 0],
+            [0, 0, -1],
+        ]
+    )
+
+    # Read all station data and waveforms in a single pass per file
+    ds = xr.concat(
+        [_read_lfseis_file(seis_file) for seis_file in seis_files],
+        dim="station",
+    ).assign_coords(time=np.arange(start_sec, start_sec + nt * dt, dt))
+
+    # Rotate waveforms and differentiate to get acceleration
+    ds["waveforms"] = (
+        ("station", "time", "component"),
+        np.dot(ds["waveforms"], rotation_matrix),
+    )
+
+    # Set global attributes
+    ds.attrs["dt"] = dt
+    ds.attrs["resolution"] = resolution
+    ds.attrs["rotation"] = rotation
+    ds.attrs["units"] = "m/s"
+
+    return ds
+
+
+def load_e3d_par(fp: str, comment_chars=("#",)):
+    """
+    Loads an emod3d parameter file as a dictionary
+    As the original file does not have type data all values will be strings. Typing must be done manually.
+    Crashes if duplicate keys are found
+    :param fp: The path to the parameter file
+    :param comment_chars: Any single characters that denote the line as a comment if they are the first non whitespace character
+    :return: The dictionary of key:value pairs, as found in the parameter file
+    """
+    vals = {}
+    with open(fp) as e3d:
+        for line in e3d:
+            if line.lstrip()[0] in comment_chars:
+                pass
+            key, value = line.split("=")
+            if key in vals:
+                raise KeyError(
+                    f"Key {key} is in the emod3d parameter file at least twice. Resolve this before re running."
+                )
+            vals[key] = value
     return vals
-
-
-def vel2acc(timeseries, dt):
-    """
-    Differentiate following Rob Graves' code logic.
-    """
-    return np.diff(np.hstack(([0], timeseries)) * (1.0 / dt))
-
-
-def vel2acc3d(timeseries, dt):
-    """
-    vel2acc for x,y,z arrays
-    """
-    return np.diff(np.vstack(([0, 0, 0], timeseries)), axis=0) * (1.0 / dt)
 
 
 def acc2vel(timeseries, dt):
@@ -216,19 +399,11 @@ def acc2vel(timeseries, dt):
     return np.cumsum(timeseries, axis=0) * dt
 
 
-def pgv2MMI(pgv):
+def vel2acc3d(timeseries, dt):
     """
-    Calculates MMI from pgv based on Worden et al (2012)
-    A maximum function is applied to floor the value to 1
+    vel2acc for x,y,z arrays
     """
-    return np.maximum(
-        np.where(
-            np.log10(pgv) < 0.53,
-            3.78 + 1.47 * np.log10(pgv),
-            2.89 + 3.16 * np.log10(pgv),
-        ),
-        1,
-    )
+    return np.diff(np.vstack(([0, 0, 0], timeseries)), axis=0) * (1.0 / dt)
 
 
 def timeseries_to_text(
@@ -314,6 +489,10 @@ class LFSeis:
         Load LF binary store.
         outbin: path to OutBin folder containing seis files
         """
+        warnings.warn(
+            "LFSeis is deprecated, use read_lfseis_directory instead",
+            DeprecationWarning,
+        )
         self.seis = sorted(glob(os.path.join(outbin, "*seis-*.e3d")))
         # try load e3d.par at the same directory first
         # otherwise try look for one folder above
@@ -334,6 +513,8 @@ class LFSeis:
         # determine endianness by checking file size
         lfs = os.stat(self.seis[0]).st_size
         with open(self.seis[0], "rb") as lf0:
+            nstat: np.int32
+            nt: np.int32
             nstat, nt = np.fromfile(lf0, dtype="<i4", count=6)[0::5]
             if (
                 lfs
@@ -446,7 +627,9 @@ class LFSeis:
         # results in too many stations entries created, last ones are empty
         # important to keep indexes correct, only remove empty items from end
         if stations.name[-1] in ["", b""]:
-            stations = stations[: -np.argmin((stations.name == stations.name[-1])[::-1])]
+            stations = stations[
+                : -np.argmin((stations.name == stations.name[-1])[::-1])
+            ]
 
         # store station names as unicode (python 3 strings)
         stat_type = stations.dtype.descr
@@ -568,7 +751,10 @@ class HFSeis:
         Load HF binary store.
         hf_path: path to the HF binary file
         """
-
+        warnings.warn(
+            "HFSeis is deprecated, use the xarray interface for new workflows",
+            DeprecationWarning,
+        )
         hfs = os.stat(hf_path).st_size
         hff = open(hf_path, "rb")
         # determine endianness by checking file size
@@ -763,7 +949,10 @@ class BBSeis:
         Load BB binary store.
         bb_path: path to the BB binary file
         """
-
+        warnings.warn(
+            "BBSeis is deprecated, use the xarray interface for new workflows",
+            DeprecationWarning,
+        )
         bbs = os.stat(bb_path).st_size
         bbf = open(bb_path, "rb")
         # determine endianness by checking file size
@@ -911,7 +1100,7 @@ class BBSeis:
         np.savetxt(path, self.stations[["lon", "lat", "name"]], fmt="%f %f %s")
 
 
-def get_observed_stations(observed_data_folder: Union[str, Path]) -> Set[str]:
+def get_observed_stations(observed_data_folder: str | Path) -> set[str]:
     """
     returns a list of station names that can be found in the observed data folder
 
