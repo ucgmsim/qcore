@@ -127,8 +127,15 @@ def bearing_between(point_a: np.ndarray, point_b: np.ndarray) -> float:
     Returns
     -------
     float
-        The bearing (in degrees) between point_a and point_b. Will return
-        an array of floats if input contains multiple points.
+        The bearing (in degrees) between point_a and point_b.
+
+    Examples
+    --------
+    >>> nztm_bearing_between(
+        np.array([-44.88388755, 166.8699418])
+        np.array([-42.73774027, 171.03176429])
+    )
+    55.999999966075194
     """
     fwd_azimuth, _, _ = _REF_ELLIPSOID.inv(
         point_a[1], point_a[0], point_b[1], point_b[0]
@@ -149,8 +156,15 @@ def nztm_bearing_between(point_a: np.ndarray, point_b: np.ndarray) -> float:
     Returns
     -------
     float
-            The bearing (in degrees) between point_a and point_b. Will return
-            an array of floats if input contains multiple points.
+        The bearing (in degrees) between point_a and point_b.
+
+    Examples
+    --------
+    >>> nztm_bearing_between(
+        np.array([5011637.39446645, 1115879.1174585 ]),
+        np.array([5266429.66487645, 1438889.1789583 ])
+    )
+    55.999999966075194
     """
     return bearing_between(nztm_to_wgs_depth(point_a), nztm_to_wgs_depth(point_b))
 
@@ -172,6 +186,15 @@ def forward_bearing(point_a: np.ndarray, bearing: float, distance: float) -> np.
     np.ndarray
         The new point (lat, lon) at the given bearing and distance from
         point_a.
+
+    Examples
+    --------
+    >>> forward_bearing(
+        np.array([-43.0, -172.0]),
+        45.0,
+        1000.0
+    )
+    array([-42.99363465, 172.0086709 ])
     """
     lon, lat, _ = _REF_ELLIPSOID.fwd(
         point_a[1], point_a[0], bearing, distance, radians=False
@@ -198,6 +221,15 @@ def nztm_forward_bearing(
     np.ndarray
             The new point (y, x) at the given bearing and distance from
             point_a.
+
+    Examples
+    --------
+    >>> forward_bearing(
+        array([5128644.8819868 , 2823486.41350085]),
+        45.0,
+        1000.0
+    )
+    array([5239415.32038242, 1519189.76925286])
     """
     return wgs_depth_to_nztm(
         forward_bearing(nztm_to_wgs_depth(point_a), bearing, distance)
