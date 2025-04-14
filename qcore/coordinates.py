@@ -31,6 +31,8 @@ _NZTM_CODE = 2193
 _WGS2NZTM = pyproj.Transformer.from_crs(_WGS_CODE, _NZTM_CODE)
 _NZTM2WGS = pyproj.Transformer.from_crs(_NZTM_CODE, _WGS_CODE)
 
+_REF_ELLIPSOID = pyproj.Geod(ellps="GRS80")
+
 
 def wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
     """
@@ -112,6 +114,96 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
     return wgs_coordinates
 
 
+def bearing_between(point_a: np.ndarray, point_b: np.ndarray) -> float:
+    """Return the bearing between two points in lat, lon format.
+
+    Parameters
+    ----------
+    point_a : np.ndarray
+        The first point (lat, lon).
+    point_b : np.ndarray
+        The second point (lat, lon).
+
+    Returns
+    -------
+    float
+        The bearing (in degrees) between point_a and point_b. Will return
+        an array of floats if input contains multiple points.
+    """
+    fwd_azimuth, _, _ = _REF_ELLIPSOID.inv(
+        point_a[1], point_a[0], point_b[1], point_b[0]
+    )
+    return fwd_azimuth
+
+
+def nztm_bearing_between(point_a: np.ndarray, point_b: np.ndarray) -> float:
+    """Return the bearing between two points in NZTM format.
+
+    Parameters
+    ----------
+    point_a : np.ndarray
+            The first point (y, x).
+    point_b : np.ndarray
+            The second point (y, x).
+
+    Returns
+    -------
+    float
+            The bearing (in degrees) between point_a and point_b. Will return
+            an array of floats if input contains multiple points.
+    """
+    return bearing_between(nztm_to_wgs_depth(point_a), nztm_to_wgs_depth(point_b))
+
+
+def forward_bearing(point_a: np.ndarray, bearing: float, distance: float) -> np.ndarray:
+    """Return the point at a given bearing and distance from point_a.
+
+    Parameters
+    ----------
+    point_a : np.ndarray
+        The origin point (lat, lon).
+    bearing : float
+        The bearing (in degrees) from point_a.
+    distance : float
+        The distance (in metres) to shift.
+
+    Returns
+    -------
+    np.ndarray
+        The new point (lat, lon) at the given bearing and distance from
+        point_a.
+    """
+    lon, lat, _ = _REF_ELLIPSOID.fwd(
+        point_a[1], point_a[0], bearing, distance, radians=False
+    )
+    return np.array([lat, lon])
+
+
+def nztm_forward_bearing(
+    point_a: np.ndarray, bearing: float, distance: float
+) -> np.ndarray:
+    """Return the point at a given bearing and distance from point_a.
+
+    Parameters
+    ----------
+    point_a : np.ndarray
+            The origin point (y, x).
+    bearing : float
+            The bearing (in degrees) from point_a.
+    distance : float
+            The distance (in metres) to shift.
+
+    Returns
+    -------
+    np.ndarray
+            The new point (y, x) at the given bearing and distance from
+            point_a.
+    """
+    return wgs_depth_to_nztm(
+        forward_bearing(nztm_to_wgs_depth(point_a), bearing, distance)
+    )
+
+
 def distance_between_wgs_depth_coordinates(
     point_a: np.ndarray, point_b: np.ndarray
 ) -> Union[float, np.ndarray]:
@@ -140,79 +232,3 @@ def distance_between_wgs_depth_coordinates(
             wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=1
         )
     return np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
-
-
-def nztm_bearing_to_great_circle_bearing(
-    origin: np.ndarray, distance: float, nztm_bearing: float
-) -> float:
-    """Correct a NZTM bearing to match a great circle bearing.
-
-    This function can be used to translate bearings computed from NZTM
-    coordinates into equivalent bearings in great-circle geometry.
-    Primarily useful in ensuring tools like NZVM and EMOD3D agree on
-    domain corners with newer code using NZTM. This correction is
-    larger as the origin moves farther south, as the nztm bearing varies,
-    and (slightly) as distance increases.
-
-    Parameters
-    ----------
-    origin : np.ndarray
-        The origin point to compute the bearing from.
-    distance : float
-        The distance to shift.
-    nztm_bearing : float
-        The NZTM bearing for the final point.
-
-    Returns
-    -------
-    float
-        The equivalent bearing such that:
-        `geo.ll_shift`(*`origin`, `distance`, bearing) ≅ `nztm_heading`.
-    """
-    nztm_heading = nztm_to_wgs_depth(
-        wgs_depth_to_nztm(origin)
-        + distance
-        * 1000
-        * np.array([np.cos(np.radians(nztm_bearing)), np.sin(np.radians(nztm_bearing))])
-    )
-    return geo.ll_bearing(*origin[::-1], *nztm_heading[::-1])
-
-
-def great_circle_bearing_to_nztm_bearing(
-    origin: np.ndarray, distance: float, great_circle_bearing: float
-) -> float:
-    """Correct a great circle bearing to match a NZTM bearing.
-
-    This function can be used to translate bearings computed from
-    great-circle geometry to equivalent bearings in NZTM coordinates.
-    Primarily useful in ensuring tools like NZVM and EMOD3D agree on
-    domain corners with newer code using NZTM. This correction is
-    larger as the origin moves farther south, as the nztm bearing
-    varies, and (slightly) as distance increases.
-
-    Parameters
-    ----------
-    origin : np.ndarray
-        The origin point to compute the bearing from.
-    distance : float
-        The distance to shift.
-    ll_bearing : float
-        The great circle bearing for the final point.
-
-    Returns
-    -------
-    float
-        The equivalent bearing such that:
-        `geo.ll_shift`(*`origin`, `distance`, `ll_bearing`) ≅ nztm_heading.
-    """
-    great_circle_heading = np.array(
-        geo.ll_shift(*origin, distance, great_circle_bearing)
-    )
-
-    return geo.oriented_bearing_wrt_normal(
-        np.array([1, 0, 0]),
-        np.append(
-            wgs_depth_to_nztm(great_circle_heading) - wgs_depth_to_nztm(origin), 0
-        ),
-        np.array([0, 0, 1]),
-    )
