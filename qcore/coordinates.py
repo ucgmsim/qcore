@@ -131,7 +131,7 @@ def bearing_between(point_a: np.ndarray, point_b: np.ndarray) -> float:
 
     Examples
     --------
-    >>> nztm_bearing_between(
+    >>> bearing_between(
         np.array([-44.88388755, 166.8699418])
         np.array([-42.73774027, 171.03176429])
     )
@@ -224,7 +224,7 @@ def nztm_forward_bearing(
 
     Examples
     --------
-    >>> forward_bearing(
+    >>> nztm_forward_bearing(
         array([5128644.8819868 , 2823486.41350085]),
         45.0,
         1000.0
