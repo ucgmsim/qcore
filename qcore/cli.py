@@ -12,13 +12,15 @@ from docstring_parser.common import DocstringStyle
 
 # Originally written by @Genfood: https://github.com/fastapi/typer/issues/336#issuecomment-2434726193
 # Updated and modified for Python 3.13.
-def from_docstring(app: typer.Typer) -> Callable:
+def from_docstring(app: typer.Typer, **kwargs: dict) -> Callable:
     """Apply help texts from the function's docstring to Typer arguments/options and command.
 
     Parameters
     ----------
     app : typer.Typer
         The Typer application to which the command will be registered.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the Typer command.
 
     Returns
     -------
@@ -104,7 +106,7 @@ def from_docstring(app: typer.Typer) -> Callable:
         # Apply the new signature to the wrapper function
 
         # Register the command with the app
-        @app.command(help=command_help.strip())
+        @app.command(help=command_help.strip(), **kwargs)
         @wraps(command)
         def wrapper(*args: Any, **kwargs: Any) -> Any:  # numpydoc ignore=GL08
             return command(*args, **kwargs)
