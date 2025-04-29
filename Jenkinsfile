@@ -13,11 +13,6 @@ pipeline {
     stages {
         stage('Installing OS Dependencies') {
             steps {
-                echo "[[ Install GMT ]]"
-                sh """
-                   apt-get update
-                   apt-get install -y gmt libgmt-dev libgmt6 ghostscript
-                """
                 echo "[[ Install uv ]]"
                 sh """
                     curl -LsSf https://astral.sh/uv/install.sh | sh
