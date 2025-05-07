@@ -311,6 +311,12 @@ class SphericalProjection:
         """
         x_base, y_base = self._transformer.transform(lon, lat)
 
+        if np.isnan(x_base).any() or np.isnan(y_base).any():
+            raise ValueError(
+                "Latitude and longitude coordinates given are invalid (did you input lon, lat instead of lat, lon?)."
+                " Check the coordinates are in the same hemisphere as the projection centre."
+            )
+
         x_base = np.asarray(x_base)
         y_base = np.asarray(y_base)
 
