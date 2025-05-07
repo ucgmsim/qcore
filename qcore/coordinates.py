@@ -20,6 +20,7 @@ See LINZ[0] for a description of the NZTM coordinate system.
 from typing import Union
 
 import numpy as np
+import numpy.typing as npt
 import pyproj
 
 from qcore import geo
@@ -216,3 +217,143 @@ def great_circle_bearing_to_nztm_bearing(
         ),
         np.array([0, 0, 1]),
     )
+
+
+R_EARTH_METRES = 6378139.0
+
+
+class SphericalProjection:
+    """
+    Performs forward and inverse gnomonic projection for a spherical Earth
+    with a customisable center and a 2D rotation of the projected coordinates.
+
+    The projection is centred at (`mlat`, `mlon`). The `mrot` parameter applies
+    a rotation in the projected (x, y) plane *after* the base gnomonic projection,
+    and the y-axis is inverted after this rotation.
+
+    Parameters
+    ----------
+    mlon : float
+        Longitude of the projection centre in degrees.
+    mlat : float
+        Latitude of the projection centre in degrees.
+    mrot : float
+        Rotation angle in the projected plane in degrees.
+    radius : float, optional
+        Radius of the spherical Earth in meters. Default is `R_EARTH_METRES` (6378139.0 m).
+
+    Attributes
+    ----------
+    mlon : float
+        Longitude of the projection centre in degrees.
+    mlat : float
+        Latitude of the projection centre in degrees.
+    mrot : float
+        Rotation angle in the projected plane in degrees.
+    radius : float
+        Radius of the spherical Earth in meters.
+    """
+
+    def __init__(
+        self, mlon: float, mlat: float, mrot: float, radius: float = R_EARTH_METRES
+    ):  # noqa: D105
+        self.mlon = mlon
+        self.mlat = mlat
+        self.mrot = mrot
+        self.radius = radius
+
+        # Define the source CRS (spherical geographic coordinates)
+        # Using +proj=latlong for geographic coordinates (lat/lon)
+        # and specifying the spherical radius.
+        _source_crs = pyproj.CRS(f"+proj=latlong +R={self.radius} +units=km +no_defs")
+
+        # +proj=gnom: Gnomonic projection
+        # +lon_0: Central longitude
+        # +lat_0: Central latitude
+        # +R: Radius of the sphere
+        # +no_defs: Use parameters from the string, not default files
+        _target_crs_base = pyproj.CRS(
+            f"+proj=gnom +lon_0={self.mlon} +lat_0={self.mlat} +R={self.radius} +units=km +no_defs"
+        )
+
+        self._transformer = pyproj.Transformer.from_crs(
+            _source_crs,
+            _target_crs_base,
+            always_xy=True,
+        )
+
+        _mrot_rad: float = np.radians(self.mrot)
+        self._cos_mrot: float = np.cos(_mrot_rad)
+        self._sin_mrot: float = np.sin(_mrot_rad)
+
+    def __call__(
+        self,
+        lat: npt.ArrayLike,
+        lon: npt.ArrayLike,
+    ) -> np.ndarray:
+        """
+        Performs forward gnomonic projection from geographic coordinates (`lat`, `lon`)
+        to rotated projected coordinates (`x`, `y`).
+
+        Parameters
+        ----------
+        lat : array-like
+            Latitude(s) in degrees.
+        lon : array-like
+            Longitude(s) in degrees.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 2) representing the projected and rotated
+            coordinates (x, y) in meters, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (2,).
+        """
+        x_base, y_base = self._transformer.transform(lon, lat)
+
+        x_base = np.asarray(x_base)
+        y_base = np.asarray(y_base)
+
+        x_rotated = x_base * self._cos_mrot - y_base * self._sin_mrot
+        y_rotated = x_base * self._sin_mrot + y_base * self._cos_mrot
+
+        return np.column_stack((x_rotated, -y_rotated))
+
+    def inverse(self, x: npt.ArrayLike, y: npt.ArrayLike) -> np.ndarray:
+        """
+        Performs inverse gnomonic projection from rotated projected coordinates (`x`, `y`)
+        back to geographic coordinates (`lat`, `lon`).
+
+        Parameters
+        ----------
+        x : array-like
+            Rotated projected x-coordinate(s) in meters.
+        y : array-like
+            Rotated projected y-coordinate(s) in meters.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 2) representing the geographic coordinates
+            (lat, lon) in degrees, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (2,).
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
+
+        y_inverted = y * -1
+
+        x_base = x * self._cos_mrot + y_inverted * self._sin_mrot
+        y_base = y_inverted * self._cos_mrot - x * self._sin_mrot
+
+        lon, lat = self._transformer.transform(
+            x_base, y_base, direction=pyproj.enums.TransformDirection.INVERSE
+        )
+
+        return np.column_stack((np.asarray(lat), np.asarray(lon)))
+
+    def __repr__(self) -> str:  # noqa: D105
+        return (
+            f"SphericalProjection(mlon={self.mlon}, mlat={self.mlat}, "
+            f"mrot={self.mrot}, radius={self.radius})"
+        )
