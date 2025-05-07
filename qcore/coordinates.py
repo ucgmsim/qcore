@@ -250,8 +250,6 @@ class SphericalProjection:
         Latitude of the projection centre in degrees.
     mrot : float
         Rotation angle in the projected plane in degrees.
-    radius : float
-        Radius of the spherical Earth in meters.
     """
 
     def __init__(
@@ -260,12 +258,11 @@ class SphericalProjection:
         self.mlon = mlon
         self.mlat = mlat
         self.mrot = mrot
-        self.radius = radius
 
         # Define the source CRS (spherical geographic coordinates)
         # Using +proj=latlong for geographic coordinates (lat/lon)
         # and specifying the spherical radius.
-        _source_crs = pyproj.CRS(f"+proj=latlong +R={self.radius} +units=km +no_defs")
+        _source_crs = pyproj.CRS(f"+proj=latlong +R={radius} +units=km +no_defs")
 
         # +proj=gnom: Gnomonic projection
         # +lon_0: Central longitude
@@ -273,7 +270,7 @@ class SphericalProjection:
         # +R: Radius of the sphere
         # +no_defs: Use parameters from the string, not default files
         _target_crs_base = pyproj.CRS(
-            f"+proj=gnom +lon_0={self.mlon} +lat_0={self.mlat} +R={self.radius} +units=km +no_defs"
+            f"+proj=gnom +lon_0={self.mlon} +lat_0={self.mlat} +R={radius} +units=km +no_defs"
         )
 
         self._transformer = pyproj.Transformer.from_crs(
