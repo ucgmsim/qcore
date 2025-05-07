@@ -299,12 +299,14 @@ class SphericalProjection:
             Latitude(s) in degrees.
         lon : array-like
             Longitude(s) in degrees.
+        z : array-like, optional
+            Depth or height coordinate(s) in kilometres. Not used in the projection.
 
         Returns
         -------
         np.ndarray
             A NumPy array of shape (N, 2) representing the projected and rotated
-            coordinates (x, y) in kilometers, where N is the number of input points.
+            coordinates (x, y) in kilometres, where N is the number of input points.
             If the input was a single float, the output is a 1D array (2,).
         """
 
@@ -335,11 +337,11 @@ class SphericalProjection:
         Parameters
         ----------
         x : array-like
-            Rotated projected x-coordinate(s) in kilometers.
+            Rotated projected x-coordinate(s) in kilometres.
         y : array-like
-            Rotated projected y-coordinate(s) in kilometers.
+            Rotated projected y-coordinate(s) in kilometres.
         z : array-like, optional
-            Depth or height coordinate(s) in kilometers. Not used in the projection.
+            Depth or height coordinate(s) in kilometres. Not used in the projection.
 
         Returns
         -------
