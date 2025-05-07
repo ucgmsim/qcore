@@ -256,7 +256,7 @@ class SphericalProjection:
 
     def __init__(
         self, mlon: float, mlat: float, mrot: float, radius: float = R_EARTH_METRES
-    ):  # noqa: D105
+    ):  # noqa: D107
         self.mlon = mlon
         self.mlat = mlat
         self.mrot = mrot
@@ -361,5 +361,5 @@ class SphericalProjection:
     def __repr__(self) -> str:  # noqa: D105
         return (
             f"SphericalProjection(mlon={self.mlon}, mlat={self.mlat}, "
-            f"mrot={self.mrot}, radius={self.radius})"
+            f"mrot={self.mrot})"
         )
