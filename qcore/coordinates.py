@@ -306,7 +306,7 @@ class SphericalProjection:
         -------
         np.ndarray
             A NumPy array of shape (N, 2) representing the projected and rotated
-            coordinates (x, y) in meters, where N is the number of input points.
+            coordinates (x, y) in kilometers, where N is the number of input points.
             If the input was a single float, the output is a 1D array (2,).
         """
         x_base, y_base = self._transformer.transform(lon, lat)
@@ -333,9 +333,9 @@ class SphericalProjection:
         Parameters
         ----------
         x : array-like
-            Rotated projected x-coordinate(s) in meters.
+            Rotated projected x-coordinate(s) in kilometers.
         y : array-like
-            Rotated projected y-coordinate(s) in meters.
+            Rotated projected y-coordinate(s) in kilometers.
 
         Returns
         -------
