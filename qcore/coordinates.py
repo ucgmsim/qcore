@@ -276,7 +276,6 @@ class SphericalProjection:
         self._transformer = pyproj.Transformer.from_crs(
             _source_crs,
             _target_crs_base,
-            always_xy=True,
         )
 
         _mrot_rad: float = np.radians(self.mrot)
@@ -306,7 +305,7 @@ class SphericalProjection:
             coordinates (x, y) in kilometers, where N is the number of input points.
             If the input was a single float, the output is a 1D array (2,).
         """
-        x_base, y_base = self._transformer.transform(lon, lat)
+        y_base, x_base = self._transformer.transform(lat, lon)
 
         if np.isnan(x_base).any() or np.isnan(y_base).any():
             raise ValueError(
@@ -320,19 +319,19 @@ class SphericalProjection:
         x_rotated = x_base * self._cos_mrot - y_base * self._sin_mrot
         y_rotated = x_base * self._sin_mrot + y_base * self._cos_mrot
 
-        return np.column_stack((x_rotated, -y_rotated))
+        return np.column_stack((-y_rotated, x_rotated))
 
-    def inverse(self, x: npt.ArrayLike, y: npt.ArrayLike) -> np.ndarray:
+    def inverse(self, y: npt.ArrayLike, x: npt.ArrayLike) -> np.ndarray:
         """
         Performs inverse gnomonic projection from rotated projected coordinates (`x`, `y`)
         back to geographic coordinates (`lat`, `lon`).
 
         Parameters
         ----------
-        x : array-like
-            Rotated projected x-coordinate(s) in kilometers.
         y : array-like
             Rotated projected y-coordinate(s) in kilometers.
+        x : array-like
+            Rotated projected x-coordinate(s) in kilometers.
 
         Returns
         -------
@@ -349,8 +348,8 @@ class SphericalProjection:
         x_base = x * self._cos_mrot + y_inverted * self._sin_mrot
         y_base = y_inverted * self._cos_mrot - x * self._sin_mrot
 
-        lon, lat = self._transformer.transform(
-            x_base, y_base, direction=pyproj.enums.TransformDirection.INVERSE
+        lat, lon = self._transformer.transform(
+            y_base, x_base, direction=pyproj.enums.TransformDirection.INVERSE
         )
 
         return np.column_stack((np.asarray(lat), np.asarray(lon)))
