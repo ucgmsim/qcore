@@ -262,7 +262,7 @@ class SphericalProjection:
         # Define the source CRS (spherical geographic coordinates)
         # Using +proj=latlong for geographic coordinates (lat/lon)
         # and specifying the spherical radius.
-        _source_crs = pyproj.CRS(f"+proj=latlong +R={radius} +units=km +no_defs")
+        _source_crs = pyproj.CRS(f"+proj=latlong +R={radius} +units=m +no_defs")
 
         # +proj=gnom: Gnomonic projection
         # +lon_0: Central longitude
@@ -270,7 +270,7 @@ class SphericalProjection:
         # +R: Radius of the sphere
         # +no_defs: Use parameters from the string, not default files
         _target_crs_base = pyproj.CRS(
-            f"+proj=gnom +lon_0={self.mlon} +lat_0={self.mlat} +R={radius} +units=km +no_defs"
+            f"+proj=gnom +lon_0={self.mlon} +lat_0={self.mlat} +R={radius} +units=m +no_defs"
         )
 
         self._transformer = pyproj.Transformer.from_crs(
@@ -311,6 +311,7 @@ class SphericalProjection:
         """
 
         x_base, y_base = self._transformer.transform(lon, lat)
+        y_base *= -1  # Invert y-axis
 
         if np.isnan(x_base).any() or np.isnan(y_base).any():
             raise ValueError(
@@ -321,12 +322,17 @@ class SphericalProjection:
         x_base = np.asarray(x_base)
         y_base = np.asarray(y_base)
 
-        x_rotated = x_base * self._cos_mrot - y_base * self._sin_mrot
-        y_rotated = x_base * self._sin_mrot + y_base * self._cos_mrot
+        x_rotated = x_base * self._cos_mrot + y_base * self._sin_mrot
+        y_rotated = -x_base * self._sin_mrot + y_base * self._cos_mrot
 
         if z is not None:
-            return np.column_stack((x_rotated, -y_rotated, np.asarray(z)))
-        return np.column_stack((x_rotated, -y_rotated))
+            out = np.column_stack((x_rotated, y_rotated, np.asarray(z)))
+        else:
+            out = np.column_stack((x_rotated, y_rotated))
+
+        if lon.ndim == 0 and lat.ndim == 0:
+            return out.flatten()
+        return out
 
     def inverse(
         self, x: npt.ArrayLike, y: npt.ArrayLike, z: npt.ArrayLike | None = None
@@ -354,17 +360,19 @@ class SphericalProjection:
         x = np.asarray(x)
         y = np.asarray(y)
 
-        y_inverted = y * -1
-
-        x_base = x * self._cos_mrot + y_inverted * self._sin_mrot
-        y_base = y_inverted * self._cos_mrot - x * self._sin_mrot
-
-        lat, lon = self._transformer.transform(
+        x_base = x * self._cos_mrot - y * self._sin_mrot
+        y_base = x * self._sin_mrot + y * self._cos_mrot
+        y_base = y * -1
+        lon, lat = self._transformer.transform(
             x_base, y_base, direction=pyproj.enums.TransformDirection.INVERSE
         )
         if z is not None:
-            return np.column_stack((np.asarray(lat), np.asarray(lon), np.asarray(z)))
-        return np.column_stack((np.asarray(lat), np.asarray(lon)))
+            out = np.column_stack((np.asarray(lat), np.asarray(lon), np.asarray(z)))
+        else:
+            out = np.column_stack((np.asarray(lat), np.asarray(lon)))
+        if x.ndim == 0 and y.ndim == 0:
+            return out.flatten()
+        return out
 
     def __repr__(self) -> str:  # noqa: D105
         return (
