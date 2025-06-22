@@ -41,7 +41,6 @@ _, mmi_values = xyts_file.pgv(mmi=True)
 import dataclasses
 from math import cos, radians, sin
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -132,27 +131,27 @@ class XYTSFile:
     dyts: int
     nx_sim: int
     dip: float
-    comps: Dict[str, float]
+    comps: dict[str, float]
     cosR: float
     sinR: float
     cosP: float
     sinP: float
     rot_matrix: np.ndarray
     # proc-local files only
-    local_nx: Optional[int] = None
-    local_ny: Optional[int] = None
-    local_nz: Optional[int] = None
+    local_nx: int | None = None
+    local_ny: int | None = None
+    local_nz: int | None = None
 
     # contents
-    data: Optional[np.memmap] = (
+    data: np.memmap | None = (
         None  # NOTE: this is distinct (but nearly identical to) a np.ndarray
     )
 
-    ll_map: Optional[np.ndarray] = None
+    ll_map: np.ndarray | None = None
 
     def __init__(
         self,
-        xyts_path: Union[Path, str],
+        xyts_path: Path | str,
         meta_only: bool = False,
         proc_local_file: bool = False,
         round_dt: bool = True,
@@ -281,7 +280,7 @@ class XYTSFile:
 
     def corners(
         self, gmt_format: bool = False
-    ) -> Union[List[List[float]], Tuple[List[List[float]], str]]:
+    ) -> list[list[float]] | tuple[list[list[float]], str]:
         """Retrieves the corners of the simulation domain.
 
         Parameters
@@ -323,8 +322,8 @@ class XYTSFile:
         return ll_cnrs.tolist(), gmt_cnrs
 
     def region(
-        self, corners: Optional[np.ndarray] = None
-    ) -> Tuple[float, float, float, float]:
+        self, corners: np.ndarray | None = None
+    ) -> tuple[float, float, float, float]:
         """Returns simulation region.
 
         Parameters
@@ -387,9 +386,9 @@ class XYTSFile:
     def pgv(
         self,
         mmi: bool = False,
-        pgvout: Optional[Union[Path, str]] = None,
-        mmiout: Optional[Union[Path, str]] = None,
-    ) -> Union[None, np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        pgvout: Path | str | None = None,
+        mmiout: Path | str | None = None,
+    ) -> None | np.ndarray | tuple[np.ndarray, np.ndarray]:
         """Retrieves PGV and/or MMI map.
 
         Parameters
