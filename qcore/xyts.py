@@ -374,12 +374,7 @@ class XYTSFile:
         """
         match comp:
             case Component.MAGNITUDE:
-                output = np.zeros(self.data.shape[2:], dtype=np.float32)
-                np.sqrt(
-                    np.sum(np.square(self.data[step, :3, :, :]), axis=0, out=output),
-                    out=output,
-                )
-                return output
+                return np.linalg.norm(self.data[step, :3, :, :], axis=0)
             case Component.X:
                 return (
                     self.data[step, 0, :, :] * self.sinR
