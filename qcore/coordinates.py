@@ -219,7 +219,7 @@ def great_circle_bearing_to_nztm_bearing(
     )
 
 
-R_EARTH_METRES = 6378139.0
+R_EARTH = 6378.139
 
 
 class SphericalProjection:
@@ -252,38 +252,193 @@ class SphericalProjection:
         Rotation angle in the projected plane in degrees.
     """
 
-    def __init__(
-        self, mlon: float, mlat: float, mrot: float, radius: float = R_EARTH_METRES
-    ):  # noqa: D107
+    def __init__(self, mlon: float, mlat: float, mrot: float, radius: float = R_EARTH):  # noqa: D107
         self.mlon = mlon
         self.mlat = mlat
         self.mrot = mrot
+        self.radius = radius
 
         # Define the source CRS (spherical geographic coordinates)
         # Using +proj=latlong for geographic coordinates (lat/lon)
         # and specifying the spherical radius.
-        _source_crs = pyproj.CRS(f"+proj=latlong +R={radius} +units=m +no_defs")
-
-        # +proj=gnom: Gnomonic projection
-        # +lon_0: Central longitude
-        # +lat_0: Central latitude
-        # +R: Radius of the sphere
-        # +no_defs: Use parameters from the string, not default files
-        _target_crs_base = pyproj.CRS(
-            f"+proj=gnom +lon_0={self.mlon} +lat_0={self.mlat} +R={radius} +units=m +no_defs"
-        )
-
-        self._transformer = pyproj.Transformer.from_crs(
-            _source_crs,
-            _target_crs_base,
-            always_xy=True,
-        )
-
+        self._source_crs = pyproj.CRS(f"+proj=latlong +R={radius} +units=m +no_defs")
+        self._geod = pyproj.Geod(ellps="sphere", a=radius, b=radius)
         _mrot_rad: float = np.radians(self.mrot)
         self._cos_mrot: float = np.cos(_mrot_rad)
         self._sin_mrot: float = np.sin(_mrot_rad)
+        arg = np.radians(mrot)
+        cosA = np.cos(arg)
+        sinA = np.sin(arg)
 
-    def __call__(
+        arg = np.radians(90.0 - mlat)
+        cosT = np.cos(arg)
+        sinT = np.sin(arg)
+
+        arg = np.radians(mlon)
+        cosP = np.cos(arg)
+        sinP = np.sin(arg)
+
+        self.amat = np.array(
+            [
+                [
+                    cosA * cosT * cosP + sinA * sinP,
+                    sinA * cosT * cosP - cosA * sinP,
+                    sinT * cosP,
+                ],
+                [
+                    cosA * cosT * sinP - sinA * cosP,
+                    sinA * cosT * sinP + cosA * cosP,
+                    sinT * sinP,
+                ],
+                [-cosA * sinT, -sinA * sinT, cosT],
+            ],
+            dtype="f",
+        )
+
+    def cartesian(
+        self,
+        lat: npt.ArrayLike,
+        lon: npt.ArrayLike,
+    ) -> np.ndarray:
+        """
+        Converts geodetic coordinates to ECEF (Earth-Centred, Earth-Fixed) coordinates.
+
+        Parameters
+        ----------
+        lat : array-like
+            Latitude(s) in degrees.
+        lon : array-like
+            Longitude(s) in degrees.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 3) representing the ECEF coordinates (x, y, z)
+            in metres, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (3,).
+        """
+        lon = np.radians(np.asarray(lon))
+        lat = np.radians(90.0 - np.asarray(lat))
+
+        return np.array(
+            [np.sin(lat) * np.cos(lon), np.sin(lat) * np.sin(lon), np.cos(lat)]
+        )
+
+    def inverse_cartesian(
+        self, x: npt.ArrayLike, y: npt.ArrayLike, z: npt.ArrayLike
+    ) -> np.ndarray:
+        """
+        Converts ECEF (Earth-Centred, Earth-Fixed) coordinates back to geodetic coordinates.
+
+        Parameters
+        ----------
+        x : array-like
+            ECEF x-coordinate(s) in kilometres.
+        y : array-like
+            ECEF y-coordinate(s) in kilometres.
+        z : array-like
+            ECEF z-coordinate(s) in kilometres.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 3) representing the geodetic coordinates (lat, lon, z)
+            in degrees and metres, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (3,).
+        """
+
+        lat = np.degrees(np.arcsin(z))
+        lon = np.degrees(np.atan2(y, x))
+
+        return np.array((lat, lon))
+
+    def forward_bearing(
+        self,
+        lat: npt.ArrayLike,
+        lon: npt.ArrayLike,
+        bearing: float,
+        distance: float,
+    ) -> np.ndarray:
+        """
+        Computes the forward bearing from a point in geographic coordinates
+        to a new point at a specified distance and bearing.
+
+        Parameters
+        ----------
+        lat : array-like
+            Latitude(s) in degrees.
+        lon : array-like
+            Longitude(s) in degrees.
+        bearing : float
+            Bearing angle in degrees.
+        distance : float
+            Distance to shift in kilometres.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 2) representing the new geographic coordinates
+            (lat, lon) in degrees, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (2,).
+        """
+        lon = np.asarray(lon)
+        lat = np.asarray(lat)
+        lonlat = np.array(
+            self._geod.fwd(
+                lon,
+                lat,
+                bearing,
+                distance * 1000,
+            )[:2]
+        )
+
+        return lonlat[::-1].T
+
+    def distance(self, lat: float, lon: float, lat1: float, lon1: float) -> float:
+        """
+        Computes the distance from one point to another in geographic coordinates.
+
+        Parameters
+        ----------
+        lat : float
+            Latitude of the first point in degrees.
+        lon : float
+            Longitude of the first point in degrees.
+        lat1 : float
+            Latitude of the second point in degrees.
+        lon1 : float
+            Longitude of the second point in degrees.
+
+        Returns
+        -------
+        float
+            The distance in kilometres from the first point to the second point.
+        """
+        return self._geod.inv(lon, lat, lon1, lat1)[-1] / 1000.0
+
+    def bearing(self, lat: float, lon: float, lat1: float, lon1: float) -> float:
+        """
+        Computes the bearing from one point to another in geographic coordinates.
+
+        Parameters
+        ----------
+        lat : float
+            Latitude of the first point in degrees.
+        lon : float
+            Longitude of the first point in degrees.
+        lat1 : float
+            Latitude of the second point in degrees.
+        lon1 : float
+            Longitude of the second point in degrees.
+
+        Returns
+        -------
+        float
+            The bearing angle in degrees from the first point to the second point.
+        """
+        return self._geod.inv(lon, lat, lon1, lat1)[0] % 360.0
+
+    def project(
         self,
         lat: npt.ArrayLike,
         lon: npt.ArrayLike,
@@ -309,26 +464,20 @@ class SphericalProjection:
             coordinates (x, y) in kilometres, where N is the number of input points.
             If the input was a single float, the output is a 1D array (2,).
         """
-
-        x_base, y_base = self._transformer.transform(lon, lat)
-        y_base *= -1  # Invert y-axis
-
-        if np.isnan(x_base).any() or np.isnan(y_base).any():
-            raise ValueError(
-                "Latitude and longitude coordinates given are invalid (did you input lon, lat instead of lat, lon?)."
-                " Check the coordinates are in the same hemisphere as the projection centre."
-            )
-
-        x_base = np.asarray(x_base)
-        y_base = np.asarray(y_base)
-
-        x_rotated = x_base * self._cos_mrot + y_base * self._sin_mrot
-        y_rotated = -x_base * self._sin_mrot + y_base * self._cos_mrot
-
+        lat = np.asarray(lat)
+        lon = np.asarray(lon)
+        # Convert lat, lon into normalised spherical coordinates.
+        ecef = self.cartesian(lat, lon)
+        # Rotate the
+        x, y, w = np.linalg.solve(self.amat, ecef)
+        x, y = (
+            R_EARTH * np.arctan2(y, w),
+            R_EARTH * np.arctan2(x, w),
+        )
         if z is not None:
-            out = np.column_stack((x_rotated, y_rotated, np.asarray(z)))
+            out = np.column_stack((x, y, np.asarray(z)))
         else:
-            out = np.column_stack((x_rotated, y_rotated))
+            out = np.column_stack((x, y))
 
         if lon.ndim == 0 and lat.ndim == 0:
             return out.flatten()
@@ -359,13 +508,16 @@ class SphericalProjection:
 
         x = np.asarray(x)
         y = np.asarray(y)
+        x /= R_EARTH
+        y /= R_EARTH
+        tan_x = np.tan(x)
+        tan_y = np.tan(y)
+        w = 1 / np.sqrt(1 + tan_x**2 + tan_y**2)
+        x = w * tan_y
+        y = w * tan_x
+        x, y, w = self.amat @ np.array([x, y, w])
 
-        x_base = x * self._cos_mrot - y * self._sin_mrot
-        y_base = x * self._sin_mrot + y * self._cos_mrot
-        y_base = y * -1
-        lon, lat = self._transformer.transform(
-            x_base, y_base, direction=pyproj.enums.TransformDirection.INVERSE
-        )
+        lat, lon = self.inverse_cartesian(x, y, w)
         if z is not None:
             out = np.column_stack((np.asarray(lat), np.asarray(lon), np.asarray(z)))
         else:
@@ -376,6 +528,5 @@ class SphericalProjection:
 
     def __repr__(self) -> str:  # noqa: D105
         return (
-            f"SphericalProjection(mlon={self.mlon}, mlat={self.mlat}, "
-            f"mrot={self.mrot})"
+            f"SphericalProjection(mlon={self.mlon}, mlat={self.mlat}, mrot={self.mrot})"
         )
