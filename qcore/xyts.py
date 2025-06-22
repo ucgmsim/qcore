@@ -45,6 +45,16 @@ from pathlib import Path
 import numpy as np
 
 from qcore import geo
+from enum import Enum
+
+
+class Component(Enum):
+    """Timestep component."""
+
+    MAGNITUDE = -1
+    X = 0
+    Y = 1
+    Z = 2
 
 
 @dataclasses.dataclass
@@ -344,7 +354,9 @@ class XYTSFile:
         return (float(x_min), float(x_max), float(y_min), float(y_max))
 
     def tslice_get(
-        self, step: int, comp: int = -1, outfile: Optional[Union[Path, str]] = None
+        self,
+        step: int,
+        comp: Component = Component.MAGNITUDE,
     ) -> np.ndarray:
         """Retrieves timeslice data.
 
@@ -352,36 +364,33 @@ class XYTSFile:
         ----------
         step : int
             Timestep to retrieve data for.
-        comp : int
-            Timestep component (-1: sqrt(x^2 + y^2 + z^2), 0: x, 1: y, 2: z).
-        outfile : Optional[Path | str]
-            File path to store the retrieved data.
+        comp : Component
+            Timestep component.
 
         Returns
         -------
         np.ndarray
             Retrieved timeslice data.
         """
-        # loading x, y, z all the time not significant
-        y = self.data[step, 0, :, :] * self.cosR - self.data[step, 1, :, :] * self.sinR
-        x = self.data[step, 0, :, :] * self.sinR + self.data[step, 1, :, :] * self.cosR
-        z = self.data[step, 2, :, :] * -1
-
-        if comp < 0:
-            wanted = np.sqrt(x**2 + y**2 + z**2)
-        elif comp == 0:
-            wanted = x
-        elif comp == 1:
-            wanted = y
-        elif comp == 2:
-            wanted = z
-
-        # format as longitude, latitude, value columns
-        wanted = np.dstack((self.ll_map, wanted)).reshape((-1, 3))
-        if outfile is None:
-            return wanted
-        else:
-            wanted.astype(np.float32).tofile(outfile)
+        match comp:
+            case Component.MAGNITUDE:
+                output = np.zeros(self.data.shape[2:])
+                for i in range(3):
+                    np.add(np.square(self.data[step, i, :, :]), out=output)
+                np.sqrt(output, out=output)
+                return output
+            case Component.X:
+                return (
+                    self.data[step, 0, :, :] * self.sinR
+                    + self.data[step, 1, :, :] * self.cosR
+                )
+            case Component.Y:
+                return (
+                    self.data[step, 0, :, :] * self.cosR
+                    - self.data[step, 1, :, :] * self.sinR
+                )
+            case Component.Z:
+                return self.data[step, 2, :, :] * -1
 
     def pgv(
         self,
