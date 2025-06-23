@@ -506,8 +506,8 @@ class SphericalProjection:
             If the input was a single float, the output is a 1D array (2,).
         """
 
-        x = np.asarray(x)
-        y = np.asarray(y)
+        x = np.asarray(x).copy()
+        y = np.asarray(y).copy()
         x /= R_EARTH
         y /= R_EARTH
         tan_x = np.tan(x)
