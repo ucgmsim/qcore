@@ -6,19 +6,3 @@ qcore.egg-info
 .cache/
 *.idea/
 .pytest_cache
-
-# Devenv
-.devenv*
-devenv.local.nix
-devenv.lock
-
-# direnv
-.direnv
-
-# pre-commit
-.pre-commit-config.yaml
-
-# other dev environment stuff
-devenv.nix
-devenv.lock
-uv.lock
