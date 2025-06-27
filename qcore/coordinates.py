@@ -353,28 +353,6 @@ class SphericalProjection:
 
         return np.array((lat, lon))
 
-    def distance(self, lat: float, lon: float, lat1: float, lon1: float) -> float:
-        """
-        Computes the distance from one point to another in geographic coordinates.
-
-        Parameters
-        ----------
-        lat : float
-            Latitude of the first point in degrees.
-        lon : float
-            Longitude of the first point in degrees.
-        lat1 : float
-            Latitude of the second point in degrees.
-        lon1 : float
-            Longitude of the second point in degrees.
-
-        Returns
-        -------
-        float
-            The distance in kilometres from the first point to the second point.
-        """
-        return self._geod.inv(lon, lat, lon1, lat1)[-1] / 1000.0
-
     def project(
         self,
         lat: npt.ArrayLike,
