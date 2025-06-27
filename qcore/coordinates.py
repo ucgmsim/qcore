@@ -290,6 +290,8 @@ class SphericalProjection:
             dtype="f",
         )
 
+    def __call__(self, lat: npt.ArrayLike, lon: npt.ArrayLike, depth: npt.ArrayLike | None = None) -> np.ndarray:
+        return self.project(lat, lon, depth)
 
     @property
     def geod(self) -> pyproj.Geod:
