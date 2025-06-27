@@ -224,11 +224,11 @@ R_EARTH = 6378.139
 
 class SphericalProjection:
     """
-    Performs forward and inverse gnomonic projection for a spherical Earth
+    Performs forward and inverse azimuthal equidistant projection for a spherical Earth
     with a customisable center and a 2D rotation of the projected coordinates.
 
     The projection is centred at (`mlat`, `mlon`). The `mrot` parameter applies
-    a rotation in the projected (x, y) plane *after* the base gnomonic projection,
+    a rotation in the projected (x, y) plane *after* the base azimuthal equidistant projection,
     and the y-axis is inverted after this rotation.
 
     Parameters
@@ -362,7 +362,7 @@ class SphericalProjection:
         z: npt.ArrayLike | None = None,
     ) -> np.ndarray:
         """
-        Performs forward gnomonic projection from geographic coordinates (`lat`, `lon`)
+        Performs forward projection from geographic coordinates (`lat`, `lon`)
         to rotated projected coordinates (`x`, `y`).
 
         Parameters
@@ -385,7 +385,7 @@ class SphericalProjection:
         lon = np.asarray(lon)
         # Convert lat, lon into normalised spherical coordinates.
         ecef = self.cartesian(lat, lon)
-        # Rotate the
+        # Rotate the coordinates
         x, y, w = np.linalg.solve(self.amat, ecef)
         x, y = (
             R_EARTH * np.arctan2(y, w),
@@ -403,7 +403,7 @@ class SphericalProjection:
     def inverse(
         self, x: npt.ArrayLike, y: npt.ArrayLike, z: npt.ArrayLike | None = None
     ) -> np.ndarray:
-        """Performs inverse gnomonic projection from rotated projected coordinates (`x`, `y`)
+        """Performs inverse azimuthal equidistant projection from rotated projected coordinates (`x`, `y`)
         back to geographic coordinates (`lat`, `lon`).
 
         Parameters
