@@ -258,11 +258,6 @@ class SphericalProjection:
         self.mrot = mrot
         self.radius = radius
 
-        # Define the source CRS (spherical geographic coordinates)
-        # Using +proj=latlong for geographic coordinates (lat/lon)
-        # and specifying the spherical radius.
-        self._source_crs = pyproj.CRS(f"+proj=latlong +R={radius} +units=m +no_defs")
-        self._geod = pyproj.Geod(ellps="sphere", a=radius, b=radius)
         _mrot_rad: float = np.radians(self.mrot)
         self._cos_mrot: float = np.cos(_mrot_rad)
         self._sin_mrot: float = np.sin(_mrot_rad)
@@ -294,6 +289,12 @@ class SphericalProjection:
             ],
             dtype="f",
         )
+
+
+    @property
+    def geod(self) -> pyproj.Geod:
+        """pyproj.Geod: A pyproj representation of the EMOD3D earth as a Geod."""
+        return pyproj.Geod(ellps='sphere', a=self.radius, b=self.radius)
 
     def cartesian(
         self,
@@ -352,48 +353,6 @@ class SphericalProjection:
 
         return np.array((lat, lon))
 
-    def forward_bearing(
-        self,
-        lat: npt.ArrayLike,
-        lon: npt.ArrayLike,
-        bearing: float,
-        distance: float,
-    ) -> np.ndarray:
-        """
-        Computes the forward bearing from a point in geographic coordinates
-        to a new point at a specified distance and bearing.
-
-        Parameters
-        ----------
-        lat : array-like
-            Latitude(s) in degrees.
-        lon : array-like
-            Longitude(s) in degrees.
-        bearing : float
-            Bearing angle in degrees.
-        distance : float
-            Distance to shift in kilometres.
-
-        Returns
-        -------
-        np.ndarray
-            A NumPy array of shape (N, 2) representing the new geographic coordinates
-            (lat, lon) in degrees, where N is the number of input points.
-            If the input was a single float, the output is a 1D array (2,).
-        """
-        lon = np.asarray(lon)
-        lat = np.asarray(lat)
-        lonlat = np.array(
-            self._geod.fwd(
-                lon,
-                lat,
-                bearing,
-                distance * 1000,
-            )[:2]
-        )
-
-        return lonlat[::-1].T
-
     def distance(self, lat: float, lon: float, lat1: float, lon1: float) -> float:
         """
         Computes the distance from one point to another in geographic coordinates.
@@ -415,28 +374,6 @@ class SphericalProjection:
             The distance in kilometres from the first point to the second point.
         """
         return self._geod.inv(lon, lat, lon1, lat1)[-1] / 1000.0
-
-    def bearing(self, lat: float, lon: float, lat1: float, lon1: float) -> float:
-        """
-        Computes the bearing from one point to another in geographic coordinates.
-
-        Parameters
-        ----------
-        lat : float
-            Latitude of the first point in degrees.
-        lon : float
-            Longitude of the first point in degrees.
-        lat1 : float
-            Latitude of the second point in degrees.
-        lon1 : float
-            Longitude of the second point in degrees.
-
-        Returns
-        -------
-        float
-            The bearing angle in degrees from the first point to the second point.
-        """
-        return self._geod.inv(lon, lat, lon1, lat1)[0] % 360.0
 
     def project(
         self,
