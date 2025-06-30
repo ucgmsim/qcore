@@ -75,90 +75,516 @@ def nt2n(nt):
     return int(2 ** ceil(log(nt) / log(2)))
 
 
-def cb_amp(
-    dt,
-    n,
-    vref,
-    vsite,
-    vpga,
-    pga,
-    version="2014",
-    flowcap=0.0,
-    fmin=0.2,
-    fmidbot=0.5,
-    fmid=1.0,
-    fhigh=10 / 3.0,
-    fhightop=10.0,
-    fmax=15.0,
-):
-    # cb constants
+@njit(cache=True)
+def _fs_low(
+    T_idx: int,
+    vs30: float,
+    a1100: float,
+    c10: np.ndarray,
+    k1: np.ndarray,
+    k2: np.ndarray,
+) -> np.ndarray:
     scon_c = 1.88
     scon_n = 1.18
+    return c10[T_idx] * log(vs30 / k1[T_idx]) + k2[T_idx] * log(
+        (a1100 + scon_c * exp(scon_n * log(vs30 / k1[T_idx]))) / (a1100 + scon_c)
+    )
 
-    # fmt: off
-    freqs = 1.0 / np.array([0.001, 0.01, 0.02, 0.03, 0.05, 0.075, 0.10,
-                            0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.75,
-                            1.00, 1.50, 2.00, 3.00, 4.00, 5.00, 7.50, 10.0])
-    if version == '2008':
-        c10 = np.array([1.058, 1.058, 1.102, 1.174, 1.272, 1.438, 1.604,
-                        1.928, 2.194, 2.351, 2.460, 2.587, 2.544, 2.133,
-                        1.571, 0.406,-0.456,-0.82, -0.82, -0.82, -0.82, -0.82])
-    elif version == '2014':
-        # named c11 in cb2014
-        c10 = np.array([1.090, 1.094, 1.149, 1.290, 1.449, 1.535, 1.615,
-                        1.877, 2.069, 2.205, 2.306, 2.398, 2.355, 1.995,
-                        1.447, 0.330, -0.514, -0.848, -0.793, -0.748, -0.664,
-                        -0.576])
+
+@njit(cache=True)
+def _fs_mid(
+    T_idx: int, vs30: float, c10: np.ndarray, k1: np.ndarray, k2: float
+) -> np.ndarray:
+    scon_n = 1.18
+    return (c10[T_idx] + k2[T_idx] * scon_n) * log(vs30 / k1[T_idx])
+
+
+@njit(cache=True)
+def _fs_high(T_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray):
+    """Compute site factor based on vs30 value - high code path
+
+    Parameters
+    ----------
+    T_idx : nt
+        The index to compute for.
+    vs30 : float
+        The reference vs30
+    a1100, c10, k1, k2 : np.ndarray
+        Parameters for calculation
+    """
+    scon_n = 1.18
+    return (c10[T_idx] + k2[T_idx] * scon_n) * log(1100.0 / k1[T_idx])
+
+
+@njit(cache=True)
+def _compute_fs_value(
+    T_idx: int,
+    vs30: float,
+    a1100: np.ndarray,
+    c10: np.ndarray,
+    k1: np.ndarray,
+    k2: np.ndarray,
+):
+    """Compute site factor based on vs30 value
+
+    Parameters
+    ----------
+    T_idx : nt
+        The index to compute for.
+    vs30 : float
+        The reference vs30
+    a1100, c10, k1, k2 : np.ndarray
+        Parameters for calculation
+    """
+    if vs30 < k1[T_idx]:
+        return _fs_low(T_idx, vs30, a1100, c10, k1, k2)
+    elif vs30 < 1100.0:
+        return _fs_mid(T_idx, vs30, c10, k1, k2)
     else:
-        raise Exception(f"BAD CB AMP version specified: {version}")
-    k1 = np.array([865.0, 865.0, 865.0, 908.0, 1054.0, 1086.0, 1032.0,
-                   878.0, 748.0, 654.0, 587.0,  503.0,  457.0,  410.0,
-                   400.0, 400.0, 400.0, 400.0,  400.0,  400.0,  400.0, 400.0])
-    k2 = np.array([-1.186, -1.186, -1.219, -1.273, -1.346, -1.471, -1.624,
-                   -1.931, -2.188, -2.381, -2.518, -2.657, -2.669, -2.401,
-                   -1.955, -1.025, -0.299,  0.0,    0.0,    0.0,    0.0, 0.0])
-    # fmt: on
+        return _fs_high(T_idx, c10, k1, k2)
 
-    # f_site function domains
-    def fs_low(T, vs30, a1100):
-        return c10[T] * log(vs30 / k1[T]) + k2[T] * log(
-            (a1100 + scon_c * exp(scon_n * log(vs30 / k1[T]))) / (a1100 + scon_c)
+
+@njit(cache=True)
+def _cb_amp(
+    dt: float,
+    n: int,
+    vref: float,
+    vsite: float,
+    vpga: float,
+    pga: float,
+    version: int = 2014,  # Changed to integer
+    flowcap: float = 0.0,
+    fmin: float = 0.2,
+    fmidbot: float = 0.5,
+    fhightop: float = 10.0,
+    fmax: float = 15.0,
+) -> np.ndarray:
+    """
+    Numba translation of cb_amp.
+
+    Parameters:
+    -----------
+    dt : float
+        Time step
+    n : int
+        Number of points
+    vref : float
+        Reference Vs30 value (m/s)
+    vsite : float
+        Site Vs30 value (m/s)
+    vpga : float
+        Vs30 value for PGA calculation (m/s)
+    pga : float
+        Peak ground acceleration value (g)
+    version : int, optional
+        CB version (2008 or 2014), default 2014
+    flowcap : float, optional
+        Flow capacity constraint, default 0.0
+    fmin, fmidbot, fhightop, fmax : float, optional
+        Bandpass filter parameters
+
+    Returns:
+    --------
+    results : ndarray
+        Amplification factors, shape (output_length,)
+        where output_length depends on dt and n
+    """
+    # Pre-computed frequency array
+    freqs = 1.0 / np.array(
+        [
+            0.001,
+            0.01,
+            0.02,
+            0.03,
+            0.05,
+            0.075,
+            0.10,
+            0.15,
+            0.20,
+            0.25,
+            0.30,
+            0.40,
+            0.50,
+            0.75,
+            1.00,
+            1.50,
+            2.00,
+            3.00,
+            4.00,
+            5.00,
+            7.50,
+            10.0,
+        ]
+    )
+
+    # Version-specific constants (converted to integer logic)
+    if version == 2008:
+        c10 = np.array(
+            [
+                1.058,
+                1.058,
+                1.102,
+                1.174,
+                1.272,
+                1.438,
+                1.604,
+                1.928,
+                2.194,
+                2.351,
+                2.460,
+                2.587,
+                2.544,
+                2.133,
+                1.571,
+                0.406,
+                -0.456,
+                -0.82,
+                -0.82,
+                -0.82,
+                -0.82,
+                -0.82,
+            ]
+        )
+    elif version == 2014:
+        # named c11 in cb2014
+        c10 = np.array(
+            [
+                1.090,
+                1.094,
+                1.149,
+                1.290,
+                1.449,
+                1.535,
+                1.615,
+                1.877,
+                2.069,
+                2.205,
+                2.306,
+                2.398,
+                2.355,
+                1.995,
+                1.447,
+                0.330,
+                -0.514,
+                -0.848,
+                -0.793,
+                -0.748,
+                -0.664,
+                -0.576,
+            ]
+        )
+    else:
+        # Default to 2014 version instead of raising exception
+        c10 = np.array(
+            [
+                1.090,
+                1.094,
+                1.149,
+                1.290,
+                1.449,
+                1.535,
+                1.615,
+                1.877,
+                2.069,
+                2.205,
+                2.306,
+                2.398,
+                2.355,
+                1.995,
+                1.447,
+                0.330,
+                -0.514,
+                -0.848,
+                -0.793,
+                -0.748,
+                -0.664,
+                -0.576,
+            ]
         )
 
-    def fs_mid(T, vs30, a1100=None):
-        return (c10[T] + k2[T] * scon_n) * log(vs30 / k1[T])
-
-    def fs_high(T, vs30=None, a1100=None):
-        return (c10[T] + k2[T] * scon_n) * log(1100.0 / k1[T])
-
-    def fs_auto(T, vs30):
-        return fs_low if vs30 < k1[T] else fs_mid if vs30 < 1100.0 else fs_high
-
-    #                 fs1100     - fs_vpga
-    a1100 = pga * exp(fs_high(0) - fs_auto(0, vpga)(0, vpga, pga))
-
-    # calculate factor for each period
-    it = (
-        exp(fs_auto(T, vsite)(T, vsite, a1100) - fs_auto(T, vref)(T, vref, a1100))
-        for T in range(freqs.size)
+    k1 = np.array(
+        [
+            865.0,
+            865.0,
+            865.0,
+            908.0,
+            1054.0,
+            1086.0,
+            1032.0,
+            878.0,
+            748.0,
+            654.0,
+            587.0,
+            503.0,
+            457.0,
+            410.0,
+            400.0,
+            400.0,
+            400.0,
+            400.0,
+            400.0,
+            400.0,
+            400.0,
+            400.0,
+        ]
     )
-    ampf0 = np.fromiter(it, dtype=np.float64)
-    try:
-        # T is the first occurance of a value <= flowcap
-        T = np.flatnonzero((freqs <= flowcap))[0]
-        ampf0[T:] = ampf0[T]
-    except IndexError:
-        pass
+    k2 = np.array(
+        [
+            -1.186,
+            -1.186,
+            -1.219,
+            -1.273,
+            -1.346,
+            -1.471,
+            -1.624,
+            -1.931,
+            -2.188,
+            -2.381,
+            -2.518,
+            -2.657,
+            -2.669,
+            -2.401,
+            -1.955,
+            -1.025,
+            -0.299,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ]
+    )
 
+    # Calculate a1100
+    # fs1100 - fs_vpga for T=0
+    fs_high_0 = _compute_fs_value(0, 1100.0, pga, c10, k1, k2)  # fs_high for T=0
+    fs_vpga_0 = _compute_fs_value(0, vpga, pga, c10, k1, k2)  # fs_auto for T=0
+    a1100 = pga * exp(fs_high_0 - fs_vpga_0)
+
+    # Calculate amplification factors for each period
+    # Replace generator with explicit loop
+    ampf0 = np.zeros(freqs.size, dtype=np.float64)
+    for T_idx in range(freqs.size):
+        fs_site = _compute_fs_value(T_idx, vsite, a1100, c10, k1, k2)
+        fs_ref = _compute_fs_value(T_idx, vref, a1100, c10, k1, k2)
+        ampf0[T_idx] = exp(fs_site - fs_ref)
+
+    # Apply flow capacity constraint
+    # Replace try/except with conditional check
+    flow_indices = np.where(freqs <= flowcap)[0]
+    if len(flow_indices) > 0:
+        T_cap = flow_indices[0]
+        ampf0[T_cap:] = ampf0[T_cap]
+
+    # Interpolate and apply bandpass filter
     ampv, ftfreq = interpolate_frequency(freqs, ampf0, dt, n)
     ampf = amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq)
 
     return ampf
 
 
-def interpolate_frequency(freqs, ampf0, dt, n):
+@njit(cache=True)
+def _cb_amp_multi(
+    dt,
+    n,
+    vref,
+    vsite,
+    vpga,
+    pga,
+    version=2014,
+    flowcap=0.0,
+    fmin=0.2,
+    fmidbot=0.5,
+    fhightop=10.0,
+    fmax=15.0,
+):
+    """
+    Numba version of cb_amp that processes multiple parameter sets.
+
+    Parameters:
+    -----------
+    dt : float
+        Time step
+    n : int
+        Number of points
+    vref : array_like
+        Reference Vs30 values (m/s) - shape (N,)
+    vsite : array_like
+        Site Vs30 values (m/s) - shape (N,)
+    vpga : array_like
+        Vs30 values for PGA calculation (m/s) - shape (N,)
+    pga : array_like
+        Peak ground acceleration values (g) - shape (N,)
+    version : int, optional
+        CB version (2008 or 2014), default 2014
+    flowcap : float, optional
+        Flow capacity constraint, default 0.0
+    fmin, fmidbot, fhightop, fmax : float, optional
+        Bandpass filter parameters
+
+    Returns:
+    --------
+    results : ndarray
+        Amplification factors, shape (N, output_length)
+        where N is the number of input parameter sets
+        and output_length depends on dt and n
+    """
+
+    # Convert inputs to arrays and get dimensions
+    vref_arr = np.asarray(vref, dtype=np.float64)
+    vsite_arr = np.asarray(vsite, dtype=np.float64)
+    vpga_arr = np.asarray(vpga, dtype=np.float64)
+    pga_arr = np.asarray(pga, dtype=np.float64)
+
+    # Check that all arrays have the same shape
+    n_cases = vref_arr.size
+
+    # Flatten arrays to handle both 1D and scalar inputs
+    vref_flat = vref_arr.flatten()
+    vsite_flat = vsite_arr.flatten()
+    vpga_flat = vpga_arr.flatten()
+    pga_flat = pga_arr.flatten()
+
+    # Determine output size by running one case
+    # This is needed since we don't know the output size a priori
+    sample_result = _cb_amp(
+        dt,
+        n,
+        vref_flat[0],
+        vsite_flat[0],
+        vpga_flat[0],
+        pga_flat[0],
+        version,
+        flowcap,
+        fmin,
+        fmidbot,
+        fhightop,
+        fmax,
+    )
+    output_length = sample_result.size
+
+    # Pre-allocate results array
+    results = np.zeros((n_cases, output_length), dtype=np.float64)
+    results[0, :] = sample_result  # Store the sample result
+
+    # Process remaining cases
+    for i in range(1, n_cases):
+        results[i, :] = _cb_amp(
+            dt,
+            n,
+            vref_flat[i],
+            vsite_flat[i],
+            vpga_flat[i],
+            pga_flat[i],
+            version,
+            flowcap,
+            fmin,
+            fmidbot,
+            fhightop,
+            fmax,
+        )
+
+    return results
+
+
+def cb_amp_multi(
+    df: pd.DataFrame,
+    dt: float,
+    n: int,
+    version: int = 2014,
+    flowcap: float = 0.0,
+    fmin: float = 0.2,
+    fmidbot: float = 0.5,
+    fhightop: float = 10.0,
+    fmax: float = 15.0,
+    vref_col: str = "vref",
+    vsite_col: str = "vsite",
+    vpga_col: str = "vpga",
+    pga_col: str = "pga",
+):
+    """
+    Compute CB amplification factors for multiple parameter sets from a pandas DataFrame.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing the input parameters
+    dt : float
+        Time step for frequency domain
+    n : int
+        Number of points for frequency domain
+    version : int, optional
+        CB version (2008 or 2014), default 2014
+    flowcap : float, optional
+        Flow capacity constraint, default 0.0
+    fmin, fmidbot, fhightop, fmax : float, optional
+        Bandpass filter parameters
+    vref_col, vsite_col, vpga_col, pga_col : str, optional
+        Column names for the respective parameters
+
+    Returns:
+    --------
+    results : numpy.ndarray
+        Amplification factors, shape (len(df), output_length)
+        Each row corresponds to one row in the input DataFrame
+
+    Raises:
+    -------
+    KeyError
+        If required columns are missing from the DataFrame
+    ValueError
+        If DataFrame is empty or contains invalid values
+    """
+
+    # Input validation
+    if df.empty:
+        raise ValueError("Input DataFrame is empty")
+
+    # Check required columns exist
+    required_cols = [vref_col, vsite_col, vpga_col, pga_col]
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        raise KeyError(f"Missing required columns: {missing_cols}")
+
+    # Extract arrays from DataFrame
+    vref = df[vref_col].values
+    vsite = df[vsite_col].values
+    vpga = df[vpga_col].values
+    pga = df[pga_col].values
+
+    # Check for missing values
+    arrays = [vref, vsite, vpga, pga]
+    array_names = ["vref", "vsite", "vpga", "pga"]
+    for arr, name in zip(arrays, array_names):
+        if np.any(pd.isna(arr)):
+            raise ValueError(f"Column '{name}' contains NaN values")
+        if not np.all(np.isfinite(arr)):
+            raise ValueError(f"Column '{name}' contains infinite values")
+        if np.any(arr <= 0):
+            raise ValueError(f"Column '{name}' contains non-positive values")
+
+    # Call the numba-accelerated function
+    results = _cb_amp_multi(
+        dt=dt,
+        n=n,
+        vref=vref,
+        vsite=vsite,
+        vpga=vpga,
+        pga=pga,
+        version=version,
+        flowcap=flowcap,
+        fmin=fmin,
+        fmidbot=fmidbot,
+        fhightop=fhightop,
+        fmax=fmax,
+    )
+    return results
+
+
+@njit(cache=True)
+def interpolate_frequency(freqs: np.ndarray, ampf0: np.ndarray, dt: float, n: int):
     # frequencies of fourier transform
-    ftfreq = get_ft_freq(dt, n)
+    ftfreq = np.arange(1, n / 2) * (1.0 / (n * dt))
     # transition indexes
     digi = np.digitize(freqs, ftfreq)[::-1]
     # only go down to 2nd frequency
