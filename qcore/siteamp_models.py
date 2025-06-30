@@ -25,6 +25,7 @@ cb_amp(variables, ...)
 from math import ceil, exp, log
 import os
 
+from numba import njit
 import numpy as np
 import pandas as pd
 
@@ -596,11 +597,11 @@ def interpolate_frequency(freqs: np.ndarray, ampf0: np.ndarray, dt: float, n: in
     dadf0 = np.zeros(freqs.size)
     for i in range(1, freqs.size - 1):
         # start with dadf = 0.0 if no freq change at pos 0
-        dadf0[-i - 1 - ftfreq0] = (ampf0[i] - ampf0[i + 1]) / log(
+        dadf0[-i - 1 - ftfreq0] = (ampf0[i] - ampf0[i + 1]) / np.log(
             freqs[i] / freqs[i + 1]
         )
     # calculate amplification factors
-    digi = np.hstack((digi, [ftfreq.size]))
+    digi = np.append(digi, [np.float64(ftfreq.size)])
     a0 = np.zeros(ftfreq.size)
     f0 = np.zeros(ftfreq.size)
     dadf = np.zeros(ftfreq.size)
@@ -622,7 +623,15 @@ def get_ft_freq(dt, n):
     return np.arange(1, n / 2) * (1.0 / (n * dt))
 
 
-def amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq):
+@njit(cache=True)
+def amp_bandpass(
+    ampv: np.ndarray,
+    fhightop: float,
+    fmax: float,
+    fmidbot: float,
+    fmin: float,
+    ftfreq: np.ndarray,
+):
     # default amplification is 1.0 (keeping values the same)
     ampf = np.ones(ftfreq.size + 1, dtype=np.float64)
     # amplification factors applied differently at different bands
