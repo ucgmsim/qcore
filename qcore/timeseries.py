@@ -10,22 +10,39 @@ import os
 import warnings
 from glob import glob
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
+import scipy as sp
 import xarray as xr
-from scipy.signal import butter, resample, sosfiltfilt
 
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
 from qcore.utils import compare_versions
 
-rfft = np.fft.rfft
-irfft = np.fft.irfft
+
+# The butterworth filter attenuates at 1/sqrt(2) at the cutoff frequency, but
+# for our applications we want to retain *full power* at the cutoff frequencies.
+# So we instead shift the cutoff frequency up for a highpass filter (resp. down
+# for a lowpass filter) so that full-power is retained at the cutoff
+# frequencies. The factor by which we have to shift the cutoff factors for an
+# order 4 highpass butterworth filter is (sqrt(2) - 1) ^ (1/8). Symmetrically,
+# we have to shift by (sqrt(2) - 1) ^ (-1/8) = 1 / highpass shift for a lowpass
+# filter. See https://dsp.stackexchange.com/a/19491 for a more detailed
+# explaination.
+_BW_HIGHPASS_SHIFT = (np.sqrt(2.0) - 1.0) ** (1.0 / 8.0)
+_BW_LOWPASS_SHIFT = 1 / _BW_HIGHPASS_SHIFT
 
 
-# butterworth filter
-# bandpass not necessary as sampling frequency too low
-def bwfilter(data, dt, freq, band, match_powersb=True):
+def bwfilter(
+    data: np.ndarray,
+    dt: float,
+    freq: float,
+    band: Literal["highpass"]
+    | Literal["bandpass"]
+    | Literal["bandstop"]
+    | Literal["lowpass"],
+) -> np.ndarray:
     """
     data: np.array to filter
     dt: timestep of data
@@ -33,53 +50,42 @@ def bwfilter(data, dt, freq, band, match_powersb=True):
     band: One of {'highpass', 'lowpass', 'bandpass', 'bandstop'}
     match_powersb: shift the target frequency so that the given frequency has no attenuation
     """
-    # power spectrum based LF/HF filter (shift cutoff)
-    # readable code commented, fast code uncommented
-    # order = 4
-    # x = 1.0 / (2.0 * order)
-    # if band == 'lowpass':
-    #    x *= -1
-    # freq *= exp(x * math.log(sqrt(2.0) - 1.0))
-    nyq = 1.0 / (2.0 * dt)
-    highpass_shift = 0.8956803352330285
-    lowpass_shift = 1.1164697500474103
-    if match_powersb:
-        if band == "highpass":
-            freq *= highpass_shift
-        elif band == "bandpass" or band == "bandstop":
-            freq = np.asarray((freq * highpass_shift, freq * lowpass_shift))
-        elif band == "lowpass":
-            freq *= lowpass_shift
-    return sosfiltfilt(
-        butter(4, freq / nyq, btype=band, output="sos"), data, padtype=None
+    cutoff_frequencies: np.ndarray | float = freq
+    match band:
+        case "highpass":
+            cutoff_frequencies = freq * _BW_HIGHPASS_SHIFT
+        case "bandpass" | "bandstop":
+            cutoff_frequencies = freq * np.array(
+                [_BW_HIGHPASS_SHIFT, _BW_LOWPASS_SHIFT]
+            )
+        case "lowpass":
+            cutoff_frequencies = freq * _BW_LOWPASS_SHIFT
+
+    return sp.signal.sosfiltfilt(
+        sp.signal.butter(4, cutoff_frequencies, btype=band, output="sos", fs=1.0 / dt),
+        data,
+        padtype=None,
     )
 
 
-def ampdeamp(timeseries, ampf, amp=True):
+def ampdeamp(timeseries: np.ndarray, ampf: np.ndarray, amp: bool = True) -> np.ndarray:
     """
     Amplify or Deamplify timeseries.
     """
-    nt = len(timeseries)
-
-    # length the fourier transform should be
-    ft_len = ampf.size + ampf.size
-
+    nt = timeseries.shape[-1]
     # taper 5% on the right using the hanning method
     ntap = int(nt * 0.05)
-    timeseries[nt - ntap :] *= np.hanning(ntap * 2 + 1)[ntap + 1 :]
-
-    # extend array, fft
-    timeseries = np.resize(timeseries, ft_len)
-    timeseries[nt:] = 0
-    fourier = rfft(timeseries)
+    # taper the timeseries at the end.
+    timeseries[..., nt - ntap :] *= np.hanning(ntap * 2 + 1)[ntap + 1 :]
+    fourier = np.fft.rfft(timeseries, 2 * ampf.size, axis=-1)
 
     # ampf modified for de-amplification
     if not amp:
         ampf = 1.0 / ampf
     # last value of fft is some identity value
-    fourier[:-1] *= ampf
+    fourier[..., :-1] *= ampf
 
-    return irfft(fourier)[:nt]
+    return np.fft.irfft(fourier, axis=-1)[..., :nt]
 
 
 def transf(
@@ -508,7 +514,7 @@ class LFSeis:
                 print(
                     "e3d.par was not found under the same folder but found in one level above"
                 )
-                print("e3d.par path: {}".format(self.e3dpar))
+                print(f"e3d.par path: {self.e3dpar}")
 
         # determine endianness by checking file size
         lfs = os.stat(self.seis[0]).st_size
@@ -668,7 +674,7 @@ class LFSeis:
             ts = np.dot(ts, self.rot_matrix)
         if dt is None or dt == self.dt:
             return ts
-        return resample(ts, int(round(self.duration / dt)))
+        return sp.signal.resample(ts, int(round(self.duration / dt)))
 
     def acc(self, station, dt=None):
         """
