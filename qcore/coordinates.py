@@ -339,9 +339,7 @@ class SphericalProjection:
         Returns
         -------
         np.ndarray
-            A NumPy array of shape (N, 3) representing the geodetic coordinates (lat, lon, z)
-            in degrees and metres, where N is the number of input points.
-            If the input was a single float, the output is a 1D array (3,).
+            Geodetic coordinates (lat, lon) corresponding to the cartesian coordinates (x, y, z).
         """
 
         lat = np.degrees(np.arcsin(z))
