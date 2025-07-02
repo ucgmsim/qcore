@@ -430,8 +430,7 @@ class SphericalProjection:
 
         lat, lon = self.inverse_cartesian(x, y, w)
 
-        if np.isclose(np.abs(lat), 90):
-            lon = 0.0  # At the poles longitude is undefined
+        lon = np.where(np.isclose(np.abs(lat), 90.0), 0.0, lon)
 
         if z is not None:
             out = np.column_stack((np.asarray(lat), np.asarray(lon), np.asarray(z)))
