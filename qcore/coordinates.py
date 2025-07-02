@@ -225,7 +225,7 @@ R_EARTH = 6378.139
 class SphericalProjection:
     """
     Performs forward and inverse azimuthal equidistant projection for a spherical Earth
-    with a customisable center and a 2D rotation of the projected coordinates.
+    with a customisable centre and a 2D rotation of the projected coordinates.
 
     The projection is centred at (`mlat`, `mlon`). The `mrot` parameter applies
     a rotation in the projected (x, y) plane *after* the base azimuthal equidistant projection,
@@ -289,9 +289,6 @@ class SphericalProjection:
             ],
             dtype="f",
         )
-
-    def __call__(self, lat: npt.ArrayLike, lon: npt.ArrayLike, depth: npt.ArrayLike | None = None) -> np.ndarray:
-        return self.project(lat, lon, depth)
 
     @property
     def geod(self) -> pyproj.Geod:
@@ -400,6 +397,8 @@ class SphericalProjection:
             return out.flatten()
         return out
 
+    __call__ = project
+
     def inverse(
         self, x: npt.ArrayLike, y: npt.ArrayLike, z: npt.ArrayLike | None = None
     ) -> np.ndarray:
@@ -432,9 +431,13 @@ class SphericalProjection:
         w = 1 / np.sqrt(1 + tan_x**2 + tan_y**2)
         x = w * tan_y
         y = w * tan_x
-        x, y, w = self.amat @ np.array([x, y, w])
+        x, y, w = np.clip(self.amat @ np.array([x, y, w]), -1.0, 1.0)
 
         lat, lon = self.inverse_cartesian(x, y, w)
+
+        if np.isclose(np.abs(lat), 90):
+            lon = 0.0 # At the poles longitude is undefined
+
         if z is not None:
             out = np.column_stack((np.asarray(lat), np.asarray(lon), np.asarray(z)))
         else:
