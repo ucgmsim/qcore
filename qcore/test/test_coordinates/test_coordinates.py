@@ -15,8 +15,7 @@ def longitude(min_value: float = -180.0, max_value: float = 180.0, **kwargs):
     return st.floats(min_value=min_value, max_value=max_value, allow_nan=False, allow_infinity=False, **kwargs)
 
 GEOD = pyproj.Geod(ellps='sphere', a=R_EARTH * 1000.0, b=R_EARTH * 1000.0)
-HALF_SPHERE = 10018.757313
-
+HALF_SPHERE = R_EARTH * np.pi / 2.0 # Half-circumference of a hemisphere
 
 @st.composite
 def points_in_same_hemisphere(draw):
@@ -40,7 +39,7 @@ def test_projection_inverse_is_identity(points, mrot):
     # and longitude is 0 degrees (because longitude at the poles is undefined)
     if np.isclose(np.abs(lat), 90):
         assert pytest.approx(lat, abs=1e-5) == back[0]
-        assert pytest.approx(0.0, abs=1e-5) == 0.0
+        assert pytest.approx(0.0, abs=1e-5) == back[1]
     else:
         assert pytest.approx(np.array([lat, lon]), rel=1e-4, abs=1e-4) == back
 
