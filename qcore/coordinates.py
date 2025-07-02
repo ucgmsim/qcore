@@ -290,7 +290,7 @@ class SphericalProjection:
     @property
     def geod(self) -> pyproj.Geod:
         """pyproj.Geod: A pyproj representation of the EMOD3D earth as a Geod."""
-        return pyproj.Geod(ellps='sphere', a=self.radius, b=self.radius)
+        return pyproj.Geod(ellps="sphere", a=self.radius, b=self.radius)
 
     def cartesian(
         self,
@@ -343,7 +343,7 @@ class SphericalProjection:
         """
 
         lat = np.degrees(np.arcsin(z))
-        lon = np.degrees(np.atan2(y, x))
+        lon = np.degrees(np.arctan2(y, x))
 
         return np.array((lat, lon))
 
@@ -431,7 +431,7 @@ class SphericalProjection:
         lat, lon = self.inverse_cartesian(x, y, w)
 
         if np.isclose(np.abs(lat), 90):
-            lon = 0.0 # At the poles longitude is undefined
+            lon = 0.0  # At the poles longitude is undefined
 
         if z is not None:
             out = np.column_stack((np.asarray(lat), np.asarray(lon), np.asarray(z)))
