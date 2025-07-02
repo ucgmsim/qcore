@@ -56,7 +56,7 @@ def test_identity_rotation_preserves_axes(mlat, mlon):
     proj = SphericalProjection(mlon, mlat, 0)
 
 
-    # The coordinate frame of reference is south is y-positive, east
+    # The coordinate frame of reference is south is y-positive, west
     # is x-positive. This checks that south is
     eps = 1e-4
     assert proj(mlat + eps, mlon)[1] < 0.0
