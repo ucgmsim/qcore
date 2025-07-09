@@ -36,6 +36,8 @@ POINTS_PER_KILOMETER = (
     1 / 0.1
 )  # 1km divided by distance between points (1km/0.1km gives 100m grid)
 
+
+# In the /QuakeCoRE/Public/Cybershake_200m directory
 NHM_MODEL_URL = "https://www.dropbox.com/scl/fi/q93swheg6pqs0fiwviohg/NZ_FLTmodel_2010_v18p6.txt?rlkey=gnotizv4kx50un73y9176gzhk&st=667dlt19&dl=0"
 NHM_MODEL_HASH = "3e70bf86f00d89d8191b7e0d27d052e3c5784900e7bdc4963d3772e692305d7a"
 
@@ -193,9 +195,9 @@ def load_nhm(
 
     Parameters
     ----------
-    nhm_path: str
-        NHM file to load
-    skiprows: int
+    nhm_path: str, optional
+        NHM file to load. If not provided, a default will be downloaded from the QuakeCoRE Dropbox.
+    skiprows: int, optional
         Skip the first skiprows lines; default: 15.
 
     Returns
