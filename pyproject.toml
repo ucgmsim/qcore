@@ -10,7 +10,7 @@ authors = [
     {name = "QuakeCoRE" },
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dynamic = ["dependencies"]
 
 [tool.setuptools.package-dir]

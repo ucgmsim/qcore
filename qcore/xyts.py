@@ -41,11 +41,20 @@ _, mmi_values = xyts_file.pgv(mmi=True)
 import dataclasses
 from math import cos, radians, sin
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 from qcore import geo
+from enum import Enum
+
+
+class Component(Enum):
+    """Timestep component."""
+
+    MAGNITUDE = -1
+    X = 0
+    Y = 1
+    Z = 2
 
 
 @dataclasses.dataclass
@@ -132,27 +141,27 @@ class XYTSFile:
     dyts: int
     nx_sim: int
     dip: float
-    comps: Dict[str, float]
+    comps: dict[str, float]
     cosR: float
     sinR: float
     cosP: float
     sinP: float
     rot_matrix: np.ndarray
     # proc-local files only
-    local_nx: Optional[int] = None
-    local_ny: Optional[int] = None
-    local_nz: Optional[int] = None
+    local_nx: int | None = None
+    local_ny: int | None = None
+    local_nz: int | None = None
 
     # contents
-    data: Optional[np.memmap] = (
+    data: np.memmap | None = (
         None  # NOTE: this is distinct (but nearly identical to) a np.ndarray
     )
 
-    ll_map: Optional[np.ndarray] = None
+    ll_map: np.ndarray | None = None
 
     def __init__(
         self,
-        xyts_path: Union[Path, str],
+        xyts_path: Path | str,
         meta_only: bool = False,
         proc_local_file: bool = False,
         round_dt: bool = True,
@@ -281,7 +290,7 @@ class XYTSFile:
 
     def corners(
         self, gmt_format: bool = False
-    ) -> Union[List[List[float]], Tuple[List[List[float]], str]]:
+    ) -> list[list[float]] | tuple[list[list[float]], str]:
         """Retrieves the corners of the simulation domain.
 
         Parameters
@@ -323,8 +332,8 @@ class XYTSFile:
         return ll_cnrs.tolist(), gmt_cnrs
 
     def region(
-        self, corners: Optional[np.ndarray] = None
-    ) -> Tuple[float, float, float, float]:
+        self, corners: np.ndarray | None = None
+    ) -> tuple[float, float, float, float]:
         """Returns simulation region.
 
         Parameters
@@ -345,7 +354,9 @@ class XYTSFile:
         return (float(x_min), float(x_max), float(y_min), float(y_max))
 
     def tslice_get(
-        self, step: int, comp: int = -1, outfile: Optional[Union[Path, str]] = None
+        self,
+        step: int,
+        comp: Component = Component.MAGNITUDE,
     ) -> np.ndarray:
         """Retrieves timeslice data.
 
@@ -353,43 +364,36 @@ class XYTSFile:
         ----------
         step : int
             Timestep to retrieve data for.
-        comp : int
-            Timestep component (-1: sqrt(x^2 + y^2 + z^2), 0: x, 1: y, 2: z).
-        outfile : Optional[Path | str]
-            File path to store the retrieved data.
+        comp : Component
+            Timestep component.
 
         Returns
         -------
         np.ndarray
             Retrieved timeslice data.
         """
-        # loading x, y, z all the time not significant
-        y = self.data[step, 0, :, :] * self.cosR - self.data[step, 1, :, :] * self.sinR
-        x = self.data[step, 0, :, :] * self.sinR + self.data[step, 1, :, :] * self.cosR
-        z = self.data[step, 2, :, :] * -1
-
-        if comp < 0:
-            wanted = np.sqrt(x**2 + y**2 + z**2)
-        elif comp == 0:
-            wanted = x
-        elif comp == 1:
-            wanted = y
-        elif comp == 2:
-            wanted = z
-
-        # format as longitude, latitude, value columns
-        wanted = np.dstack((self.ll_map, wanted)).reshape((-1, 3))
-        if outfile is None:
-            return wanted
-        else:
-            wanted.astype(np.float32).tofile(outfile)
+        match comp:
+            case Component.MAGNITUDE:
+                return np.linalg.norm(self.data[step, :3, :, :], axis=0)
+            case Component.X:
+                return (
+                    self.data[step, 0, :, :] * self.sinR
+                    + self.data[step, 1, :, :] * self.cosR
+                )
+            case Component.Y:
+                return (
+                    self.data[step, 0, :, :] * self.cosR
+                    - self.data[step, 1, :, :] * self.sinR
+                )
+            case Component.Z:
+                return self.data[step, 2, :, :] * -1
 
     def pgv(
         self,
         mmi: bool = False,
-        pgvout: Optional[Union[Path, str]] = None,
-        mmiout: Optional[Union[Path, str]] = None,
-    ) -> Union[None, np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        pgvout: Path | str | None = None,
+        mmiout: Path | str | None = None,
+    ) -> None | np.ndarray | tuple[np.ndarray, np.ndarray]:
         """Retrieves PGV and/or MMI map.
 
         Parameters
