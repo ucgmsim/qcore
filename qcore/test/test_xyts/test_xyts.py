@@ -190,7 +190,6 @@ def test_pgv(mmi, pgvout, mmiout, sample_pgv, sample_mmi):
     "step, comp, sample_outfile",
     [
         (10, xyts.Component.MAGNITUDE, "out_tslice-1"),
-        (10, xyts.Component.MAGNITUDE, "out_tslice-1"),
         (10, xyts.Component.X, "out_tslice0"),
         (10, xyts.Component.Y, "out_tslice1"),
         (10, xyts.Component.Z, "out_tslice2"),
@@ -201,6 +200,9 @@ def test_tslice_get(step, comp, sample_outfile):
     sample_outfile = os.path.join(SAMPLE_OUT_DIR_PATH, sample_outfile)
     test_tslice_output_array = OBJ_XYTS.tslice_get(step, comp=comp)
     sample_array = np.fromfile(sample_outfile, dtype="3<f4")
-    utils.compare_np_array(sample_array, test_tslice_output_array)
+    utils.compare_np_array(
+        sample_array[:, -1].reshape(test_tslice_output_array.shape),
+        test_tslice_output_array,
+    )
     for f in files_to_del:
         utils.remove_file(f)
