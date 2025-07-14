@@ -20,6 +20,7 @@ See LINZ[0] for a description of the NZTM coordinate system.
 from typing import Union
 
 import numpy as np
+import numpy.typing as npt
 import pyproj
 
 from qcore import geo
@@ -216,3 +217,230 @@ def great_circle_bearing_to_nztm_bearing(
         ),
         np.array([0, 0, 1]),
     )
+
+
+R_EARTH = 6378.139
+
+
+class SphericalProjection:
+    """
+    Performs forward and inverse azimuthal equidistant projection for a spherical Earth
+    with a customisable centre and a 2D rotation of the projected coordinates.
+
+    The projection is centred at (`mlat`, `mlon`). The `mrot` parameter applies
+    a rotation in the projected (x, y) plane *after* the base azimuthal equidistant projection,
+    and the y-axis is inverted after this rotation.
+
+    Parameters
+    ----------
+    mlon : float
+        Longitude of the projection centre in degrees.
+    mlat : float
+        Latitude of the projection centre in degrees.
+    mrot : float
+        Rotation angle in the projected plane in degrees.
+    radius : float, optional
+        Radius of the spherical Earth in kilometres. Default is `R_EARTH` (6378.0 km).
+
+    Attributes
+    ----------
+    mlon : float
+        Longitude of the projection centre in degrees.
+    mlat : float
+        Latitude of the projection centre in degrees.
+    mrot : float
+        Rotation angle in the projected plane in degrees.
+    """
+
+    def __init__(self, mlon: float, mlat: float, mrot: float, radius: float = R_EARTH):  # noqa: D107
+        self.mlon = mlon
+        self.mlat = mlat
+        self.mrot = mrot
+        self.radius = radius
+
+        arg = np.radians(mrot)
+        cosA = np.cos(arg)
+        sinA = np.sin(arg)
+
+        arg = np.radians(90.0 - mlat)
+        cosT = np.cos(arg)
+        sinT = np.sin(arg)
+
+        arg = np.radians(mlon)
+        cosP = np.cos(arg)
+        sinP = np.sin(arg)
+
+        self.amat = np.array(
+            [
+                [
+                    cosA * cosT * cosP + sinA * sinP,
+                    sinA * cosT * cosP - cosA * sinP,
+                    sinT * cosP,
+                ],
+                [
+                    cosA * cosT * sinP - sinA * cosP,
+                    sinA * cosT * sinP + cosA * cosP,
+                    sinT * sinP,
+                ],
+                [-cosA * sinT, -sinA * sinT, cosT],
+            ],
+            dtype=np.float64,
+        )
+
+    @property
+    def geod(self) -> pyproj.Geod:
+        """pyproj.Geod: A pyproj representation of the EMOD3D earth as a Geod."""
+        return pyproj.Geod(ellps="sphere", a=self.radius, b=self.radius)
+
+    def cartesian(
+        self,
+        lat: npt.ArrayLike,
+        lon: npt.ArrayLike,
+    ) -> np.ndarray:
+        """
+        Converts geodetic coordinates to ECEF (Earth-Centred, Earth-Fixed) coordinates.
+
+        Parameters
+        ----------
+        lat : array-like
+            Latitude(s) in degrees.
+        lon : array-like
+            Longitude(s) in degrees.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 3) representing the ECEF coordinates (x, y, z)
+            in metres, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (3,).
+        """
+        lon = np.radians(np.asarray(lon))
+        lat = np.radians(90.0 - np.asarray(lat))
+
+        return np.array(
+            [np.sin(lat) * np.cos(lon), np.sin(lat) * np.sin(lon), np.cos(lat)]
+        )
+
+    def inverse_cartesian(
+        self, x: npt.ArrayLike, y: npt.ArrayLike, z: npt.ArrayLike
+    ) -> np.ndarray:
+        """
+        Converts ECEF (Earth-Centred, Earth-Fixed) coordinates back to geodetic coordinates.
+
+        Parameters
+        ----------
+        x : array-like
+            ECEF x-coordinate(s) in kilometres.
+        y : array-like
+            ECEF y-coordinate(s) in kilometres.
+        z : array-like
+            ECEF z-coordinate(s) in kilometres.
+
+        Returns
+        -------
+        np.ndarray
+            Geodetic coordinates (lat, lon) corresponding to the cartesian coordinates (x, y, z).
+        """
+
+        lat = np.degrees(np.arcsin(z))
+        lon = np.degrees(np.arctan2(y, x))
+
+        return np.array((lat, lon))
+
+    def project(
+        self,
+        lat: npt.ArrayLike,
+        lon: npt.ArrayLike,
+        z: npt.ArrayLike | None = None,
+    ) -> np.ndarray:
+        """
+        Performs forward projection from geographic coordinates (`lat`, `lon`)
+        to rotated projected coordinates (`x`, `y`).
+
+        Parameters
+        ----------
+        lat : array-like
+            Latitude(s) in degrees.
+        lon : array-like
+            Longitude(s) in degrees.
+        z : array-like, optional
+            Depth or height coordinate(s) in kilometres. Not used in the projection.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 2) representing the projected and rotated
+            coordinates (x, y) in kilometres, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (2,).
+        """
+        lat = np.asarray(lat)
+        lon = np.asarray(lon)
+        # Convert lat, lon into normalised spherical coordinates.
+        ecef = self.cartesian(lat, lon)
+        # Rotate the coordinates
+        x, y, w = np.linalg.solve(self.amat, ecef)
+        x, y = (
+            R_EARTH * np.arctan2(y, w),
+            R_EARTH * np.arctan2(x, w),
+        )
+        if z is not None:
+            out = np.column_stack((x, y, np.asarray(z)))
+        else:
+            out = np.column_stack((x, y))
+
+        if lon.ndim == 0 and lat.ndim == 0:
+            return out.flatten()
+        return out
+
+    __call__ = project
+
+    def inverse(
+        self, x: npt.ArrayLike, y: npt.ArrayLike, z: npt.ArrayLike | None = None
+    ) -> np.ndarray:
+        """Performs inverse azimuthal equidistant projection from rotated projected coordinates (`x`, `y`)
+        back to geographic coordinates (`lat`, `lon`).
+
+        Parameters
+        ----------
+        x : array-like
+            Rotated projected x-coordinate(s) in kilometres.
+        y : array-like
+            Rotated projected y-coordinate(s) in kilometres.
+        z : array-like, optional
+            Depth or height coordinate(s) in kilometres. Not used in the projection.
+
+        Returns
+        -------
+        np.ndarray
+            A NumPy array of shape (N, 2) representing the geographic coordinates
+            (lat, lon) in degrees, where N is the number of input points.
+            If the input was a single float, the output is a 1D array (2,).
+        """
+
+        x = np.asarray(x).copy()
+        y = np.asarray(y).copy()
+        x /= R_EARTH
+        y /= R_EARTH
+        tan_x = np.tan(x)
+        tan_y = np.tan(y)
+        w = 1 / np.sqrt(1 + tan_x**2 + tan_y**2)
+        x = w * tan_y
+        y = w * tan_x
+        x, y, w = np.clip(self.amat @ np.array([x, y, w]), -1.0, 1.0)
+
+        lat, lon = self.inverse_cartesian(x, y, w)
+
+        lon = np.where(np.isclose(np.abs(lat), 90.0), 0.0, lon)
+
+        if z is not None:
+            out = np.column_stack((np.asarray(lat), np.asarray(lon), np.asarray(z)))
+        else:
+            out = np.column_stack((np.asarray(lat), np.asarray(lon)))
+        if x.ndim == 0 and y.ndim == 0:
+            return out.flatten()
+        return out
+
+    def __repr__(self) -> str:  # noqa: D105
+        return (
+            f"SphericalProjection(mlon={self.mlon}, mlat={self.mlat}, mrot={self.mrot})"
+        )
