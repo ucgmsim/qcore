@@ -1,5 +1,4 @@
 import errno
-import getpass
 import os
 import shutil
 import sys
@@ -8,18 +7,19 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from qcore import shared, xyts
 from qcore.test.tool import utils
 
 XYTS_DOWNLOAD_PATH = "https://www.dropbox.com/s/zge70zvntzxatpo/xyts.e3d?dl=0"
 XYTS_STORE_PATH = os.path.join(Path.home(), "xyts.e3d")
-DOWNLOAD_CMD = "wget -O {} {}".format(XYTS_STORE_PATH, XYTS_DOWNLOAD_PATH)
+DOWNLOAD_CMD = f"wget -O {XYTS_STORE_PATH} {XYTS_DOWNLOAD_PATH}"
 
 if not os.path.isfile(XYTS_STORE_PATH):
     out, err = shared.exe(DOWNLOAD_CMD, debug=False)
     if "failed" in err:
         os.remove(XYTS_STORE_PATH)
-        sys.exit("{} failted to download xyts benchmark file".format(err))
+        sys.exit(f"{err} failted to download xyts benchmark file")
     else:
         print("Successfully downloaded benchmark xyts.e3d")
 else:
@@ -187,27 +187,20 @@ def test_pgv(mmi, pgvout, mmiout, sample_pgv, sample_mmi):
 
 
 @pytest.mark.parametrize(
-    "step, comp, test_outfile, sample_outfile",
+    "step, comp, sample_outfile",
     [
-        (10, -1, None, "out_tslice-1"),
-        (10, -1, "test_tslice-1", "out_tslice-1"),
-        (10, 0, "test_tslice0", "out_tslice0"),
-        (10, 1, "test_tslice1", "out_tslice1"),
-        (10, 2, "test_tslice2", "out_tslice2"),
+        (10, xyts.Component.MAGNITUDE, "out_tslice-1"),
+        (10, xyts.Component.MAGNITUDE, "out_tslice-1"),
+        (10, xyts.Component.X, "out_tslice0"),
+        (10, xyts.Component.Y, "out_tslice1"),
+        (10, xyts.Component.Z, "out_tslice2"),
     ],
 )
-def test_tslice_get(step, comp, test_outfile, sample_outfile):
+def test_tslice_get(step, comp, sample_outfile):
     files_to_del = []
-    if test_outfile:
-        test_outfile = os.path.join(TMP_DIR_NAME, test_outfile)
-        sample_outfile = os.path.join(SAMPLE_OUT_DIR_PATH, sample_outfile)
-        test_tslice_output_array = OBJ_XYTS.tslice_get(step, comp, test_outfile)
-        sample_array = np.fromfile(sample_outfile, dtype="3<f4")
-        if test_tslice_output_array:
-            utils.compare_np_array(sample_array, test_tslice_output_array)
-        else:
-            test_outfile_array = np.fromfile(test_outfile, dtype="3<f4")
-            utils.compare_np_array(sample_array, test_outfile_array)
-            files_to_del.append(test_outfile)
+    sample_outfile = os.path.join(SAMPLE_OUT_DIR_PATH, sample_outfile)
+    test_tslice_output_array = OBJ_XYTS.tslice_get(step, comp=comp)
+    sample_array = np.fromfile(sample_outfile, dtype="3<f4")
+    utils.compare_np_array(sample_array, test_tslice_output_array)
     for f in files_to_del:
         utils.remove_file(f)
