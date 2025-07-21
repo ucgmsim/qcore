@@ -1,78 +1,36 @@
-import errno
-import os
-import shutil
-import sys
-from datetime import datetime
+"""Test module for XYTS file processing using pytest fixtures."""
+
 from pathlib import Path
+from typing import Optional
+from urllib import request
 
 import numpy as np
 import pytest
 
-from qcore import shared, xyts
+from qcore import xyts
 from qcore.test.tool import utils
 
-XYTS_DOWNLOAD_PATH = "https://www.dropbox.com/s/zge70zvntzxatpo/xyts.e3d?dl=0"
-XYTS_STORE_PATH = os.path.join(Path.home(), "xyts.e3d")
-DOWNLOAD_CMD = f"wget -O {XYTS_STORE_PATH} {XYTS_DOWNLOAD_PATH}"
 
-if not os.path.isfile(XYTS_STORE_PATH):
-    out, err = shared.exe(DOWNLOAD_CMD, debug=False)
-    if "failed" in err:
-        os.remove(XYTS_STORE_PATH)
-        sys.exit(f"{err} failted to download xyts benchmark file")
-    else:
-        print("Successfully downloaded benchmark xyts.e3d")
-else:
-    print("Benchmark xyts.e3d already exits")
-
-SAMPLE_OUT_DIR_PATH = os.path.join(
-    os.path.abspath(os.path.dirname(__file__)), "sample1/output"
-)
-XYTS_FILE = os.path.join(os.path.abspath(os.path.dirname(__file__)), "sample1/xyts.e3d")
-try:
-    os.symlink(XYTS_STORE_PATH, XYTS_FILE)
-except:
-    pass
-
-OBJ_XYTS = xyts.XYTSFile(XYTS_FILE)
-SAMPLE_PGV = os.path.join(SAMPLE_OUT_DIR_PATH, "sample_pgvout")
-SAMPLE_MMI = os.path.join(SAMPLE_OUT_DIR_PATH, "sample_mmiout")
-TMP_DIR_NAME = os.path.join(
-    Path.home(),
-    (
-        "tmp_"
-        + os.path.basename(__file__)[:-3]
-        + "_"
-        + "".join(str(datetime.now()).split())
-    ).replace(".", "_"),
-).replace(":", "_")
+@pytest.fixture(scope="session")
+def xyts_file() -> xyts.XYTSFile:
+    """Provide path to the XYTS test file."""
+    # Assuming the test file exists in the test directory
+    test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
+    if not test_file.exists():
+        request.urlretrieve(
+            "https://www.dropbox.com/s/zge70zvntzxatpo/xyts.e3d?dl=1", test_file
+        )
+    return xyts.XYTSFile(str(test_file))
 
 
-def setup_module(scope="module"):
-    """create a tmp directory for storing output from test"""
-    print("----------setup_module----------")
-    try:
-        os.mkdir(TMP_DIR_NAME)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
-
-def teardown_module():
-    """delete the symbolic link
-    delete the tmp directory if it is empty"""
-    print("---------teardown_module------------")
-    if os.path.isfile(XYTS_FILE):
-        os.remove(XYTS_FILE)
-    if len(os.listdir(TMP_DIR_NAME)) == 0:
-        try:
-            shutil.rmtree(TMP_DIR_NAME)
-        except (IOError, OSError) as e:
-            sys.exit(e)
+@pytest.fixture(scope="session")
+def sample_data_dir() -> Path:
+    """Provide path to sample output directory."""
+    return Path(__file__).parent / "sample1" / "output"
 
 
 @pytest.mark.parametrize(
-    "gmt_format, expected_corners",
+    "gmt_format,expected_corners",
     [
         (
             False,
@@ -92,27 +50,37 @@ def teardown_module():
                     [171.01295471191406, -45.15299987792969],
                     [169.66343688964844, -44.21214294433594],
                 ],
-                "170.914382935 -43.291595459\n172.262466431 -44.2177429199\n171.012954712 -45.1529998779\n169.66343689 -44.2121429443",
+                "170.914382935 -43.291595459\n"
+                "172.262466431 -44.2177429199\n"
+                "171.012954712 -45.1529998779\n"
+                "169.66343689 -44.2121429443",
             ),
         ),
     ],
 )
-def test_corners(gmt_format, expected_corners):
-    computed_corners = OBJ_XYTS.corners(gmt_format=gmt_format)
-    if gmt_format:
-        utils.compare_np_array(
-            np.array(computed_corners[0]), np.array(expected_corners[0])
-        )
-        cc = np.array([x.split() for x in computed_corners[1].split("\n")], dtype=float)
-        ec = np.array([x.split() for x in expected_corners[1].split("\n")], dtype=float)
-        utils.compare_np_array(cc, ec)
+def test_corners(xyts_file, gmt_format: bool, expected_corners) -> None:
+    """Test the corners method of XYTS file."""
+    computed_corners = xyts_file.corners(gmt_format=gmt_format)
 
+    if gmt_format:
+        expected_array, expected_string = expected_corners
+        computed_array, computed_string = computed_corners
+
+        utils.compare_np_array(np.array(computed_array), np.array(expected_array))
+
+        computed_coords = np.array(
+            [line.split() for line in computed_string.split("\n")], dtype=float
+        )
+        expected_coords = np.array(
+            [line.split() for line in expected_string.split("\n")], dtype=float
+        )
+        utils.compare_np_array(computed_coords, expected_coords)
     else:
         utils.compare_np_array(np.array(computed_corners), np.array(expected_corners))
 
 
 @pytest.mark.parametrize(
-    "corners, expected_region",
+    "corners,expected_region",
     [
         (
             None,
@@ -124,12 +92,14 @@ def test_corners(gmt_format, expected_corners):
             ),
         ),
         (
-            [
-                [170.91449, -43.2916],
-                [172.26257, -44.21773],
-                [171.01305, -45.15298],
-                [169.66354, -44.21213],
-            ],
+            np.array(
+                [
+                    [170.91449, -43.2916],
+                    [172.26257, -44.21773],
+                    [171.01305, -45.15298],
+                    [169.66354, -44.21213],
+                ]
+            ),
             (
                 169.66354000000001,
                 172.26257000000001,
@@ -139,55 +109,68 @@ def test_corners(gmt_format, expected_corners):
         ),
     ],
 )
-def test_region(corners, expected_region):
-    assert OBJ_XYTS.region(corners) == pytest.approx(expected_region)
+def test_region(
+    xyts_file: xyts.XYTSFile,
+    corners: np.ndarray | None,
+    expected_region: tuple,
+) -> None:
+    """Test the region method of XYTS file."""
+    result = xyts_file.region(corners)
+    assert result == pytest.approx(expected_region)
 
 
 @pytest.mark.parametrize(
-    "mmi, pgvout, mmiout, sample_pgv, sample_mmi",
+    "mmi,pgvout_name,mmiout_name",
     [
-        (True, None, None, SAMPLE_PGV, SAMPLE_MMI),
-        (False, None, None, SAMPLE_PGV, SAMPLE_MMI),
-        (True, "test_pgv_path1", "test_mmi_path1", SAMPLE_PGV, SAMPLE_MMI),
-        (False, "test_pgv_path2", None, SAMPLE_PGV, SAMPLE_MMI),
+        (True, None, None),
+        (False, None, None),
+        (True, "test_pgv_path1", "test_mmi_path1"),
+        (False, "test_pgv_path2", None),
     ],
 )
-def test_pgv(mmi, pgvout, mmiout, sample_pgv, sample_mmi):
-    files_to_del = []
-    if pgvout:
-        pgvout = os.path.join(TMP_DIR_NAME, pgvout)
-        files_to_del.append(pgvout)
-    if mmiout:
-        mmiout = os.path.join(TMP_DIR_NAME, mmiout)
-        files_to_del.append(mmiout)
+def test_pgv(
+    xyts_file: xyts.XYTSFile,
+    sample_data_dir: Path,
+    tmp_path: Path,
+    mmi: bool,
+    pgvout_name: Optional[str],
+    mmiout_name: Optional[str],
+) -> None:
+    """Test the PGV (Peak Ground Velocity) processing method."""
+    sample_pgv = sample_data_dir / "sample_pgvout"
+    sample_mmi = sample_data_dir / "sample_mmiout"
 
-    xyts_test_output_array = OBJ_XYTS.pgv(mmi=mmi, pgvout=pgvout, mmiout=mmiout)
+    # Set up output paths if specified
+    pgvout = str(tmp_path / pgvout_name) if pgvout_name else None
+    mmiout = str(tmp_path / mmiout_name) if mmiout_name else None
 
+    # Execute PGV processing
+    xyts_output = xyts_file.pgv(mmi=mmi, pgvout=pgvout, mmiout=mmiout)
+
+    # Validate results
     if pgvout:
         sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
-        test_pgvout_array = np.fromfile(pgvout, dtype="3<f4")
-        utils.compare_np_array(sample_pgv_array, test_pgvout_array)
+        test_pgv_array = np.fromfile(pgvout, dtype="3<f4")
+        utils.compare_np_array(sample_pgv_array, test_pgv_array)
+
         if mmiout:
             sample_mmi_array = np.fromfile(sample_mmi, dtype="3<f4")
-            test_mmiout_array = np.fromfile(mmiout, dtype="3<f4")
-            utils.compare_np_array(sample_mmi_array, test_mmiout_array)
+            test_mmi_array = np.fromfile(mmiout, dtype="3<f4")
+            utils.compare_np_array(sample_mmi_array, test_mmi_array)
     else:
         if not mmi:
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
-            utils.compare_np_array(sample_pgv_array, xyts_test_output_array)
-        elif mmiout == None:
-            pgv, mmi = xyts_test_output_array
+            utils.compare_np_array(sample_pgv_array, xyts_output)
+        elif mmiout is None:
+            pgv_result, mmi_result = xyts_output
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
-            utils.compare_np_array(sample_pgv_array, pgv)
+            utils.compare_np_array(sample_pgv_array, pgv_result)
             sample_mmi_array = np.fromfile(sample_mmi, dtype="3<f4")
-            utils.compare_np_array(sample_mmi_array, mmi)
-
-    for f in files_to_del:
-        utils.remove_file(f)
+            utils.compare_np_array(sample_mmi_array, mmi_result)
 
 
 @pytest.mark.parametrize(
-    "step, comp, sample_outfile",
+    "step,comp,sample_outfile",
     [
         (10, xyts.Component.MAGNITUDE, "out_tslice-1"),
         (10, xyts.Component.X, "out_tslice0"),
@@ -195,14 +178,19 @@ def test_pgv(mmi, pgvout, mmiout, sample_pgv, sample_mmi):
         (10, xyts.Component.Z, "out_tslice2"),
     ],
 )
-def test_tslice_get(step, comp, sample_outfile):
-    files_to_del = []
-    sample_outfile = os.path.join(SAMPLE_OUT_DIR_PATH, sample_outfile)
-    test_tslice_output_array = OBJ_XYTS.tslice_get(step, comp=comp)
-    sample_array = np.fromfile(sample_outfile, dtype="3<f4")
+def test_tslice_get(
+    xyts_file: xyts.XYTSFile,
+    sample_data_dir: Path,
+    step: int,
+    comp: xyts.Component,
+    sample_outfile: str,
+) -> None:
+    """Test the time slice extraction method."""
+    sample_file = sample_data_dir / sample_outfile
+    test_output = xyts_file.tslice_get(step, comp=comp)
+    sample_array = np.fromfile(sample_file, dtype="3<f4")
+
     utils.compare_np_array(
-        sample_array[:, -1].reshape(test_tslice_output_array.shape),
-        test_tslice_output_array,
+        sample_array[:, -1].reshape(test_output.shape),
+        test_output,
     )
-    for f in files_to_del:
-        utils.remove_file(f)
