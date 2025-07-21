@@ -58,7 +58,11 @@ def sample_data_dir() -> Path:
         ),
     ],
 )
-def test_corners(xyts_file, gmt_format: bool, expected_corners) -> None:
+def test_corners(
+    xyts_file: xyts.XYTSFile,
+    gmt_format: bool,
+    expected_corners: list[list[float]] | tuple[list[list[float]], str],
+) -> None:
     """Test the corners method of XYTS file."""
     computed_corners = xyts_file.corners(gmt_format=gmt_format)
 
@@ -133,8 +137,8 @@ def test_pgv(
     sample_data_dir: Path,
     tmp_path: Path,
     mmi: bool,
-    pgvout_name: Optional[str],
-    mmiout_name: Optional[str],
+    pgvout_name: str | None,
+    mmiout_name: str | None,
 ) -> None:
     """Test the PGV (Peak Ground Velocity) processing method."""
     sample_pgv = sample_data_dir / "sample_pgvout"
@@ -189,8 +193,4 @@ def test_tslice_get(
     sample_file = sample_data_dir / sample_outfile
     test_output = xyts_file.tslice_get(step, comp=comp)
     sample_array = np.fromfile(sample_file, dtype="3<f4")
-
-    utils.compare_np_array(
-        sample_array[:, -1].reshape(test_output.shape),
-        test_output,
-    )
+    assert test_output == pytest.approx(sample_array[:, -1].reshape(test_output.shape))
