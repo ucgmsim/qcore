@@ -1,14 +1,12 @@
 """Test module for XYTS file processing using pytest fixtures."""
 
 from pathlib import Path
-from typing import Optional
 from urllib import request
 
 import numpy as np
 import pytest
 
 from qcore import xyts
-from qcore.test.tool import utils
 
 
 @pytest.fixture(scope="session")
