@@ -155,22 +155,22 @@ def test_pgv(
     if pgvout:
         sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
         test_pgv_array = np.fromfile(pgvout, dtype="3<f4")
-        assert sample_pgv_array == pytest.approx(test_pgv_array)
+        assert test_pgv_array == pytest.approx(sample_pgv_array)
 
         if mmiout:
             sample_mmi_array = np.fromfile(sample_mmi, dtype="3<f4")
             test_mmi_array = np.fromfile(mmiout, dtype="3<f4")
-            assert sample_mmi_array == pytest.approx(test_mmi_array)
+            assert test_mmi_array == pytest.approx(sample_mmi_array)
     else:
         if not mmi:
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
-            assert sample_pgv_array == pytest.approx(xyts_output)
+            assert xyts_output == pytest.approx(sample_pgv_array)
         elif mmiout is None:
             pgv_result, mmi_result = xyts_output
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
-            assert sample_pgv_array == pytest.approx(pgv_result)
+            assert pgv_result == pytest.approx(sample_pgv_array)
             sample_mmi_array = np.fromfile(sample_mmi, dtype="3<f4")
-            assert sample_mmi_array == pytest.approx(mmi_result)
+            assert mmi_result == pytest.approx(sample_mmi_array)
 
 
 @pytest.mark.parametrize(
