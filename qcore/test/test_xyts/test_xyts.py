@@ -66,7 +66,7 @@ def test_corners(xyts_file, gmt_format: bool, expected_corners) -> None:
         expected_array, expected_string = expected_corners
         computed_array, computed_string = computed_corners
 
-        utils.compare_np_array(np.array(computed_array), np.array(expected_array))
+        assert np.array(computed_array) == pytest.approx(np.array(expected_array))
 
         computed_coords = np.array(
             [line.split() for line in computed_string.split("\n")], dtype=float
@@ -74,9 +74,9 @@ def test_corners(xyts_file, gmt_format: bool, expected_corners) -> None:
         expected_coords = np.array(
             [line.split() for line in expected_string.split("\n")], dtype=float
         )
-        utils.compare_np_array(computed_coords, expected_coords)
+        assert computed_coords == pytest.approx(expected_coords)
     else:
-        utils.compare_np_array(np.array(computed_corners), np.array(expected_corners))
+        assert np.array(computed_corners) == pytest.approx(np.array(expected_corners))
 
 
 @pytest.mark.parametrize(
@@ -151,22 +151,22 @@ def test_pgv(
     if pgvout:
         sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
         test_pgv_array = np.fromfile(pgvout, dtype="3<f4")
-        utils.compare_np_array(sample_pgv_array, test_pgv_array)
+        assert sample_pgv_array == pytest.approx(test_pgv_array)
 
         if mmiout:
             sample_mmi_array = np.fromfile(sample_mmi, dtype="3<f4")
             test_mmi_array = np.fromfile(mmiout, dtype="3<f4")
-            utils.compare_np_array(sample_mmi_array, test_mmi_array)
+            assert sample_mmi_array == pytest.approx(test_mmi_array)
     else:
         if not mmi:
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
-            utils.compare_np_array(sample_pgv_array, xyts_output)
+            assert sample_pgv_array == pytest.approx(xyts_output)
         elif mmiout is None:
             pgv_result, mmi_result = xyts_output
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
-            utils.compare_np_array(sample_pgv_array, pgv_result)
+            assert sample_pgv_array == pytest.approx(pgv_result)
             sample_mmi_array = np.fromfile(sample_mmi, dtype="3<f4")
-            utils.compare_np_array(sample_mmi_array, mmi_result)
+            assert sample_mmi_array == pytest.approx(mmi_result)
 
 
 @pytest.mark.parametrize(
