@@ -14,12 +14,12 @@ from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
+import pyfftw
 import scipy as sp
 import xarray as xr
 
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
 from qcore.utils import compare_versions
-
 
 # The butterworth filter attenuates at 1/sqrt(2) at the cutoff frequency, but
 # for our applications we want to retain *full power* at the cutoff frequencies.
@@ -71,21 +71,81 @@ def bwfilter(
 def ampdeamp(timeseries: np.ndarray, ampf: np.ndarray, amp: bool = True) -> np.ndarray:
     """
     Amplify or Deamplify timeseries.
+
+    This implementation leverages pyfftw for potentially faster FFT operations
+    and optimizes memory usage for float32 input.
     """
     nt = timeseries.shape[-1]
-    # taper 5% on the right using the hanning method
+
+    # Ensure timeseries is C-contiguous and float32.
+    # If the input `timeseries` is already C-contiguous and float32, this copy is cheap.
+    timeseries_contiguous = np.ascontiguousarray(timeseries, dtype=np.float32)
+
+    # Taper 5% on the right using the hanning method
     ntap = int(nt * 0.05)
-    # taper the timeseries at the end.
-    timeseries[..., nt - ntap :] *= np.hanning(ntap * 2 + 1)[ntap + 1 :]
-    fourier = np.fft.rfft(timeseries, 2 * ampf.size, axis=-1)
+
+    if ntap > 0:
+        # Create a Hanning window for the taper.
+        # Ensure the Hanning window is also float32 to avoid type promotion issues
+        # during multiplication if not handled by NumPy's internal casting.
+        hanning_window = np.hanning(ntap * 2)[ntap:].astype(np.float32)
+        timeseries_contiguous[..., nt - ntap :] *= hanning_window
+
+    # Determine FFT length. It's 2 * ampf.size for rfft.
+    fft_length = 2 * ampf.size
+
+    # Allocate output arrays for pyfftw.
+    # Input to rfft is float32, so output (fourier) is complex64.
+    fourier_shape = list(timeseries_contiguous.shape[:-1]) + [fft_length // 2 + 1]
+    fourier = pyfftw.empty_aligned(fourier_shape, dtype="complex64")
+
+    # Create an rfft plan. `timeseries_contiguous` is the input, `fourier` is the output.
+    fft_object = pyfftw.FFTW(
+        timeseries_contiguous,
+        fourier,
+        axes=(-1,),
+        direction="FFTW_FORWARD",
+        flags=("FFTW_MEASURE",),
+    )
+    fft_object()  # Execute the FFT
 
     # ampf modified for de-amplification
     if not amp:
-        ampf = 1.0 / ampf
-    # last value of fft is some identity value
-    fourier[..., :-1] *= ampf
+        # Ensure ampf_modified is float32 if ampf is, or cast if ampf is float64.
+        # It's crucial for `ampf_modified` to be compatible with `complex64` multiplication.
+        # If `ampf` itself is float32, `1.0 / ampf` will yield float32.
+        # If `ampf` is float64, `1.0 / ampf` will yield float64, which will then
+        # be downcasted to float32 when multiplied with complex64, losing precision.
+        # It's safer to ensure ampf_modified is explicitly float32/complex64 compatible.
+        ampf_modified = np.where(ampf != 0, 1.0 / ampf, np.inf).astype(np.float32)
+    else:
+        ampf_modified = ampf.astype(np.float32)  # Ensure ampf is float32
 
-    return np.fft.irfft(fourier, axis=-1)[..., :nt]
+    # Apply amplification/de-amplification.
+    # The `ampf_modified` array must be compatible with the complex64 `fourier` array.
+    # NumPy handles scalar multiplication and broadcasting reasonably.
+    fourier[..., :-1] *= ampf_modified
+
+    # Allocate output array for irfft. Output is real (float32).
+    irfft_output_shape = list(fourier.shape[:-1]) + [fft_length]
+    result_full = pyfftw.empty_aligned(irfft_output_shape, dtype="float32")
+
+    # Create an irfft plan. `fourier` is the input, `result_full` is the output.
+    ifft_object = pyfftw.FFTW(
+        fourier,
+        result_full,
+        axes=(-1,),
+        direction="FFTW_BACKWARD",
+        flags=("FFTW_MEASURE",),
+    )
+    ifft_object()  # Execute the IFFT
+
+    # pyfftw's IFFT is unnormalized. Normalize by fft_length.
+    # Ensure division is done with float32 or cast result back.
+    result_full /= np.float32(fft_length)
+
+    # Trim to original length
+    return result_full[..., :nt]
 
 
 def transf(
