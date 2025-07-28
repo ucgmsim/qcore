@@ -186,14 +186,46 @@ def transf(
     dt: float,
     ft_freq: np.ndarray | None = None,
 ) -> np.ndarray:
-    """
-    Used in deconvolution. Made by Chris de la Torre.
-    vs = shear wave velocity (upper soil or rock)
-    rho = density
-    damp = damping ratio
-    height_soil = height of soil above rock
-    nt = number of timesteps
-    dt = delta time in timestep (seconds)
+    """Used in de-convolution of high-frequency site-response modelling.
+
+    Can be used instead of traditional Vs30-based site-response when
+    the relevant input parameters are known. Made by Chris de la
+    Torre. It is part of the workflow described in [0]_.
+
+    Parameters
+    ----------
+    vs_soil : array of floats
+        The shear wave velocity in upper soil.
+    rho_soil : array of floats
+        The upper soil density.
+    damp_soil : array of floats
+        The upper soil damping ratio.
+    height_soil : array of floats
+        The height of the upper soil.
+    vs_rock : array of floats
+        The shear wave velocity in rock.
+    rho_rock : array of floats
+        The rock density.
+    damp_rock : array of floats
+        The rock damping ratio.
+    nt : float
+        The number of timesteps in input waveform.
+    dt : float
+        Waveform timestep.
+    ft_freq : array of floats, optional
+        Frequency space of transformed waveform.
+
+    Returns
+    -------
+    np.ndarray
+        A transfer function `H` used for waveform de-convolution.
+
+    References
+    ----------
+    ..[0] de la Torre, C. A., Bradley, B. A., & Lee, R. L. (2020). Modeling
+    nonlinear site effects in physics-based ground motion simulations
+    of the 2010–2011 Canterbury earthquake sequence. Earthquake
+    Spectra, 36(2), 856-879.
     """
     if ft_freq is None:
         ft_len = int(2.0 ** np.ceil(np.log(nt) / np.log(2)))
