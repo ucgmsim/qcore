@@ -1,4 +1,5 @@
 pandas
+pyfftw
 pytest
 pytest-black
 alphashape
