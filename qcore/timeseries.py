@@ -6,6 +6,7 @@ Shared functions to work on time-series.
 """
 
 import math
+import multiprocessing
 import os
 import warnings
 from glob import glob
@@ -69,11 +70,7 @@ def bwfilter(
     )
 
 
-# It's good practice to set a threads parameter for pyfftw,
-# especially when using the interface. You can adjust this based on your CPU cores.
-pyfftw_fft.set_num_threads(pyfftw.config.get_max_threads())
-# pyfftw.config.get_max_threads() gets the number of available logical cores.
-# You could also set a fixed number, e.g., pyfftw_fft.set_num_threads(4)
+pyfftw.config.NUM_THREADS = multiprocessing.cpu_count()
 
 
 def ampdeamp(timeseries: np.ndarray, ampf: np.ndarray, amp: bool = True) -> np.ndarray:
