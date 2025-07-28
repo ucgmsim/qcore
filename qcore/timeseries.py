@@ -15,6 +15,7 @@ from typing import Literal
 import numpy as np
 import numpy.typing as npt
 import pyfftw
+import pyfftw.interfaces.numpy_fft as pyfftw_fft
 import scipy as sp
 import xarray as xr
 
@@ -68,81 +69,59 @@ def bwfilter(
     )
 
 
+# It's good practice to set a threads parameter for pyfftw,
+# especially when using the interface. You can adjust this based on your CPU cores.
+pyfftw_fft.set_num_threads(pyfftw.config.get_max_threads())
+# pyfftw.config.get_max_threads() gets the number of available logical cores.
+# You could also set a fixed number, e.g., pyfftw_fft.set_num_threads(4)
+
+
 def ampdeamp(timeseries: np.ndarray, ampf: np.ndarray, amp: bool = True) -> np.ndarray:
     """
-    Amplify or Deamplify timeseries.
+    Amplify or Deamplify timeseries using pyfftw's NumPy-compatible interface.
 
-    This implementation leverages pyfftw for potentially faster FFT operations
-    and optimizes memory usage for float32 input.
+    This implementation respects float32 input and uses ampf.shape[-1]
+    to determine the FFT length.
     """
     nt = timeseries.shape[-1]
 
-    # Ensure timeseries is C-contiguous and float32.
-    # If the input `timeseries` is already C-contiguous and float32, this copy is cheap.
-    timeseries_contiguous = np.ascontiguousarray(timeseries, dtype=np.float32)
+    # Ensure timeseries is float32. pyfftw_fft will handle internal buffer allocation.
+    timeseries_processed = timeseries.astype(np.float32)
 
     # Taper 5% on the right using the hanning method
     ntap = int(nt * 0.05)
 
     if ntap > 0:
-        # Create a Hanning window for the taper.
-        # Ensure the Hanning window is also float32 to avoid type promotion issues
-        # during multiplication if not handled by NumPy's internal casting.
+        # Create a Hanning window for the taper, ensuring it's float32
         hanning_window = np.hanning(ntap * 2)[ntap:].astype(np.float32)
-        timeseries_contiguous[..., nt - ntap :] *= hanning_window
+        timeseries_processed[..., nt - ntap :] *= hanning_window
 
-    # Determine FFT length. It's 2 * ampf.size for rfft.
-    fft_length = 2 * ampf.shape[-1]
+    # Determine FFT length based on ampf.shape[-1].
+    # If ampf has `K` frequency bins along its last dimension,
+    # the corresponding full FFT length is `2 * K`.
+    n_fft = 2 * ampf.shape[-1]
 
-    # Allocate output arrays for pyfftw.
-    # Input to rfft is float32, so output (fourier) is complex64.
-    fourier_shape = list(timeseries_contiguous.shape[:-1]) + [fft_length // 2 + 1]
-    fourier = pyfftw.empty_aligned(fourier_shape, dtype="complex64")
-
-    # Create an rfft plan. `timeseries_contiguous` is the input, `fourier` is the output.
-    fft_object = pyfftw.FFTW(
-        timeseries_contiguous,
-        fourier,
-        axes=(-1,),
-        direction="FFTW_FORWARD",
-        flags=("FFTW_MEASURE",),
-    )
-    fft_object()  # Execute the FFT
+    # Perform Real FFT using pyfftw's numpy_fft interface
+    # Input is float32, output will be complex64.
+    fourier = pyfftw_fft.rfft(timeseries_processed, n=n_fft, axis=-1)
 
     # ampf modified for de-amplification
     if not amp:
-        # Ensure ampf_modified is float32 if ampf is, or cast if ampf is float64.
-        # It's crucial for `ampf_modified` to be compatible with `complex64` multiplication.
-        # If `ampf` itself is float32, `1.0 / ampf` will yield float32.
-        # If `ampf` is float64, `1.0 / ampf` will yield float64, which will then
-        # be downcasted to float32 when multiplied with complex64, losing precision.
-        # It's safer to ensure ampf_modified is explicitly float32/complex64 compatible.
+        # Ensure ampf_modified is float32 for consistent operations.
+        # Handle potential division by zero if ampf contains zeros.
         ampf_modified = np.where(ampf != 0, 1.0 / ampf, np.inf).astype(np.float32)
     else:
         ampf_modified = ampf.astype(np.float32)  # Ensure ampf is float32
 
     # Apply amplification/de-amplification.
-    # The `ampf_modified` array must be compatible with the complex64 `fourier` array.
-    # NumPy handles scalar multiplication and broadcasting reasonably.
+    # fourier[..., :-1] corresponds to the first `n_fft // 2` frequency bins.
     fourier[..., :-1] *= ampf_modified
 
-    # Allocate output array for irfft. Output is real (float32).
-    irfft_output_shape = list(fourier.shape[:-1]) + [fft_length]
-    result_full = pyfftw.empty_aligned(irfft_output_shape, dtype="float32")
-
-    # Create an irfft plan. `fourier` is the input, `result_full` is the output.
-    ifft_object = pyfftw.FFTW(
-        fourier,
-        result_full,
-        axes=(-1,),
-        direction="FFTW_BACKWARD",
-        flags=("FFTW_MEASURE",),
-    )
-    ifft_object()  # Execute the IFFT
-
-    # pyfftw's IFFT is unnormalized. Normalize by fft_length.
-    # Ensure division is done with float32 or cast result back.
-    result_full /= np.float32(fft_length)
+    # Perform Inverse Real FFT using pyfftw's numpy_fft interface
+    # pyfftw's irfft (when used via the numpy_fft interface) is normalized,
+    # mimicking numpy.fft.irfft, so no manual division by n_fft is needed.
+    # Output will be float32.
+    result_full = pyfftw_fft.irfft(fourier, n=n_fft, axis=-1)
 
     # Trim to original length
     return result_full[..., :nt]
