@@ -9,9 +9,9 @@ import math
 import multiprocessing
 import os
 import warnings
+from enum import StrEnum, auto
 from glob import glob
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -36,88 +36,135 @@ _BW_HIGHPASS_SHIFT = (np.sqrt(2.0) - 1.0) ** (1.0 / 8.0)
 _BW_LOWPASS_SHIFT = 1 / _BW_HIGHPASS_SHIFT
 
 
+class Band(StrEnum):
+    """Filter types for `bwfilter`."""
+
+    HIGHPASS = auto()
+    """High-pass filter, filters all frequencies lower than taper frequency."""
+    BANDPASS = auto()
+    """Band-pass filter, filters all frequencies outside bounding frequencies."""
+    BANDSTOP = auto()
+    """Band-pass filter, filters all frequencies between bounding frequencies."""
+    LOWPASS = auto()
+    """Low-pass filter, filters all frequencies greater than taper frequencies."""
+
+
 def bwfilter(
-    data: np.ndarray,
+    waveform: np.ndarray,
     dt: float,
-    freq: float,
-    band: Literal["highpass"]
-    | Literal["bandpass"]
-    | Literal["bandstop"]
-    | Literal["lowpass"],
+    taper_frequency: float | np.ndarray,
+    band: Band,
 ) -> np.ndarray:
+    """Construct and apply a Butterworth filter to a waveform.
+
+    This function constructs an order-4 Butterworth filter with cutoff
+    frequencies. The input frequency is used to set cutoff frequencies
+    for the filter such that full power is retained at `freq` (rather
+    than attenuating at a factor of `1/sqrt(2)` typical for
+    Butterworth filters).
+
+    Parameters
+    ----------
+    waveform : np.ndarray
+        The input waveform.
+    dt : float
+        The timestep of the input waveform.
+    taper_frequency : float
+        The tapering frequency. If `band` is highpass or lowpass then
+        `taper_frequency` is the upper or lower tapering frequency, respectively.
+        If `band` is either bandpass or bandstop, this should be an
+        array of tapering frequencies `[low_cutoff, high_cutoff]`.
+    band : Band
+        Changes the kind of filter. See `Band` for details.
+
+    Returns
+    -------
+    np.ndarray
+        The filtered waveform.
+
     """
-    data: np.array to filter
-    dt: timestep of data
-    freq: cutoff frequency
-    band: One of {'highpass', 'lowpass', 'bandpass', 'bandstop'}
-    match_powersb: shift the target frequency so that the given frequency has no attenuation
-    """
-    cutoff_frequencies: np.ndarray | float = freq
+
+    cutoff_frequencies: np.ndarray | float = taper_frequency
+
     match band:
-        case "highpass":
-            cutoff_frequencies = freq * _BW_HIGHPASS_SHIFT
-        case "bandpass" | "bandstop":
-            cutoff_frequencies = freq * np.array(
+        case Band.HIGHPASS:
+            cutoff_frequencies = taper_frequency * _BW_HIGHPASS_SHIFT
+        case Band.BANDPASS | Band.BANDSTOP:
+            cutoff_frequencies = taper_frequency * np.array(
                 [_BW_HIGHPASS_SHIFT, _BW_LOWPASS_SHIFT]
             )
-        case "lowpass":
-            cutoff_frequencies = freq * _BW_LOWPASS_SHIFT
+        case Band.LOWPASS:
+            cutoff_frequencies = taper_frequency * _BW_LOWPASS_SHIFT
 
     return sp.signal.sosfiltfilt(
         sp.signal.butter(4, cutoff_frequencies, btype=band, output="sos", fs=1.0 / dt),
-        data,
+        waveform,
         padtype=None,
     )
 
 
-pyfftw.config.NUM_THREADS = multiprocessing.cpu_count()
+def ampdeamp(
+    waveform: np.ndarray,
+    amplification_factor: np.ndarray,
+    amplify: bool = True,
+    cores: int = multiprocessing.cpu_count(),
+) -> np.ndarray:
+    """Apply amplification factor to waveforms.
 
+    Parameters
+    ----------
+    waveform : np.ndarray
+        The input waveform.
+    amplification_factor : np.ndarray
+        The frequency amplification factors. If `waveform` has
+        length `2^i`, then `amplification_factor` should have length `2^(ceil(i) -
+        1)`.
+    amplify : bool
+        Setting `amplify = False` is equivalent to setting
+        `amplification_factor = np.reciprocal(amplification_factor)`.
+    cores : int
+        The number of cores to use for FFT. Defaults to all cores
+        available on the system as reported by
+        `muliprocessing.cpu_count()`.
 
-def ampdeamp(timeseries: np.ndarray, ampf: np.ndarray, amp: bool = True) -> np.ndarray:
+    Returns
+    -------
+    np.ndarray
+        The input waveform (de)ampilfied at frequencies according to
+        the values of `amplification_factor`.
     """
-    Amplify or Deamplify timeseries using pyfftw's NumPy-compatible interface.
 
-    This implementation respects float32 input and uses ampf.shape[-1]
-    to determine the FFT length.
-    """
-    nt = timeseries.shape[-1]
+    pyfftw.config.NUM_THREADS = cores
 
-    # Ensure timeseries is float32. pyfftw_fft will handle internal buffer allocation.
-    timeseries_processed = timeseries.astype(np.float32)
+    nt = waveform.shape[-1]
+    waveform_dtype = waveform.dtype
 
-    # Taper 5% on the right using the hanning method
+    # Taper 5% on the right using the Hanning method
     ntap = int(nt * 0.05)
 
     if ntap > 0:
         # Create a Hanning window for the taper, ensuring it's float32
-        hanning_window = np.hanning(ntap * 2)[ntap:].astype(np.float32)
-        timeseries_processed[..., nt - ntap :] *= hanning_window
+        hanning_window = np.hanning(ntap * 2)[ntap:].astype(waveform_dtype)
+        waveform[..., nt - ntap :] *= hanning_window
 
-    # Determine FFT length based on ampf.shape[-1].
-    # If ampf has `K` frequency bins along its last dimension,
-    # the corresponding full FFT length is `2 * K`.
-    n_fft = 2 * ampf.shape[-1]
+    n_fft = 2 * amplification_factor.shape[-1]
 
-    # Perform Real FFT using pyfftw's numpy_fft interface
-    # Input is float32, output will be complex64.
-    fourier = pyfftw_fft.rfft(timeseries_processed, n=n_fft, axis=-1)
+    fourier = pyfftw_fft.rfft(waveform, n=n_fft, axis=-1)
 
-    # ampf modified for de-amplification
-    if not amp:
+    # Amplification factor modified for de-amplification
+    if not amplify:
         # Ensure ampf_modified is float32 for consistent operations.
         # Handle potential division by zero if ampf contains zeros.
-        ampf_modified = np.where(ampf != 0, 1.0 / ampf, np.inf).astype(np.float32)
+        ampf_modified = np.where(
+            amplification_factor != 0, 1.0 / amplification_factor, np.inf
+        ).astype(waveform_dtype)
     else:
-        ampf_modified = ampf.astype(np.float32)  # Ensure ampf is float32
+        ampf_modified = amplification_factor.astype(waveform_dtype)
 
-    # Apply amplification/de-amplification.
-    # fourier[..., :-1] corresponds to the first `n_fft // 2` frequency bins.
+    # Apply amplification/de-amplification. fourier[..., :-1]
+    # corresponds to the first `n_fft // 2` frequency bins.
     fourier[..., :-1] *= ampf_modified
 
-    # Perform Inverse Real FFT using pyfftw's numpy_fft interface
-    # pyfftw's irfft (when used via the numpy_fft interface) is normalized,
-    # mimicking numpy.fft.irfft, so no manual division by n_fft is needed.
-    # Output will be float32.
     result_full = pyfftw_fft.irfft(fourier, n=n_fft, axis=-1)
 
     # Trim to original length
@@ -125,17 +172,17 @@ def ampdeamp(timeseries: np.ndarray, ampf: np.ndarray, amp: bool = True) -> np.n
 
 
 def transf(
-    vs_soil,
-    rho_soil,
-    damp_soil,
-    height_soil,
-    vs_rock,
-    rho_rock,
-    damp_rock,
-    nt,
-    dt,
-    ft_freq=None,
-):
+    vs_soil: np.ndarray,
+    rho_soil: np.ndarray,
+    damp_soil: np.ndarray,
+    height_soil: np.ndarray,
+    vs_rock: np.ndarray,
+    rho_rock: np.ndarray,
+    damp_rock: np.ndarray,
+    nt: int,
+    dt: float,
+    ft_freq: np.ndarray | None = None,
+) -> np.ndarray:
     """
     Used in deconvolution. Made by Chris de la Torre.
     vs = shear wave velocity (upper soil or rock)
