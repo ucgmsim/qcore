@@ -22,12 +22,12 @@ cb_amp(variables, ...)
 """
 
 # math functions faster than numpy for non-vector data
-from math import ceil, exp, log
 import os
+from math import ceil, exp, log
 
-from numba import njit
 import numpy as np
 import pandas as pd
+from numba import njit
 
 from qcore.uncertainties import distributions
 
@@ -384,7 +384,7 @@ def _cb_amp(
     return ampf
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _cb_amp_multi(
     dt,
     n,
