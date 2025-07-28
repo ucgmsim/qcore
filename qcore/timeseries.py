@@ -92,7 +92,7 @@ def ampdeamp(timeseries: np.ndarray, ampf: np.ndarray, amp: bool = True) -> np.n
         timeseries_contiguous[..., nt - ntap :] *= hanning_window
 
     # Determine FFT length. It's 2 * ampf.size for rfft.
-    fft_length = 2 * ampf.size
+    fft_length = 2 * ampf.shape[-1]
 
     # Allocate output arrays for pyfftw.
     # Input to rfft is float32, so output (fourier) is complex64.
