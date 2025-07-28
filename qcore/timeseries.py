@@ -31,7 +31,7 @@ from qcore.utils import compare_versions
 # order 4 highpass butterworth filter is (sqrt(2) - 1) ^ (1/8). Symmetrically,
 # we have to shift by (sqrt(2) - 1) ^ (-1/8) = 1 / highpass shift for a lowpass
 # filter. See https://dsp.stackexchange.com/a/19491 for a more detailed
-# explaination.
+# explanation.
 _BW_HIGHPASS_SHIFT = (np.sqrt(2.0) - 1.0) ** (1.0 / 8.0)
 _BW_LOWPASS_SHIFT = 1 / _BW_HIGHPASS_SHIFT
 
@@ -82,6 +82,9 @@ def bwfilter(
     np.ndarray
         The filtered waveform.
 
+    See Also
+    --------
+    https://en.wikipedia.org/wiki/Butterworth_filter
     """
 
     cutoff_frequencies: np.ndarray | float = taper_frequency
