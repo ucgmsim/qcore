@@ -350,6 +350,7 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
     ds = xr.concat(
         [_read_lfseis_file(seis_file) for seis_file in seis_files],
         dim="station",
+        encoding={"station": {"dtype": str}},
     ).assign_coords(time=np.arange(start_sec, start_sec + nt * dt, dt))
 
     # Rotate waveforms and differentiate to get acceleration
