@@ -343,7 +343,8 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
             [np.cos(theta), -np.sin(theta), 0],
             [-np.sin(theta), -np.cos(theta), 0],
             [0, 0, -1],
-        ]
+        ],
+        dtype=np.float32,
     )
 
     # Read all station data and waveforms in a single pass per file
@@ -362,7 +363,7 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
     ds.attrs["dt"] = dt
     ds.attrs["resolution"] = resolution
     ds.attrs["rotation"] = rotation
-    ds.attrs["units"] = "m/s"
+    ds.attrs["units"] = "cm/s"
 
     return ds
 
