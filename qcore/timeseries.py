@@ -171,19 +171,18 @@ def _lfseis_dtypes(seis_file: Path) -> tuple[str, str]:
         Tuple containing the int and float types accounting for file endianness.
     """
     with open(seis_file, "rb") as f:
-        nstat: np.int32
-        nt: np.int32
-        nstat, nt = np.fromfile(f, dtype="<i4", count=6)[0::5]
+        nstat_32: np.int32
+        nt_32: np.int32
+        nstat_32, nt_32 = np.fromfile(f, dtype="<i4", count=6)[0::5]
+        nstat = int(nstat_32)
+        nt = int(nt_32)
+        nstat_bw = int(nstat_32.byteswap())
+        nt_bw = int(nt_32.byteswap())
         file_size = seis_file.stat().st_size
 
         if file_size == 4 + nstat * _HEAD_STAT + nstat * nt * _N_COMP * 4:
             endian = "<"
-        elif (
-            file_size
-            == 4
-            + nstat.byteswap() * _HEAD_STAT
-            + nstat.byteswap() * nt.byteswap() * _N_COMP * 4
-        ):
+        elif file_size == 4 + nstat_bw * _HEAD_STAT + nstat_bw * nt_bw * _N_COMP * 4:
             endian = ">"
         else:
             raise ValueError(f"File is not an LF seis file: {seis_file}")
@@ -508,7 +507,7 @@ class LFSeis:
                 print(
                     "e3d.par was not found under the same folder but found in one level above"
                 )
-                print("e3d.par path: {}".format(self.e3dpar))
+                print(f"e3d.par path: {self.e3dpar}")
 
         # determine endianness by checking file size
         lfs = os.stat(self.seis[0]).st_size
