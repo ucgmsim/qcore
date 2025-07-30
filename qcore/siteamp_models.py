@@ -224,9 +224,7 @@ def _cb_amp(
         CB version (2008 or 2014), default 2014
     flowcap : float, optional
         Flow capacity constraint, default 0.0
-    fmin, fmidbot, fhightop, fmax : float, optional
-        Bandpass filter parameters
-    freqs : np.ndarray
+    freqs : np.ndarray, optional
         Frequencies to compute amplification values for using model
         explicitly.
 
@@ -572,11 +570,51 @@ def cb_amp_multi(
     return results
 
 
+def cb2014_to_fas_amplification_factors(
+    freqs: np.ndarray,
+    ampf0: np.ndarray,
+    dt: float,
+    n: int,
+    fmin: float = 0.2,
+    fmidbot: float = 0.5,
+    fhightop: float = 10.0,
+    fmax: float = 15.0,
+) -> np.ndarray:
+    """Converts the CB2014 site-amplification factors for suitable use with FAS.
+
+    CB2014 predicts site-amplification for pSA, but we need it for FAS
+    in simulations. This function interpolates frequencies, and
+    applies a bandpass filter to convert between SA-based
+    amplification factors and FAS amplification factors.
+
+    Parameters
+    ----------
+    freqs : np.ndarray
+        The SA frequencies corresponding to site-amplification factors.
+    ampf0 : np.ndarray
+        The amplification factors.
+    dt : float
+        The timestep delta for the waveforms to amplify.
+    n : int
+        The number of timesteps of the waveforms.
+    fmin, fmidbot, fhightop, fmax : float, optional
+        Bandpass filter parameters, see `amp_bandpass`.
+
+    Returns
+    -------
+    np.ndarray
+        The amplification factors `ampf0` interpolated to FFT frequencies
+        matching `dt` and `n`, and amplified according to the bandpass
+        filter `amp_bandpass`.
+    """
+    ftfreq, interpolated = interpolate_frequency(freqs, ampf0, dt, n)
+    return amp_bandpass(interpolated, fhightop, fmax, fmidbot, fmin, ftfreq)
+
+
 @njit(cache=True)
 def interpolate_frequency(
     freqs: np.ndarray, ampf0: np.ndarray, dt: float, n: int
 ) -> tuple[np.ndarray, np.ndarray]:
-    # frequencies of fourier transform
     """Perform logarithmic interpolation of amplification factors.
 
     Amplification factors are interpolated to frequencies typical for
@@ -600,6 +638,7 @@ def interpolate_frequency(
     ftfreq : np.ndarray
         The interpolated frequencies.
     """
+    # frequencies of fourier transform
     ftfreq = np.arange(1, n / 2) * (1.0 / (n * dt))
     # transition indexes
     digi = np.digitize(freqs, ftfreq)[::-1]
