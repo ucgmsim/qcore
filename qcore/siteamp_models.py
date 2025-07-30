@@ -163,6 +163,34 @@ def _compute_fs_value(
         return _fs_high(t_idx, c10, k1, k2)
 
 
+AMPLIFICATION_FREQUENCIES = 1.0 / np.array(
+    [
+        0.001,
+        0.01,
+        0.02,
+        0.03,
+        0.05,
+        0.075,
+        0.10,
+        0.15,
+        0.20,
+        0.25,
+        0.30,
+        0.40,
+        0.50,
+        0.75,
+        1.00,
+        1.50,
+        2.00,
+        3.00,
+        4.00,
+        5.00,
+        7.50,
+        10.0,
+    ]
+)
+
+
 @njit(cache=True)
 def _cb_amp(
     dt: float,
@@ -173,10 +201,7 @@ def _cb_amp(
     pga: float,
     version: int = 2014,  # Changed to integer
     flowcap: float = 0.0,
-    fmin: float = 0.2,
-    fmidbot: float = 0.5,
-    fhightop: float = 10.0,
-    fmax: float = 15.0,
+    freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
 ) -> np.ndarray:
     """
     Numba translation of cb_amp.
@@ -201,40 +226,16 @@ def _cb_amp(
         Flow capacity constraint, default 0.0
     fmin, fmidbot, fhightop, fmax : float, optional
         Bandpass filter parameters
+    freqs : np.ndarray
+        Frequencies to compute amplification values for using model
+        explicitly.
 
     Returns
     -------
     np.ndarray
-        Amplification factors, shape (output_length,)
-        where output_length depends on dt and n
+        Amplification factors, shaped like `freqs`
+
     """
-    # Pre-computed frequency array
-    freqs = 1.0 / np.array(
-        [
-            0.001,
-            0.01,
-            0.02,
-            0.03,
-            0.05,
-            0.075,
-            0.10,
-            0.15,
-            0.20,
-            0.25,
-            0.30,
-            0.40,
-            0.50,
-            0.75,
-            1.00,
-            1.50,
-            2.00,
-            3.00,
-            4.00,
-            5.00,
-            7.50,
-            10.0,
-        ]
-    )
 
     # Version-specific constants (converted to integer logic)
     if version == 2008:
@@ -382,22 +383,15 @@ def _cb_amp(
 
     # Calculate amplification factors for each period
     ampf0 = np.zeros(freqs.size, dtype=np.float64)
-    for t_idx in range(freqs.size):
+    t_idx = 0
+    while freqs[t_idx] > flowcap and t_idx < freqs.size:
         fs_site = _compute_fs_value(t_idx, vsite, a1100, c10, k1, k2)
         fs_ref = _compute_fs_value(t_idx, vref, a1100, c10, k1, k2)
         ampf0[t_idx] = np.exp(fs_site - fs_ref)
+        t_idx += 1
+    ampf0[t_idx:] = ampf0[t_idx]
 
-    # Apply flow capacity constraint
-    flow_indices = np.where(freqs <= flowcap)[0]
-    if len(flow_indices) > 0:
-        t_cap = flow_indices[0]
-        ampf0[t_cap:] = ampf0[t_cap]
-
-    # Interpolate and apply bandpass filter
-    ampv, ftfreq = interpolate_frequency(freqs, ampf0, dt, n)
-    ampf = amp_bandpass(ampv, fhightop, fmax, fmidbot, fmin, ftfreq)
-
-    return ampf
+    return ampf0
 
 
 @njit(cache=True, parallel=True)
@@ -410,10 +404,7 @@ def _cb_amp_multi(
     pga: np.ndarray,
     version: int = 2014,
     flowcap: float = 0.0,
-    fmin: float = 0.2,
-    fmidbot: float = 0.5,
-    fhightop: float = 10.0,
-    fmax: float = 15.0,
+    freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
 ) -> np.ndarray:
     """
     Numba version of cb_amp that processes multiple parameter sets.
@@ -436,8 +427,9 @@ def _cb_amp_multi(
         CB version (2008 or 2014), default 2014
     flowcap : float, optional
         Flow capacity constraint, default 0.0
-    fmin, fmidbot, fhightop, fmax : float, optional
-        Bandpass filter parameters
+    freqs : np.ndarray
+        Frequencies to compute amplification values for using model
+        explicitly.
 
     Returns
     -------
@@ -464,28 +456,11 @@ def _cb_amp_multi(
 
     # Determine output size by running one case
     # This is needed since we don't know the output size a priori
-    sample_result = _cb_amp(
-        dt,
-        n,
-        vref_flat[0],
-        vsite_flat[0],
-        vpga_flat[0],
-        pga_flat[0],
-        version,
-        flowcap,
-        fmin,
-        fmidbot,
-        fhightop,
-        fmax,
-    )
-    output_length = sample_result.size
 
     # Pre-allocate results array
-    results = np.zeros((n_cases, output_length), dtype=np.float64)
-    results[0, :] = sample_result  # Store the sample result
+    results = np.zeros((n_cases, freqs.size), dtype=np.float64)
 
-    # Process remaining cases
-    for i in range(1, n_cases):
+    for i in range(n_cases):
         results[i, :] = _cb_amp(
             dt,
             n,
@@ -495,10 +470,7 @@ def _cb_amp_multi(
             pga_flat[i],
             version,
             flowcap,
-            fmin,
-            fmidbot,
-            fhightop,
-            fmax,
+            freqs,
         )
 
     return results
@@ -510,14 +482,11 @@ def cb_amp_multi(
     n: int,
     version: int = 2014,
     flowcap: float = 0.0,
-    fmin: float = 0.2,
-    fmidbot: float = 0.5,
-    fhightop: float = 10.0,
-    fmax: float = 15.0,
     vref_col: str = "vref",
     vsite_col: str = "vsite",
     vpga_col: str = "vpga",
     pga_col: str = "pga",
+    freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
 ):
     """
     Compute CB amplification factors for multiple parameter sets from a pandas DataFrame.
@@ -534,10 +503,11 @@ def cb_amp_multi(
         CB version (2008 or 2014), default 2014
     flowcap : float, optional
         Flow capacity constraint, default 0.0
-    fmin, fmidbot, fhightop, fmax : float, optional
-        Bandpass filter parameters
     vref_col, vsite_col, vpga_col, pga_col : str, optional
         Column names for the respective parameters
+    freqs : np.ndarray
+        Frequencies to compute amplification values for using model
+        explicitly.
 
     Returns
     -------
@@ -554,8 +524,10 @@ def cb_amp_multi(
 
     References
     ----------
-    .. [0] Campbell KW, Bozorgnia Y. NGA-West2 Ground Motion Model for the Average Horizontal Components of PGA, PGV, and 5% Damped Linear Acceleration Response Spectra. Earthquake Spectra. 2014;30(3):1087-1115. doi:10.1193/062913EQS175M
-
+    .. [0] Campbell KW, Bozorgnia Y. NGA-West2 Ground Motion Model for
+    the Average Horizontal Components of PGA, PGV, and 5% Damped
+    Linear Acceleration Response Spectra. Earthquake Spectra.
+    2014;30(3):1087-1115. doi:10.1193/062913EQS175M
     """
 
     # Input validation
@@ -595,10 +567,7 @@ def cb_amp_multi(
         pga=pga,
         version=version,
         flowcap=flowcap,
-        fmin=fmin,
-        fmidbot=fmidbot,
-        fhightop=fhightop,
-        fmax=fmax,
+        freqs=freqs,
     )
     return results
 
