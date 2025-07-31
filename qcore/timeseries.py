@@ -42,10 +42,6 @@ class Band(StrEnum):
 
     HIGHPASS = auto()
     """High-pass filter, filters all frequencies lower than taper frequency."""
-    BANDPASS = auto()
-    """Band-pass filter, filters all frequencies outside bounding frequencies."""
-    BANDSTOP = auto()
-    """Band-pass filter, filters all frequencies between bounding frequencies."""
     LOWPASS = auto()
     """Low-pass filter, filters all frequencies greater than taper frequencies."""
 
@@ -73,8 +69,6 @@ def bwfilter(
     taper_frequency : float
         The tapering frequency. If `band` is highpass or lowpass then
         `taper_frequency` is the upper or lower tapering frequency, respectively.
-        If `band` is either bandpass or bandstop, this should be an
-        array of tapering frequencies `[low_cutoff, high_cutoff]`.
     band : Band
         Changes the kind of filter. See `Band` for details.
 
@@ -95,10 +89,6 @@ def bwfilter(
     match band:
         case Band.HIGHPASS:
             cutoff_frequencies = taper_frequency * _BW_HIGHPASS_SHIFT
-        case Band.BANDPASS | Band.BANDSTOP:
-            cutoff_frequencies = taper_frequency * np.array(
-                [_BW_HIGHPASS_SHIFT, _BW_LOWPASS_SHIFT]
-            )
         case Band.LOWPASS:
             cutoff_frequencies = taper_frequency * _BW_LOWPASS_SHIFT
 
