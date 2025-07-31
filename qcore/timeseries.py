@@ -104,6 +104,7 @@ def ampdeamp(
     amplification_factor: np.ndarray,
     amplify: bool = True,
     cores: int = multiprocessing.cpu_count(),
+    taper: bool = True,
 ) -> np.ndarray:
     """Apply amplification factor to waveforms.
 
@@ -122,6 +123,9 @@ def ampdeamp(
         The number of cores to use for FFT. Defaults to all cores
         available on the system as reported by
         `muliprocessing.cpu_count()`.
+    taper : bool, optional
+        If true, taper the waveform to avoid spectral leakage. Default
+        True.
 
     Returns
     -------
@@ -138,12 +142,22 @@ def ampdeamp(
     # Taper 5% on the right using the Hanning method
     ntap = int(nt * 0.05)
 
-    if ntap > 0:
+    if ntap > 0 and taper:
         # Create a Hanning window for the taper, ensuring it's float32
         hanning_window = np.hanning(ntap * 2)[ntap:].astype(waveform_dtype)
+        # Create a copy of the original waveform so-as not to modify it in-place.
+        waveform = waveform.copy()
         waveform[..., nt - ntap :] *= hanning_window
 
     n_fft = 2 * amplification_factor.shape[-1]
+
+    # NOTE: The old code had the following resizing behaviour
+    # timeseries = np.resize(timeseries, ft_len)
+    # timeseries[nt:] = 0
+    # this is actually unnecessary as setting `n=n_fft` will automatically do the same thing
+    # See: https://numpy.org/doc/stable/reference/generated/numpy.fft.rfft.html
+    # and the PYFFTW equivalent:
+    # https://pyfftw.readthedocs.io/en/latest/source/pyfftw/interfaces/numpy_fft.html#pyfftw.interfaces.numpy_fft.rfft
 
     fourier = pyfftw_fft.rfft(waveform, n=n_fft, axis=-1)
 
@@ -159,6 +173,7 @@ def ampdeamp(
 
     # Apply amplification/de-amplification. fourier[..., :-1]
     # corresponds to the first `n_fft // 2` frequency bins.
+
     fourier[..., :-1] *= ampf_modified
 
     result_full = pyfftw_fft.irfft(fourier, n=n_fft, axis=-1)
