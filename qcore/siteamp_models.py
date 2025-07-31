@@ -1,5 +1,7 @@
 """Site amplification models."""
 
+from enum import Enum
+
 import numpy as np
 import pandas as pd
 from numba import njit
@@ -91,7 +93,7 @@ def _fs_mid(
 
     Parameters
     ----------
-    t_idx : nt
+    t_idx : int
         The index to compute for.
     vs30 : float
         The reference vs30
@@ -115,7 +117,7 @@ def _fs_high(t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray):
 
     Parameters
     ----------
-    t_idx : nt
+    t_idx : int
         The index to compute for.
     c10, k1, k2 : np.ndarray
         Parameters for calculation
@@ -143,7 +145,7 @@ def _compute_fs_value(
 
     Parameters
     ----------
-    t_idx : nt
+    t_idx : int
         The index to compute for.
     vs30 : float
         The reference vs30
@@ -193,8 +195,6 @@ AMPLIFICATION_FREQUENCIES = 1.0 / np.array(
 
 @njit(cache=True)
 def _cb_amp(
-    dt: float,
-    n: int,
     vref: float,
     vsite: float,
     vpga: float,
@@ -208,10 +208,6 @@ def _cb_amp(
 
     Parameters
     ----------
-    dt : float
-        Time step
-    n : int
-        Number of points
     vref : float
         Reference Vs30 value (m/s)
     vsite : float
@@ -265,34 +261,6 @@ def _cb_amp(
         )
     elif version == 2014:
         # named c11 in cb2014
-        c10 = np.array(
-            [
-                1.090,
-                1.094,
-                1.149,
-                1.290,
-                1.449,
-                1.535,
-                1.615,
-                1.877,
-                2.069,
-                2.205,
-                2.306,
-                2.398,
-                2.355,
-                1.995,
-                1.447,
-                0.330,
-                -0.514,
-                -0.848,
-                -0.793,
-                -0.748,
-                -0.664,
-                -0.576,
-            ]
-        )
-    else:
-        # Default to 2014 version instead of raising exception
         c10 = np.array(
             [
                 1.090,
@@ -392,27 +360,28 @@ def _cb_amp(
     return ampf0
 
 
+class CBModelVersion(Enum):
+    """Campbell and Bozorgnia model versions"""
+
+    CB2008 = 2008
+    CB2014 = 2014
+
+
 @njit(cache=True, parallel=True)
 def _cb_amp_multi(
-    dt: float,
-    n: int,
     vref: np.ndarray,
     vsite: np.ndarray,
     vpga: np.ndarray,
     pga: np.ndarray,
-    version: int = 2014,
-    flowcap: float = 0.0,
-    freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
+    version: int,
+    flowcap: float,
+    freqs: np.ndarray,
 ) -> np.ndarray:
     """
     Numba version of cb_amp that processes multiple parameter sets.
 
     Parameters
     ----------
-    dt : float
-        Time step
-    n : int
-        Number of points
     vref : array_like
         Reference Vs30 values (m/s) - shape (N,)
     vsite : array_like
@@ -421,10 +390,10 @@ def _cb_amp_multi(
         Vs30 values for PGA calculation (m/s) - shape (N,)
     pga : array_like
         Peak ground acceleration values (g) - shape (N,)
-    version : int, optional
-        CB version (2008 or 2014), default 2014
-    flowcap : float, optional
-        Flow capacity constraint, default 0.0
+    version : CBModelVersion
+        CB version (2008 or 2014)
+    flowcap : float
+        Flow capacity constraint
     freqs : np.ndarray
         Frequencies to compute amplification values for using model
         explicitly.
@@ -460,8 +429,6 @@ def _cb_amp_multi(
 
     for i in range(n_cases):
         results[i, :] = _cb_amp(
-            dt,
-            n,
             vref_flat[i],
             vsite_flat[i],
             vpga_flat[i],
@@ -476,9 +443,7 @@ def _cb_amp_multi(
 
 def cb_amp_multi(
     df: pd.DataFrame,
-    dt: float,
-    n: int,
-    version: int = 2014,
+    version: CBModelVersion = CBModelVersion.CB2014,
     flowcap: float = 0.0,
     vref_col: str = "vref",
     vsite_col: str = "vsite",
@@ -493,10 +458,6 @@ def cb_amp_multi(
     ----------
     df : pandas.DataFrame
         DataFrame containing the input parameters
-    dt : float
-        Time step for frequency domain
-    n : int
-        Number of points for frequency domain
     version : int, optional
         CB version (2008 or 2014), default 2014
     flowcap : float, optional
@@ -557,13 +518,11 @@ def cb_amp_multi(
 
     # Call the numba-accelerated function
     results = _cb_amp_multi(
-        dt=dt,
-        n=n,
         vref=vref,
         vsite=vsite,
         vpga=vpga,
         pga=pga,
-        version=version,
+        version=version.value,
         flowcap=flowcap,
         freqs=freqs,
     )

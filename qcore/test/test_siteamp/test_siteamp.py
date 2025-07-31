@@ -41,7 +41,7 @@ def test_cb_2014_siteamp_model(cb_2014_df: pd.DataFrame) -> None:
         }
     )
     # The first column value is 1000Hz but is not in the test dataset, so drop it with 1:
-    output = siteamp_models.cb_amp_multi(input_df, 0, 0)[:, 1:]
+    output = siteamp_models.cb_amp_multi(input_df)[:, 1:]
     # Dataframe has PGA and Vs30 columns, drop those as they are inputs.
     expected = cb_2014_df.to_numpy()[:, 2:]
     # Test equality to within a 1% tolerance
