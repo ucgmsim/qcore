@@ -23,16 +23,17 @@ import xarray as xr
 from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
 from qcore.utils import compare_versions
 
-# The butterworth filter attenuates at 1/sqrt(2) at the cutoff frequency, but
-# for our applications we want to retain *full power* at the cutoff frequencies.
-# So we instead shift the cutoff frequency up for a highpass filter (resp. down
-# for a lowpass filter) so that full-power is retained at the cutoff
-# frequencies. The factor by which we have to shift the cutoff factors for an
-# order 4 highpass butterworth filter is (sqrt(2) - 1) ^ (1/8). Symmetrically,
-# we have to shift by (sqrt(2) - 1) ^ (-1/8) = 1 / highpass shift for a lowpass
-# filter. See https://dsp.stackexchange.com/a/19491 for a more detailed
-# explanation.
-_BW_HIGHPASS_SHIFT = (np.sqrt(2.0) - 1.0) ** (1.0 / 8.0)
+# The `sosfiltfilt` function So we instead shift the cutoff frequency
+# up for a highpass filter (resp. down for a lowpass filter) so that
+# power at the cutoff frequencies becomes 1/sqrt(2). The factor by
+# which we have to shift the cutoff factors for an order 4 highpass
+# butterworth filter is (sqrt(2) - 1) ^ (1/8). Symmetrically, we have
+# to shift by (sqrt(2) - 1) ^ (-1/8) = 1 / highpass shift for a
+# lowpass filter. See https://dsp.stackexchange.com/a/19491 for a more
+# detailed explanation. Note that `sosfiltfilt` applies the filter
+# twice, so the attenuation at the target frequency is usually
+# 1/sqrt(2) * 1/sqrt(2) = 1/2!
+_BW_HIGHPASS_SHIFT = (np.sqrt(2) - 1) ** (1 / 8)
 _BW_LOWPASS_SHIFT = 1 / _BW_HIGHPASS_SHIFT
 
 
@@ -58,10 +59,10 @@ def bwfilter(
     """Construct and apply a Butterworth filter to a waveform.
 
     This function constructs an order-4 Butterworth filter with cutoff
-    frequencies. The input frequency is used to set cutoff frequencies
-    for the filter such that full power is retained at `freq` (rather
-    than attenuating at a factor of `1/sqrt(2)` typical for
-    Butterworth filters).
+    frequencies. It is applied forward and backward to eliminate phase
+    lag. The `taper_frequency` is used to set cutoff frequencies for
+    the filter such that the power at `taper_frequency` is 1/sqrt(2)
+    of the original power.
 
     Parameters
     ----------
@@ -85,6 +86,8 @@ def bwfilter(
     See Also
     --------
     https://en.wikipedia.org/wiki/Butterworth_filter
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html
+    (specifically, the examples comparing sosfilt and sosfiltfilt)
     """
 
     cutoff_frequencies: np.ndarray | float = taper_frequency
