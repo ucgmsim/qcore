@@ -368,13 +368,23 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
         lat_coords = lat_coords[valid_indices]
         lon_coords = lon_coords[valid_indices]
         waveform_data = waveform_data[valid_indices]
-
+    # Swap from (nt, nstat_file, _N_COMP) to (3 (x, y, z), nstat_file,
+    # nt). The reason for the transposition is that we currently
+    # process broadband data by component, That is working with
+    # component x, y, and then z with arrays of shape (nstat_file,
+    # nt). Rearranging the data in this way optimises the memory
+    # layout for broadband processing. It is all transparent the user
+    # interacting with xarray anyhow, so the order of the dimensions
+    # hardly matters.
+    waveform_data = np.transpose(waveform_data[:, :, :3], (2, 0, 1))
+    # Have numpy re-arrange the waveform in-memory to reflect the
+    # transposition change above.
+    waveform_data = np.ascontiguousarray(waveform_data)
     return xr.Dataset(
         data_vars={
             "waveforms": (
-                ["station", "time", "component"],
-                # Swap from (nt, nstat_file, _N_COMP) to (nstat_file, nt, 3)
-                np.swapaxes(waveform_data[:, :, :3], 0, 1),
+                ["component", "station", "time"],
+                waveform_data,
             ),
         },
         coords={
@@ -447,25 +457,39 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
             [-np.sin(theta), -np.cos(theta), 0],
             [0, 0, -1],
         ]
-    )
+    )  # NB: not *strictly* a rotation matrix. It also swaps the
+    # y-axis (so north is up), and reflects the vertical axis (why?
+    # not entirely sure).
 
     # Read all station data and waveforms in a single pass per file
     ds = xr.concat(
         [_read_lfseis_file(seis_file) for seis_file in seis_files],
         dim="station",
     ).assign_coords(time=np.arange(start_sec, start_sec + nt * dt, dt))
+    rotated = np.dot(
+        rotation_matrix, ds["waveforms"]
+    )  # (3 x 3) * (3 x station x nt)  = (3 x station x nt)
+    # NOTE: Rotation matrix R was originally designed to be applied
+    # like W * R (where W is the (nt x 3) waveform for a station). We
+    # swap the order of the time and component axes from the Rob
+    # Graves original file, so we have to swap the order of arguments
+    # in the dot product. You should transpose the rotation matrix in
+    # general. But, the rotation matrix is symmetric, so this is
+    # unnecessary.
 
-    # Rotate waveforms and differentiate to get acceleration
-    ds["waveforms"] = (
-        ("station", "time", "component"),
-        np.dot(ds["waveforms"], rotation_matrix),
+    # Differentiate waveform to get acceleration
+    acceleration = np.gradient(rotated, dt, axis=-1)
+
+    ds["waveform"] = (
+        ("component", "station", "time"),
+        acceleration,
     )
 
     # Set global attributes
     ds.attrs["dt"] = dt
     ds.attrs["resolution"] = resolution
     ds.attrs["rotation"] = rotation
-    ds.attrs["units"] = "m/s"
+    ds.attrs["units"] = "cm/s^2"
 
     return ds
 
