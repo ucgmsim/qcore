@@ -255,36 +255,6 @@ def transf(
     return H
 
 
-def _velocity_to_acceleration(
-    velocities: npt.NDArray[np.float32], dt: float
-) -> npt.NDArray[np.float32]:
-    """
-    Convert velocity to acceleration for an array of shape (ns, nt, 3).
-
-    Uses backward difference method for compatibility with original implementation.
-
-    Parameters
-    ----------
-    velocities : numpy.ndarray
-        Array of velocity data with shape (ns, nt, 3)
-    dt : float
-        Time step in seconds
-
-    Returns
-    -------
-    numpy.ndarray
-        Array of acceleration data with the same shape as input
-    """
-    # Create a copy of the input array shifted one time step
-    # For each station, prepend a zero vector [0,0,0] and remove the last time step
-    ns, nt, nc = velocities.shape
-    zeros = np.zeros((ns, 1, nc))
-    shifted = np.concatenate([zeros, velocities[:, :-1, :]], axis=1)
-
-    # Calculate the backward difference and scale by 1/dt
-    return (velocities - shifted) / dt
-
-
 _HEAD_STAT = 48  # Header size per station
 _N_COMP = 9  # Number of components in LF seis files
 
