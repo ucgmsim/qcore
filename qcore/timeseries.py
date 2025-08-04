@@ -5,6 +5,7 @@ Shared functions to work on time-series.
 @date 13/09/2016
 """
 
+import io
 import math
 import multiprocessing
 import os
@@ -12,9 +13,11 @@ import warnings
 from enum import StrEnum, auto
 from glob import glob
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
 import pyfftw
 import pyfftw.interfaces.numpy_fft as pyfftw_fft
 import scipy as sp
@@ -239,15 +242,15 @@ def transf(
         ft_len = int(2.0 ** np.ceil(np.log(nt) / np.log(2)))
         ft_freq = np.arange(0, ft_len / 2 + 1) / (ft_len * dt)
     omega = 2.0 * np.pi * ft_freq
-    Gs = rho_soil * vs_soil**2.0
-    Gr = rho_rock * vs_rock**2.0
+    Gs = rho_soil * vs_soil**2.0  # noqa: N806
+    Gr = rho_rock * vs_rock**2.0  # noqa: N806
 
-    kS = omega / (vs_soil * (1.0 + 1j * damp_soil))
-    kR = omega / (vs_rock * (1.0 + 1j * damp_rock))
+    kS = omega / (vs_soil * (1.0 + 1j * damp_soil))  # noqa: N806
+    kR = omega / (vs_rock * (1.0 + 1j * damp_rock))  # noqa: N806
 
     alpha = Gs * kS / (Gr * kR)
 
-    H = 2.0 / (
+    H = 2.0 / (  # noqa: N806
         (1.0 + alpha) * np.exp(1j * kS * height_soil)
         + (1.0 - alpha) * np.exp(-1j * kS * height_soil)
     )
@@ -259,41 +262,189 @@ _HEAD_STAT = 48  # Header size per station
 _N_COMP = 9  # Number of components in LF seis files
 
 
-def _lfseis_dtypes(seis_file: Path) -> tuple[str, str]:
-    """Determine the data types for reading LF seis files.
+class LFSeisHeader(NamedTuple):
+    """LFSeis File Header."""
+
+    nstat: int
+    """int: The number of stations in the file."""
+    nt: int
+    """int: The number of timesteps the file."""
+    dt: float
+    """float: The temporal resolution of the file."""
+    resolution: float
+    """float: The spatial resolution of the file."""
+    rotation: float
+    """float: The model rotation."""
+
+
+class LFSeisParser:
+    """A parser for LFSeis files.
 
     Parameters
     ----------
-    seis_file : Path
-        Path to the LF seis file.
-
-    Returns
-    -------
-    tuple[str, str]
-        Tuple containing the int and float types accounting for file endianness.
+    handle : io.BufferedReader
+        A buffered reader object representing a file object. Cannot be a
+        file-like object due to the use of `np.fromfile` which requires a
+        `fileno`.
     """
-    with open(seis_file, "rb") as f:
-        nstat: np.int32
-        nt: np.int32
-        nstat, nt = np.fromfile(f, dtype="<i4", count=6)[0::5]
-        file_size = seis_file.stat().st_size
 
-        if file_size == 4 + nstat * _HEAD_STAT + nstat * nt * _N_COMP * 4:
+    def __init__(self, handle: io.BufferedReader):  # noqa: D107
+        self.handle = handle
+        self.length = self._extract_length()
+        self.i4, self.f4 = self._lfseis_dtypes()
+
+    def _extract_length(self) -> int:
+        """Extract the length of the file, in bytes.
+
+        Returns
+        -------
+        int
+            The file length.
+        """
+        current_position = self.handle.tell()
+        self.handle.seek(0, os.SEEK_END)
+        length = self.handle.tell()
+        self.handle.seek(current_position)
+        return length
+
+    def _lfseis_dtypes(self) -> tuple[str, str]:
+        """Heuristically evaluate the byte order of the file.
+
+
+
+        Returns
+        -------
+        tuple[str, str]
+            The numpy dtype strings representing the `self.i4` and
+            `self.f4` types accounting for machine byteorder.
+
+        Raises
+        ------
+        ValueError
+            If the given file does not have an `nt`, `nstat` value
+            consistent with the file size. Will try byteorder swapping
+            the values to find a match.
+        """
+        current_position = self.handle.tell()
+        nstat_raw = np.fromfile(self.handle, dtype="<i4", count=1)[0]
+        _ = self.handle.seek(
+            16, os.SEEK_CUR
+        )  # 4 * i4 for station index, x, y, z grid point of the first station
+        nt_raw = np.fromfile(self.handle, dtype="<i4", count=1)[0]
+        nstat = int(nstat_raw)
+        nt = int(nt_raw)
+        nstat_bw = int(nstat_raw.byteswap())
+        nt_bw = int(nt_raw.byteswap())
+        if self.length == 4 + nstat * _HEAD_STAT + nstat * nt * _N_COMP * 4:
             endian = "<"
-        elif (
-            file_size
-            == 4
-            + nstat.byteswap() * _HEAD_STAT
-            + nstat.byteswap() * nt.byteswap() * _N_COMP * 4
-        ):
+        elif self.length == 4 + nstat_bw * _HEAD_STAT + nstat_bw * nt_bw * _N_COMP * 4:
             endian = ">"
         else:
-            raise ValueError(f"File is not an LF seis file: {seis_file}")
+            raise ValueError("Handle does not read from an LFSeis file.")
 
         i4 = f"{endian}i4"
         f4 = f"{endian}f4"
-
+        self.handle.seek(current_position)
         return i4, f4
+
+    def read_header(self) -> LFSeisHeader:
+        """Read the header values from an LFSeis file.
+
+        Returns
+        -------
+        LFSeisHeader
+            The header object representing this file.
+        """
+        nstat = int(np.fromfile(self.handle, dtype=self.i4, count=1)[0])
+        current_position = self.handle.tell()
+        _ = self.handle.seek(
+            16, os.SEEK_CUR
+        )  # 4 * i4 for station index, x, y, z grid point of the first station
+        nt = int(np.fromfile(self.handle, dtype=self.i4, count=1)[0])
+        dt, resolution, rotation = map(
+            float, np.fromfile(self.handle, dtype=self.f4, count=3)
+        )
+        self.handle.seek(current_position)
+        return LFSeisHeader(
+            nstat=nstat, nt=nt, dt=dt, resolution=resolution, rotation=rotation
+        )
+
+    def read_stations(self, nstat: int) -> pd.DataFrame:
+        """Read the stations table from the LFSeis file.
+
+        Parameters
+        ----------
+        nstat : int
+            The number of stations to read.
+
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe of all the stations contained in this file.
+        """
+        dtype_header = np.dtype(
+            {
+                "names": [
+                    "stat_pos",
+                    "x",
+                    "y",
+                    "lat",
+                    "lon",
+                    "station",
+                ],
+                "formats": [
+                    self.i4,
+                    self.i4,
+                    self.i4,
+                    self.f4,
+                    self.f4,
+                    "|S8",
+                ],
+                # Stations are packed like:
+                # x y z seis_idx nt timesteps resolution rotation lat lon name
+                # with timesteps, resolution and rotation repeated for
+                # each station. So we skip these values using the
+                # offsets.
+                "offsets": [0, 4, 8, 32, 36, 40],
+            }
+        )
+        station_headers = np.fromfile(self.handle, dtype=dtype_header, count=nstat)
+        x_coords: npt.NDArray[np.int32] = station_headers["x"]
+        y_coords: npt.NDArray[np.int32] = station_headers["y"]
+        lat_coords: npt.NDArray[np.int32] = station_headers["lat"]
+        lon_coords: npt.NDArray[np.int32] = station_headers["lon"]
+        # Decode station names from UTF-8 encoded bytes.
+        station_names: list[str] = [
+            station_name.decode("utf-8", errors="replace").strip("\x00")
+            for station_name in station_headers["station"]
+        ]
+        return pd.DataFrame(
+            {
+                "x": x_coords,
+                "y": y_coords,
+                "lat": lat_coords,
+                "lon": lon_coords,
+                "station": station_names,
+            }
+        )
+
+    def read_waveform(self, shape: tuple[int, ...]) -> np.memmap:
+        """Memory map the waveform array from the seis file.
+
+        Parameters
+        ----------
+        shape : tuple[int, ...]
+            The shape of the resulting waveform array.
+
+        Returns
+        -------
+        np.memmap
+            A memory-mapped array containing floating point values
+            read from the seis file in the provided shape.
+        """
+        return np.memmap(
+            self.handle, dtype=self.f4, mode="r", offset=self.handle.tell(), shape=shape
+        )
 
 
 def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
@@ -309,116 +460,101 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
     xr.Dataset
             xarray Dataset containing LF seis data.
     """
-    i4, f4 = _lfseis_dtypes(seis_file)
-    with open(seis_file, "rb") as f:
-        # Read number of stations in this file
-        try:
-            nstat_file = int(np.fromfile(f, dtype=i4, count=1)[0])
-        except IndexError:
-            raise ValueError(f"File {seis_file} is empty")
 
-        # Read station headers
-        dtype_header = np.dtype(
-            {
-                "names": [
-                    "stat_pos",
-                    "x",
-                    "y",
-                    "z",
-                    "seis_idx",
-                    "lat",
-                    "lon",
-                    "name",
-                ],
-                "formats": [i4, i4, i4, i4, (i4, 2), f4, f4, "|S8"],
-                "offsets": [0, 4, 8, 12, 16, 32, 36, 40],
-            }
+    with open(seis_file, "rb") as f:
+        parser = LFSeisParser(f)
+        header = parser.read_header()
+        stations = parser.read_stations(header.nstat)
+        waveform = parser.read_waveform(shape=(header.nt, header.nstat, _N_COMP))
+        # Swap from (nt, nstat_file, _N_COMP) to (3 (x, y, z),
+        # nstat_file, nt). The reason for the transposition is that we
+        # currently process broadband data by component, That is
+        # working with component x, y, and then z with arrays of shape
+        # (nstat_file, nt). Rearranging the data in this way optimises
+        # the memory layout for broadband processing. It is all
+        # transparent the user interacting with xarray anyhow, so the
+        # order of the dimensions hardly matters.
+        waveform = np.transpose(waveform[:, :, :3], (2, 1, 0))
+        # Have numpy re-arrange the waveform in-memory to reflect the
+        # transposition change above.
+        waveform = np.ascontiguousarray(waveform)
+        # Due to encoding errors being replaced with empty strings, valid stations
+        valid_station_mask = pd.notnull(stations["station"])
+        waveform = waveform[:, valid_station_mask, :]
+        stations = stations.loc[valid_station_mask]
+        return xr.Dataset(
+            data_vars={
+                "waveform": (
+                    ["component", "station", "time"],
+                    waveform,
+                ),
+            },
+            coords={
+                "station": stations["station"],
+                "component": ["x", "y", "z"],
+                "x": ("station", stations["x"]),
+                "y": ("station", stations["y"]),
+                "lat": ("station", stations["lat"]),
+                "lon": ("station", stations["lon"]),
+            },
         )
 
-        station_headers = np.fromfile(f, dtype=dtype_header, count=nstat_file)
-        x_coords: npt.NDArray[np.int32] = station_headers["x"]
-        y_coords: npt.NDArray[np.int32] = station_headers["y"]
-        lat_coords: npt.NDArray[np.int32] = station_headers["lat"]
-        lon_coords: npt.NDArray[np.int32] = station_headers["lon"]
-        # Decode station names from UTF-8 encoded bytes.
 
-        station_names: list[str] = [
-            station_name.decode("utf-8", errors="replace").strip("\x00")
-            for station_name in station_headers["name"]
-        ]
-    nt = (seis_file.stat().st_size - 4 - nstat_file * _HEAD_STAT) // (
-        nstat_file * _N_COMP * 4
-    )
-    offset = 4 + nstat_file * _HEAD_STAT
-    waveform_data = np.memmap(
-        seis_file,
-        dtype=f4,
-        mode="r",
-        offset=offset,
-        shape=(nt, nstat_file, _N_COMP),
-    )
+def _postprocess_waveform(
+    waveform: np.ndarray, rotation: float, dt: float
+) -> np.ndarray:
+    """Post-process a waveform array by rotating, reflecting and differentiating.
 
-    valid_indices: npt.NDArray[np.int_] = np.array(
-        [i for i, name in enumerate(station_names) if name]
-    )
-    if len(valid_indices) < len(station_names):
-        station_names = [station_names[i] for i in valid_indices]
-        x_coords = x_coords[valid_indices]
-        y_coords = y_coords[valid_indices]
-        lat_coords = lat_coords[valid_indices]
-        lon_coords = lon_coords[valid_indices]
-        waveform_data = waveform_data[valid_indices]
-    # Swap from (nt, nstat_file, _N_COMP) to (3 (x, y, z), nstat_file,
-    # nt). The reason for the transposition is that we currently
-    # process broadband data by component, That is working with
-    # component x, y, and then z with arrays of shape (nstat_file,
-    # nt). Rearranging the data in this way optimises the memory
-    # layout for broadband processing. It is all transparent the user
-    # interacting with xarray anyhow, so the order of the dimensions
-    # hardly matters.
-    waveform_data = np.transpose(waveform_data[:, :, :3], (2, 0, 1))
-    # Have numpy re-arrange the waveform in-memory to reflect the
-    # transposition change above.
-    waveform_data = np.ascontiguousarray(waveform_data)
-    return xr.Dataset(
-        data_vars={
-            "waveforms": (
-                ["component", "station", "time"],
-                waveform_data,
-            ),
-        },
-        coords={
-            "station": station_names,
-            "component": ["x", "y", "z"],
-            "x": ("station", x_coords),
-            "y": ("station", y_coords),
-            "lat": ("station", lat_coords),
-            "lon": ("station", lon_coords),
-        },
-    )
+    This function:
 
-
-def _lfseis_header(header_file: Path) -> tuple[int, float, float, float]:
-    """Read the header of an LF seis file.
+    1. Rotates and reflects the waveform components so that x points
+    north, y points east, and z points down.
+    2. Differentiates the waveform array so velocities become
+    accelerations.
 
     Parameters
     ----------
-    header_file : Path
-        Path to the header file.
+    waveform : np.ndarray
+        The waveform array to process.
+    rotation : float
+        The model rotation.
+    dt : float
+        The model timestep.
+
 
     Returns
     -------
-    tuple[int, float, float, float]
-        Tuple containing the number of timesteps, timestep, resolution, and rotation.
+    np.ndarray
+        The waveform array rotated and differentiated.
     """
-    i4, f4 = _lfseis_dtypes(header_file)
-    with open(header_file, "rb") as f:
-        _ = f.seek(
-            20
-        )  # 4 * i4 for nstat, station index, x, y, z grid point of the first station
-        nt = int(np.fromfile(f, dtype=i4, count=1)[0])
-        dt, resolution, rotation = map(float, np.fromfile(f, dtype=f4, count=3))
-    return nt, dt, resolution, rotation
+    theta = np.radians(np.float32(rotation))
+    rotation_matrix = np.array(
+        [
+            [np.cos(theta), -np.sin(theta), 0],
+            [-np.sin(theta), -np.cos(theta), 0],
+            [0, 0, -1],
+        ],
+        dtype=np.float32,
+    )
+    # NOTE: not *strictly* a rotation matrix. It also swaps the
+    # y-axis (so north is up), and reflects the vertical axis (why?
+    # not entirely sure).
+    # Using np.einsum to specify the summation axis
+    # 'ij' for the rotation_matrix (rows, columns)
+    # 'jkl' for the waveform (component, station, time)
+    # The 'j' axis is summed over, and the result has shape 'ikl'
+    rotated = np.einsum("ij,jkl->ikl", rotation_matrix, waveform)
+    # NOTE: Rotation matrix R was originally designed to be applied
+    # like W * R (where W is the (nt x 3) waveform for a station). We
+    # swap the order of the time and component axes from the Rob
+    # Graves original file, so we have to swap the order of arguments
+    # in the dot product. You should transpose the rotation matrix in
+    # general. But, the rotation matrix is symmetric, so this is
+    # unnecessary.
+
+    # Differentiate waveform to get acceleration
+    acceleration = np.gradient(rotated, dt, axis=-1)
+    return acceleration
 
 
 def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Dataset:
@@ -448,47 +584,27 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
     header_file = next(
         seis_file for seis_file in seis_files if seis_file.stat().st_size
     )
-    nt, dt, resolution, rotation = _lfseis_header(header_file)
-    # Calculate rotation matrix
-    theta: float = np.radians(rotation)
-    rotation_matrix = np.array(
-        [
-            [np.cos(theta), -np.sin(theta), 0],
-            [-np.sin(theta), -np.cos(theta), 0],
-            [0, 0, -1],
-        ]
-    )  # NB: not *strictly* a rotation matrix. It also swaps the
-    # y-axis (so north is up), and reflects the vertical axis (why?
-    # not entirely sure).
+    with open(header_file, "rb") as f:
+        parser = LFSeisParser(f)
+        header = parser.read_header()
 
     # Read all station data and waveforms in a single pass per file
     ds = xr.concat(
         [_read_lfseis_file(seis_file) for seis_file in seis_files],
         dim="station",
-    ).assign_coords(time=np.arange(start_sec, start_sec + nt * dt, dt))
-    rotated = np.dot(
-        rotation_matrix, ds["waveforms"]
-    )  # (3 x 3) * (3 x station x nt)  = (3 x station x nt)
-    # NOTE: Rotation matrix R was originally designed to be applied
-    # like W * R (where W is the (nt x 3) waveform for a station). We
-    # swap the order of the time and component axes from the Rob
-    # Graves original file, so we have to swap the order of arguments
-    # in the dot product. You should transpose the rotation matrix in
-    # general. But, the rotation matrix is symmetric, so this is
-    # unnecessary.
-
-    # Differentiate waveform to get acceleration
-    acceleration = np.gradient(rotated, dt, axis=-1)
+    ).assign_coords(
+        time=np.arange(start_sec, start_sec + header.nt * header.dt, header.dt)
+    )
 
     ds["waveform"] = (
         ("component", "station", "time"),
-        acceleration,
+        _postprocess_waveform(ds["waveform"].values, header.rotation, header.dt),
     )
 
     # Set global attributes
-    ds.attrs["dt"] = dt
-    ds.attrs["resolution"] = resolution
-    ds.attrs["rotation"] = rotation
+    ds.attrs["dt"] = header.dt
+    ds.attrs["resolution"] = header.resolution
+    ds.attrs["rotation"] = header.rotation
     ds.attrs["units"] = "cm/s^2"
 
     return ds
