@@ -348,7 +348,7 @@ def _cb_amp(
     a1100 = pga * np.exp(fs_high_0 - fs_vpga_0)
 
     # Calculate amplification factors for each period
-    ampf0 = np.zeros(freqs.size, dtype=np.float64)
+    ampf0 = np.zeros_like(freqs)
     t_idx = 0
     while freqs[t_idx] > flowcap and t_idx < freqs.size:
         fs_site = _compute_fs_value(t_idx, vsite, a1100, c10, k1, k2)
@@ -407,12 +407,11 @@ def _cb_amp_multi(
     """
 
     # Convert inputs to arrays and get dimensions
-    vref_arr = np.asarray(vref, dtype=np.float64)
-    vsite_arr = np.asarray(vsite, dtype=np.float64)
-    vpga_arr = np.asarray(vpga, dtype=np.float64)
-    pga_arr = np.asarray(pga, dtype=np.float64)
+    vref_arr = np.asarray(vref)
+    vsite_arr = np.asarray(vsite)
+    vpga_arr = np.asarray(vpga)
+    pga_arr = np.asarray(pga)
 
-    # Check that all arrays have the same shape
     n_cases = vref_arr.size
 
     # Flatten arrays to handle both 1D and scalar inputs
@@ -421,11 +420,8 @@ def _cb_amp_multi(
     vpga_flat = vpga_arr.flatten()
     pga_flat = pga_arr.flatten()
 
-    # Determine output size by running one case
-    # This is needed since we don't know the output size a priori
-
     # Pre-allocate results array
-    results = np.zeros((n_cases, freqs.size), dtype=np.float64)
+    results = np.zeros((n_cases, freqs.size), dtype=vref_arr.dtype)
 
     for i in range(n_cases):
         results[i, :] = _cb_amp(
@@ -451,8 +447,9 @@ def cb_amp_multi(
     pga_col: str = "pga",
     freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
 ):
-    """
-    Compute CB amplification factors for multiple parameter sets from a pandas DataFrame.
+    """Compute CB amplification factors for multiple parameter sets from a pandas DataFrame.
+
+
 
     Parameters
     ----------
@@ -516,6 +513,9 @@ def cb_amp_multi(
         if np.any(arr <= 0):
             raise ValueError(f"Column '{name}' contains non-positive values")
 
+    # Use pga for reference dtype because it is more reliably a float,
+    # where vref can sometimes be an int.
+    freqs = freqs.astype(pga.dtype)
     # Call the numba-accelerated function
     results = _cb_amp_multi(
         vref=vref,
@@ -530,7 +530,6 @@ def cb_amp_multi(
 
 
 def cb2014_to_fas_amplification_factors(
-    freqs: np.ndarray,
     ampf0: np.ndarray,
     dt: float,
     n: int,
@@ -538,6 +537,7 @@ def cb2014_to_fas_amplification_factors(
     fmidbot: float = 0.5,
     fhightop: float = 10.0,
     fmax: float = 15.0,
+    freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
 ) -> np.ndarray:
     """Converts the CB2014 site-amplification factors for suitable use with FAS.
 
@@ -566,18 +566,51 @@ def cb2014_to_fas_amplification_factors(
         matching `dt` and `n`, and amplified according to the bandpass
         filter `amp_bandpass`.
     """
-    ftfreq, interpolated = interpolate_frequency(freqs, ampf0, dt, n)
+    interpolated, ftfreq = interpolate_amplification_factors(freqs, ampf0, dt, n)
     return amp_bandpass(interpolated, fhightop, fmax, fmidbot, fmin, ftfreq)
 
 
-@njit(cache=True)
-def interpolate_frequency(
-    freqs: np.ndarray, ampf0: np.ndarray, dt: float, n: int
+@njit(parallel=True, cache=True)
+def interp_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """Perform interpolation of a vector-valued function f at `x` with interpolation nodes `xp` and `fp`.
+
+    This handles the case where `fp` is not 1-D. Interpolation is
+    performed in parallel over the last axis.
+
+    Parameters
+    ----------
+    x : np.ndarray, 1-D
+        The points to interpolate.
+    xp : np.ndarray, 1-D
+        The interpolation nodes for `fp`.
+    fp : np.ndarray, 2-D
+        The function values at `xp`. The last axis must be the same as
+        the length of `xp`.
+
+    Returns
+    -------
+    np.ndarray
+        The function `f` interpolated at `x`. Has the same `dtype` as
+        `fp`.
+    """
+    out = np.zeros((fp.shape[0], len(x)), dtype=fp.dtype)
+    for i in range(0, fp.shape[0]):
+        out[i] = np.interp(x, xp, fp[i])
+    return out
+
+
+def interpolate_amplification_factors(
+    freqs: np.ndarray,
+    ampf0: np.ndarray,
+    dt: float,
+    n: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Perform logarithmic interpolation of amplification factors.
 
     Amplification factors are interpolated to frequencies typical for
-    Fourier amplitude spectra of waveforms.
+    Fourier amplitude spectra of waveforms. Interpolation is performed in log-frequency space:
+
+    A(f) ~ log(f)
 
     Parameters
     ----------
@@ -597,49 +630,24 @@ def interpolate_frequency(
     ftfreq : np.ndarray
         The interpolated frequencies.
     """
-    # frequencies of fourier transform
-    ftfreq = np.arange(1, n / 2) * (1.0 / (n * dt))
-    # transition indexes
-    digi = np.digitize(freqs, ftfreq)[::-1]
-    # only go down to 2nd frequency
-    ampf0[0] = ampf0[1]
-    freqs[0] = freqs[1]
-    # special case, first frequency in transition range
-    ftfreq0 = int(digi[0] == 0)
-    # all possible dadf factors
-    dadf0 = np.zeros(freqs.size)
-    for i in range(1, freqs.size - 1):
-        # start with dadf = 0.0 if no freq change at pos 0
-        dadf0[-i - 1 - ftfreq0] = (ampf0[i] - ampf0[i + 1]) / np.log(
-            freqs[i] / freqs[i + 1]
-        )
-    # calculate amplification factors
-    digi = np.append(digi, [np.float64(ftfreq.size)])
-    a0 = np.zeros(ftfreq.size)
-    f0 = np.zeros(ftfreq.size)
-    dadf = np.zeros(ftfreq.size)
-    start = 0
-    start_dadf = 0
-    for i in range(freqs.size):
-        end = max(start + 1, digi[i + 1])
-        end_dadf = max(start_dadf + 1, digi[i + ftfreq0])
-        a0[start:end] = ampf0[-i - 1]
-        f0[start:end] = freqs[-i - 1]
-        dadf[start_dadf:end_dadf] = dadf0[i]
-        start = max(end, digi[i + 1])
-        start_dadf = end_dadf
-    ampv = a0 + dadf * np.log(ftfreq / f0)
-    return ampv, ftfreq
+    # Do not interpolate at the Nyquist frequency, or at 0Hz
+    ftfreq = np.fft.rfftfreq(n, dt)[1:-1]
+    log_fftfreq = np.log(ftfreq)
+    log_cb_freq = np.log(freqs)
+    ampv = np.zeros((ampf0.shape[0], ftfreq.size), dtype=ampf0.dtype)
+    ampf0 = np.atleast_2d(ampf0)
+    ampv = interp_2d(log_fftfreq, log_cb_freq, ampf0)
+    return ampv, ftfreq.astype(freqs.dtype)
 
 
-@njit(cache=True)
+@njit(parallel=True, cache=True)
 def amp_bandpass(
     ampv: np.ndarray,
     fhightop: float,
     fmax: float,
     fmidbot: float,
     fmin: float,
-    ftfreq: np.ndarray,
+    fftfreq: np.ndarray,
 ) -> np.ndarray:
     """Frequency-dependent amplification adjustment for site amplification factors.
 
@@ -690,7 +698,7 @@ def amp_bandpass(
     - For frequencies in [fhightop, fmax), amplification decreases
       logarithmically.
     - For frequencies in [fmidbot, fhightop), amplification is
-      constant.
+      unchanged.
     - For frequencies in [fmin, fmidbot), amplification increases
       logarithmically.
 
@@ -699,22 +707,23 @@ def amp_bandpass(
     [0] Kuncar, Felipe, et al. Methods to account for shallow site
     effects in hybrid broadband ground-motion simulations. Earthquake
     Spectra 41.2 (2025): 1272-1313."""
-    # default amplification is 1.0 (keeping values the same)
-    ampf = np.ones(ftfreq.size + 1, dtype=np.float64)
-    # amplification factors applied differently at different bands
-    ampf[1:] += (
-        np.where(
-            (ftfreq >= fhightop) & (ftfreq < fmax),
-            -1
-            + ampv
-            + np.log(ftfreq / fhightop) * (1.0 - ampv) / np.log(fmax / fhightop),
-            0,
-        )
-        + np.where((ftfreq >= fmidbot) & (ftfreq < fhightop), -1 + ampv, 0)
-        + np.where(
-            (ftfreq >= fmin) & (ftfreq < fmidbot),
-            np.log(ftfreq / fmin) * (ampv - 1.0) / np.log(fmidbot / fmin),
-            0,
-        )
+    ampf = np.empty((ampv.shape[0], fftfreq.size + 1), dtype=ampv.dtype)
+    ampf[:, 0] = 1.0
+
+    log_fmax_diff = (np.log(fftfreq) - np.log(fhightop)) / (
+        np.log(fmax) - np.log(fhightop)
     )
+    log_fmin_diff = (np.log(fftfreq) - np.log(fmin)) / (np.log(fmidbot) - np.log(fmin))
+
+    for i in range(ampf.shape[0]):
+        for j in range(1, fftfreq.size + 1):
+            if fhightop <= fftfreq[j - 1] < fmax:
+                ampf[i, j] = ampv[i, j] + log_fmax_diff[j] * (1 - ampv[i, j])
+            elif fmidbot <= fftfreq[j - 1] < fhightop:
+                ampf[i, j] = ampv[i, j]
+            elif fmin <= fftfreq[j - 1] < fmidbot:
+                ampf[i, j] = 1.0 + log_fmin_diff[j] * (ampv[i, j] - 1.0)
+            else:
+                ampf[i, j] = 1.0
+
     return ampf
