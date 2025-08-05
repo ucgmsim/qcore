@@ -168,9 +168,9 @@ def ampdeamp(
     if not amplify:
         # Ensure ampf_modified is float32 for consistent operations.
         # Handle potential division by zero if ampf contains zeros.
-        ampf_modified = np.where(
-            amplification_factor != 0, 1.0 / amplification_factor, np.inf
-        ).astype(waveform_dtype)
+        if np.any(np.isclose(amplification_factor, 0.0)):
+            raise ZeroDivisionError("Would divide by zero in amplification factor.")
+        ampf_modified = np.reciprocal(amplification_factor).astype(waveform_dtype)
     else:
         ampf_modified = amplification_factor.astype(waveform_dtype)
 
