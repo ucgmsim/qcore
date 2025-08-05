@@ -52,7 +52,7 @@ def amplification_uncertainty(
     return amp_function_output
 
 
-@njit(cache=True)
+@njit
 def _fs_low(
     t_idx: int,
     vs30: float,
@@ -85,7 +85,7 @@ def _fs_low(
     )
 
 
-@njit(cache=True)
+@njit
 def _fs_mid(
     t_idx: int, vs30: float, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray
 ) -> np.ndarray:
@@ -111,7 +111,7 @@ def _fs_mid(
     return (c10[t_idx] + k2[t_idx] * scon_n) * np.log(vs30 / k1[t_idx])
 
 
-@njit(cache=True)
+@njit
 def _fs_high(t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray):
     """Compute site factor based on vs30 value - high code path
 
@@ -132,7 +132,7 @@ def _fs_high(t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray):
     return (c10[t_idx] + k2[t_idx] * scon_n) * np.log(1100.0 / k1[t_idx])
 
 
-@njit(cache=True)
+@njit
 def _compute_fs_value(
     t_idx: int,
     vs30: float,
@@ -193,7 +193,7 @@ AMPLIFICATION_FREQUENCIES = 1.0 / np.array(
 )
 
 
-@njit(cache=True)
+@njit
 def _cb_amp(
     vref: float,
     vsite: float,
@@ -367,7 +367,7 @@ class CBModelVersion(Enum):
     CB2014 = 2014
 
 
-@njit(cache=True, parallel=True)
+@njit(parallel=True)
 def _cb_amp_multi(
     vref: np.ndarray,
     vsite: np.ndarray,
@@ -578,7 +578,9 @@ def cb2014_to_fas_amplification_factors(
     return amp_bandpass(interpolated, fhightop, fmax, fmidbot, fmin, ftfreq)
 
 
-@njit(parallel=True, cache=True)
+@njit(
+    parallel=True,
+)
 def interp_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """Perform interpolation of a vector-valued function f at `x` with interpolation nodes `xp` and `fp`.
 
@@ -648,7 +650,9 @@ def interpolate_amplification_factors(
     return ampv, ftfreq.astype(freqs.dtype)
 
 
-@njit(parallel=True, cache=True)
+@njit(
+    parallel=True,
+)
 def amp_bandpass(
     ampv: np.ndarray,
     fhightop: float,
