@@ -478,7 +478,9 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
         # Have numpy re-arrange the waveform in-memory to reflect the
         # transposition change above.
         waveform = np.ascontiguousarray(waveform)
-        # Due to encoding errors being replaced with empty strings, valid stations
+        # When reading station names from the file, encoding errors may occur.
+        # These errors can result in invalid station names being replaced with empty strings or NaN values.
+        # To ensure only valid stations are processed, we create a mask that selects stations with non-null names.
         valid_station_mask = pd.notnull(stations["station"])
         waveform = waveform[:, valid_station_mask, :]
         stations = stations.loc[valid_station_mask]
