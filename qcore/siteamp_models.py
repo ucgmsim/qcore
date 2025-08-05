@@ -350,7 +350,7 @@ def _cb_amp(
     # Calculate amplification factors for each period
     ampf0 = np.zeros_like(freqs)
     t_idx = 0
-    while freqs[t_idx] > flowcap and t_idx < freqs.size:
+    while t_idx < freqs.size and freqs[t_idx] > flowcap:
         fs_site = _compute_fs_value(t_idx, vsite, a1100, c10, k1, k2)
         fs_ref = _compute_fs_value(t_idx, vref, a1100, c10, k1, k2)
         ampf0[t_idx] = np.exp(fs_site - fs_ref)
