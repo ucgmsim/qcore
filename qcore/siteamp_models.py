@@ -199,7 +199,7 @@ def _cb_amp(
     vsite: float,
     vpga: float,
     pga: float,
-    version: int = 2014,  # Changed to integer
+    version: int = 2014,
     flowcap: float = 0.0,
     freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
 ) -> np.ndarray:
@@ -377,8 +377,7 @@ def _cb_amp_multi(
     flowcap: float,
     freqs: np.ndarray,
 ) -> np.ndarray:
-    """
-    Numba version of cb_amp that processes multiple parameter sets.
+    """Numba version of cb_amp that processes multiple parameter sets.
 
     Parameters
     ----------
@@ -404,6 +403,10 @@ def _cb_amp_multi(
         Amplification factors, shape (N, output_length)
         where N is the number of input parameter sets
         and output_length depends on dt and n
+
+    See Also
+    --------
+    cb_amp_multi : Public interface to this function. More details on the model are explained here.
     """
 
     # Convert inputs to arrays and get dimensions
@@ -449,7 +452,12 @@ def cb_amp_multi(
 ):
     """Compute CB amplification factors for multiple parameter sets from a pandas DataFrame.
 
-
+    This code compute site-amplification factors, which adjust
+    response spectra computed for a generic site into response spectra
+    for a site with known Vs30 values. The model used is the CB2014
+    (or CB2008) models _[0], an empirical model that predicts pSA at
+    sites, which we use to scale the FAS of the high-frequency
+    waveforms.
 
     Parameters
     ----------
