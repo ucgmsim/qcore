@@ -147,7 +147,7 @@ def ampdeamp(
 
     if ntap > 0 and taper:
         # Create a Hanning window for the taper, ensuring it's float32
-        hanning_window = np.hanning(ntap * 2)[ntap:].astype(waveform_dtype)
+        hanning_window = np.hanning(ntap * 2 + 1)[ntap + 1 :].astype(waveform_dtype)
         # Create a copy of the original waveform so-as not to modify it in-place.
         waveform = waveform.copy()
         waveform[..., nt - ntap :] *= hanning_window
