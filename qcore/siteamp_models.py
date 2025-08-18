@@ -658,7 +658,7 @@ def interpolate_amplification_factors(
     ampf0 = ampf0[:, ::-1]
 
     # Target Fourier frequencies (skip 0 and Nyquist)
-    ftfreq = np.fft.rfftfreq(n, dt)[1:-1].ravel()
+    ftfreq = np.fft.rfftfreq(n, dt)[1:-1].ravel().astype(freqs.dtype)
 
     # Interpolate in log-frequency space
     log_fftfreq = np.log(ftfreq)
