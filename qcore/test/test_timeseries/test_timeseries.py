@@ -266,9 +266,9 @@ def test_tapering_application() -> None:
 
     expected_ntap = int(100 * 0.05)
     # Manually calculate the expected tapered end
-    expected_hanning_window = np.hanning(expected_ntap * 2)[expected_ntap:].astype(
-        np.float32
-    )
+    expected_hanning_window = np.hanning(expected_ntap * 2 + 1)[
+        expected_ntap + 1 :
+    ].astype(np.float32)
 
     # Create the expected waveform after tapering
     expected_waveform_after_taper = waveform.copy()
