@@ -640,13 +640,34 @@ def interpolate_amplification_factors(
     ftfreq : np.ndarray
         The interpolated frequencies.
     """
-    # Do not interpolate at the Nyquist frequency, or at 0Hz
-    ftfreq = np.fft.rfftfreq(n, dt)[1:-1]
+    # Handle both 1-D and 2-D inputs uniformly
+    ampf0 = np.atleast_2d(ampf0)
+
+    n_stations, _ = ampf0.shape
+
+    # Copy inputs to avoid in-place modification
+    freqs = freqs.copy()
+    ampf0 = ampf0.copy()
+
+    # Match original behaviour: discard first entry by overwriting with second
+    freqs[0] = freqs[1]
+    ampf0[:, 0] = ampf0[:, 1]
+
+    # Ensure ascending order for np.interp
+    freqs = freqs[::-1]
+    ampf0 = ampf0[:, ::-1]
+
+    # Target Fourier frequencies (skip 0 and Nyquist)
+    ftfreq = np.fft.rfftfreq(n, dt)[1:-1].ravel()
+
+    # Interpolate in log-frequency space
     log_fftfreq = np.log(ftfreq)
     log_cb_freq = np.log(freqs)
-    ampv = np.zeros((ampf0.shape[0], ftfreq.size), dtype=ampf0.dtype)
-    ampf0 = np.atleast_2d(ampf0)
     ampv = interp_2d(log_fftfreq, log_cb_freq, ampf0)
+
+    if n_stations == 1:
+        ampv = ampv[0]
+
     return ampv, ftfreq.astype(freqs.dtype)
 
 
