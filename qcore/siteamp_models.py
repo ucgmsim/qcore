@@ -1,5 +1,6 @@
 """Site amplification models."""
 
+
 from enum import Enum
 
 import numpy as np
@@ -520,6 +521,8 @@ def cb_amp_multi(
             raise ValueError(f"Column '{name}' contains infinite values")
         if np.any(arr <= 0):
             raise ValueError(f"Column '{name}' contains non-positive values")
+        if not np.isdtype(arr.dtype, 'real floating'):
+            raise ValueError(f"Column '{name}' has incorrect kind, must be real floating")
 
     # Use pga for reference dtype because it is more reliably a float,
     # where vref can sometimes be an int.
@@ -629,7 +632,7 @@ def interpolate_amplification_factors(
     ampf0 : np.ndarray
         The amplification factors to interpolate.
     dt : float
-        Timestep.
+         Timestep.
     n : int
         The waveform length.
 
@@ -642,8 +645,6 @@ def interpolate_amplification_factors(
     """
     # Handle both 1-D and 2-D inputs uniformly
     ampf0 = np.atleast_2d(ampf0)
-
-    n_stations, _ = ampf0.shape
 
     # Copy inputs to avoid in-place modification
     freqs = freqs.copy()
@@ -664,9 +665,6 @@ def interpolate_amplification_factors(
     log_fftfreq = np.log(ftfreq)
     log_cb_freq = np.log(freqs)
     ampv = interp_2d(log_fftfreq, log_cb_freq, ampf0)
-
-    if n_stations == 1:
-        ampv = ampv[0]
 
     return ampv, ftfreq.astype(freqs.dtype)
 

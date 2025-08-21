@@ -1,10 +1,12 @@
 """Testing for qcore.siteamp module"""
 
+import pickle
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib import pyplot as plt
 
 from qcore import siteamp_models
 
@@ -49,6 +51,17 @@ def test_cb_2014_siteamp_model(cb_2014_df: pd.DataFrame) -> None:
     assert output == pytest.approx(expected, rel=0.01, abs=0.0)
 
 
+def test_cb_2014_siteamp_bad_dtypes() -> None:
+    """Check that the siteamp model throws errors for non-floating dtypes."""
+    input_df = pd.DataFrame(
+        {"vref": [np.float32(500.0)], "vpga": 500, "pga": np.float32(0.4), "vsite": 500}
+    )
+    with pytest.raises(
+        ValueError, match="Column '.*' has incorrect kind, must be real floating"
+    ):
+        output = siteamp_models.cb_amp_multi(input_df)
+
+
 def test_cb_2014_siteamp_model_types() -> None:
     """Check that the siteamp model output respects numpy types."""
     input_df = pd.DataFrame(
@@ -78,40 +91,46 @@ def test_different_dtypes(dtype: np.dtype):
     assert ampv.dtype == dtype
 
 
-def test_mathematical_properties():
-    """Test mathematical properties of the interpolation."""
-    # Create a known logarithmic relationship
-    freqs = np.logspace(0, 2, 10)  # 1 to 100 Hz, log-spaced
-    ampf0 = np.log10(freqs)  # Amplification = log10(frequency)
+@pytest.fixture
+def benchmark_interpolation_data() -> dict:
+    with open(Path(__file__).parent / "interpolate_benchmark.pkl", "rb") as f:
+        return pickle.load(f)
 
-    dt = 0.01
-    n = 1000
+
+def test_interpolate_frequency(benchmark_interpolation_data: dict):
+    freqs = benchmark_interpolation_data["freqs"].copy()
+    ampf0 = benchmark_interpolation_data["ampf0"].copy()
+    dt = benchmark_interpolation_data["dt"]
+    n = benchmark_interpolation_data["n"]
+    expected_ampv = benchmark_interpolation_data["expected_ampv"]
+    expected_ftfreq = benchmark_interpolation_data["expected_ftfreq"]
 
     ampv, ftfreq = siteamp_models.interpolate_amplification_factors(freqs, ampf0, dt, n)
-    ampv = ampv.flatten()
 
-    # For frequencies within the input range, check that the relationship holds approximately
-    valid_mask = (ftfreq >= freqs.min()) & (ftfreq <= freqs.max())
-    if np.any(valid_mask):
-        expected_ampv = np.log10(ftfreq[valid_mask])
-        actual_ampv = ampv[valid_mask]
-
-        # Should be close due to logarithmic interpolation
-        assert actual_ampv == pytest.approx(expected_ampv)
+    # The old code behaves poorly on non-smooth data. The we can hope
+    # for is 5% equivalence.
+    assert ampv.ravel() == pytest.approx(expected_ampv, rel=0.05)
+    assert ftfreq == pytest.approx(expected_ftfreq)
 
 
-def test_monotonicity_preservation():
-    """Test that monotonic input produces reasonable output."""
-    freqs = np.array([1.0, 2.0, 4.0, 8.0, 16.0])
-    ampf0 = np.array([1.0, 1.5, 2.0, 2.5, 3.0])  # Monotonically increasing
+@pytest.fixture
+def benchmark_amp_bandpass_data() -> dict:
+    with open(Path(__file__).parent / "amp_bandpass_benchmark.pkl", "rb") as f:
+        return pickle.load(f)
 
-    dt = 0.01
-    n = 200
 
-    ampv, _ = siteamp_models.interpolate_amplification_factors(freqs, ampf0, dt, n)
-    ampv = ampv.flatten()
-    da = np.diff(ampv)
-    assert np.all(da >= 0)
+def test_interpolate_amp_bandpass(benchmark_amp_bandpass_data: dict):
+    ftfreq = benchmark_amp_bandpass_data["ftfreq"].copy()
+    ampv = benchmark_amp_bandpass_data["ampv"].copy()
+    fmin = benchmark_amp_bandpass_data["fmin"]
+    fmidbot = benchmark_amp_bandpass_data["fmidbot"]
+    fhightop = benchmark_amp_bandpass_data["fhightop"]
+    fmax = benchmark_amp_bandpass_data["fmax"]
+    expected_ampf = benchmark_amp_bandpass_data["expected_ampf"]
+    ampf = siteamp_models.amp_bandpass(
+        np.atleast_2d(ampv), fhightop, fmax, fmidbot, fmin, ftfreq
+    )
+    assert ampf.ravel() == pytest.approx(expected_ampf)
 
 
 @pytest.mark.parametrize(
