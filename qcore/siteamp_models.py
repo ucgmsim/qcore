@@ -1,6 +1,5 @@
 """Site amplification models."""
 
-
 from enum import Enum
 
 import numpy as np
@@ -521,8 +520,10 @@ def cb_amp_multi(
             raise ValueError(f"Column '{name}' contains infinite values")
         if np.any(arr <= 0):
             raise ValueError(f"Column '{name}' contains non-positive values")
-        if not np.isdtype(arr.dtype, 'real floating'):
-            raise ValueError(f"Column '{name}' has incorrect kind, must be real floating")
+        if not np.isdtype(arr.dtype, "real floating"):
+            raise ValueError(
+                f"Column '{name}' has incorrect kind, must be real floating"
+            )
 
     # Use pga for reference dtype because it is more reliably a float,
     # where vref can sometimes be an int.
