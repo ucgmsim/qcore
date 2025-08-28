@@ -608,6 +608,8 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
     ds.attrs["resolution"] = header.resolution
     ds.attrs["rotation"] = header.rotation
     ds.attrs["units"] = "cm/s^2"
+    # start second = -3 / flo = -3 * (0.5 / (5 * dx))
+    ds.attrs["start_sec"] = -3 * (0.5 / (5 * header.resolution))
 
     return ds
 
