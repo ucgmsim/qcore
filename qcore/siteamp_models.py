@@ -520,7 +520,7 @@ def cb_amp_multi(
             raise ValueError(f"Column '{name}' contains infinite values")
         if np.any(arr <= 0):
             raise ValueError(f"Column '{name}' contains non-positive values")
-        if not np.isdtype(arr.dtype, "real floating"):
+        if not np.issubdtype(arr.dtype, np.floating):
             raise ValueError(
                 f"Column '{name}' has incorrect kind, must be real floating"
             )
