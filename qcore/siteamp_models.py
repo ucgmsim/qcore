@@ -660,7 +660,16 @@ def interpolate_amplification_factors(
     ampf0 = ampf0[:, ::-1]
 
     # Target Fourier frequencies (skip 0 and Nyquist)
-    ftfreq = np.fft.rfftfreq(n, dt)[1:-1].ravel().astype(freqs.dtype)
+    ftfreq = np.fft.rfftfreq(n, dt).ravel().astype(freqs.dtype)
+
+    if n % 2 == 1:
+        # If n is odd, the highest frequency is *less* than the
+        # Nyquist frequency so we can include it without aliasing.
+        ftfreq = ftfreq[0:]
+    else:
+        # If n is even the highest frequency is the Nyquist freqency
+        # so we should remove it to avoid aliasing.
+        ftfreq = ftfreq[0:-1]
 
     # Interpolate in log-frequency space
     log_fftfreq = np.log(ftfreq)
