@@ -8,6 +8,33 @@ from numba import njit
 
 from qcore.uncertainties import distributions
 
+AMPLIFICATION_FREQUENCIES = 1.0 / np.array(
+    [
+        0.001,
+        0.01,
+        0.02,
+        0.03,
+        0.05,
+        0.075,
+        0.10,
+        0.15,
+        0.20,
+        0.25,
+        0.30,
+        0.40,
+        0.50,
+        0.75,
+        1.00,
+        1.50,
+        2.00,
+        3.00,
+        4.00,
+        5.00,
+        7.50,
+        10.0,
+    ]
+)
+
 
 def amplification_uncertainty(
     amplification_factors: np.ndarray,
@@ -163,34 +190,6 @@ def _compute_fs_value(
         return _fs_mid(t_idx, vs30, c10, k1, k2)
     else:
         return _fs_high(t_idx, c10, k1, k2)
-
-
-AMPLIFICATION_FREQUENCIES = 1.0 / np.array(
-    [
-        0.001,
-        0.01,
-        0.02,
-        0.03,
-        0.05,
-        0.075,
-        0.10,
-        0.15,
-        0.20,
-        0.25,
-        0.30,
-        0.40,
-        0.50,
-        0.75,
-        1.00,
-        1.50,
-        2.00,
-        3.00,
-        4.00,
-        5.00,
-        7.50,
-        10.0,
-    ]
-)
 
 
 @njit
@@ -667,7 +666,7 @@ def interpolate_amplification_factors(
         # Nyquist frequency so we can include it without aliasing.
         ftfreq = ftfreq[1:]
     else:
-        # If n is even the highest frequency is the Nyquist freqency
+        # If n is even the highest frequency is the Nyquist frequency
         # so we should remove it to avoid aliasing.
         ftfreq = ftfreq[1:-1]
 

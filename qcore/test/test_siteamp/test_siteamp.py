@@ -58,7 +58,7 @@ def test_cb_2014_siteamp_bad_dtypes() -> None:
     with pytest.raises(
         ValueError, match="Column '.*' has incorrect kind, must be real floating"
     ):
-        output = siteamp_models.cb_amp_multi(input_df)
+        _ = siteamp_models.cb_amp_multi(input_df)
 
 
 def test_cb_2014_siteamp_model_types() -> None:
@@ -106,7 +106,7 @@ def test_interpolate_frequency(benchmark_interpolation_data: dict):
 
     ampv, ftfreq = siteamp_models.interpolate_amplification_factors(freqs, ampf0, dt, n)
 
-    # The old code behaves poorly on non-smooth data. The we can hope
+    # The old code behaves poorly on non-smooth data. The best we can hope
     # for is 5% equivalence.
     assert ampv.ravel() == pytest.approx(expected_ampv, rel=0.05)
     assert ftfreq == pytest.approx(expected_ftfreq)
