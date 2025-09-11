@@ -472,7 +472,7 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
         # working with component x, y, and then z with arrays of shape
         # (nstat_file, nt). Rearranging the data in this way optimises
         # the memory layout for broadband processing. It is all
-        # transparent the user interacting with xarray anyhow, so the
+        # transparent to the user interacting with xarray anyhow, so the
         # order of the dimensions hardly matters.
         waveform = np.transpose(waveform[:, :, :3], (2, 1, 0))
         # Have numpy re-arrange the waveform in-memory to reflect the
