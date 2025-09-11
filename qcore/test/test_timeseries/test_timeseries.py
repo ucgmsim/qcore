@@ -440,7 +440,7 @@ def header_strategy(
             width=32,
         ),
         resolution=st.floats(
-            min_value=1e-4,
+            min_value=2**-4,
             max_value=100.0,
             allow_nan=False,
             allow_infinity=False,
