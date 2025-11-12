@@ -226,6 +226,11 @@ def coordinate_patchgrid(
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
 
+    Raises
+    ------
+    ValueError
+        If resolution, nx and ny are not provided.
+
     Notes
     -----
     The patch grid may have different sizes than given in as resolution if the resolution does not divide the lengths of the sides of the plane evenly.
@@ -250,8 +255,11 @@ def coordinate_patchgrid(
     len_x = np.linalg.norm(v_x)
     len_y = np.linalg.norm(v_y)
 
-    nx = nx or max(1, round(float(len_x / resolution)))
-    ny = ny or max(1, round(float(len_y / resolution)))
+    if not resolution and not (nx and ny):
+        raise ValueError("If resolution is not provided, nx and ny must be.")
+
+    nx = nx or max(1, round(float(len_x / resolution)))  # type: ignore
+    ny = ny or max(1, round(float(len_y / resolution)))  # type: ignore
 
     alpha, beta = np.meshgrid(
         # The 1 / (2 * nx) term is to ensure that the patches are centred on the grid points.

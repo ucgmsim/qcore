@@ -6,7 +6,7 @@ from typing import Any
 from warnings import deprecated  # type: ignore
 
 
-@deprecated
+@deprecated("Use built-in Enum")
 class ExtendedEnum(Enum):
     """DEPRECATED: Utility enum extension. Use built-in Enum."""
 
@@ -67,8 +67,8 @@ class ExtendedEnum(Enum):
         return self.name
 
 
-@deprecated
-class ExtendedStrEnum(ExtendedEnum):
+@deprecated("Use built-in StrEnum")
+class ExtendedStrEnum(ExtendedEnum):  # type: ignore
     """DEPRECATED: Utility Enum extension for string mappings. Use built-in StrEnum."""
 
     def __new__(cls, value: Any, str_value: str):  # noqa: D102 # numpydoc ignore=GL08

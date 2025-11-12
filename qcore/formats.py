@@ -12,7 +12,7 @@ from warnings import deprecated  # type: ignore
 import pandas as pd
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_im_file_pd(
     imcsv: Path | str, all_ims: bool = False, comp: str | None = None
 ) -> pd.DataFrame:
@@ -54,7 +54,7 @@ def station_file_argparser(
 def station_file_argparser() -> argparse.ArgumentParser: ...  # numpydoc ignore=GL08
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def station_file_argparser(
     parser: argparse.ArgumentParser | None = None,
 ) -> argparse.ArgumentParser | None:
@@ -120,7 +120,7 @@ def station_file_argparser(
     return parser
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_generic_station_file(
     stat_file: str,
     stat_name_col: int = 2,
@@ -181,7 +181,7 @@ def load_generic_station_file(
     )
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_station_file(station_file: str) -> pd.DataFrame:
     """Load a station file into a pandas DataFrame.
 
@@ -205,7 +205,7 @@ def load_station_file(station_file: str) -> pd.DataFrame:
     )
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_vs30_file(vs30_file: str) -> pd.DataFrame:
     """Load a Vs30 (shear-wave velocity) file into a pandas DataFrame.
 
@@ -222,7 +222,7 @@ def load_vs30_file(vs30_file: str) -> pd.DataFrame:
     return pd.read_csv(vs30_file, sep=r"\s+", index_col=0, header=None, names=["vs30"])
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_z_file(z_file: str) -> pd.DataFrame:
     """Load a z-file containing depth parameters (e.g., z1.0, z2.5) into a pandas DataFrame.
 
@@ -239,7 +239,7 @@ def load_z_file(z_file: str) -> pd.DataFrame:
     return pd.read_csv(z_file, names=["z1p0", "z2p5", "sigma"], index_col=0, skiprows=1)
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_station_ll_vs30(station_file: str, vs30_file: str) -> pd.DataFrame:
     """Merge station location and Vs30 data into a single DataFrame.
 
@@ -256,13 +256,13 @@ def load_station_ll_vs30(station_file: str, vs30_file: str) -> pd.DataFrame:
         DataFrame indexed by station, with columns ``lon``, ``lat``, and ``vs30``.
     """
 
-    vs30_df = load_vs30_file(vs30_file)
-    station_df = load_station_file(station_file)
+    vs30_df = load_vs30_file(vs30_file)  # type: ignore
+    station_df = load_station_file(station_file)  # type: ignore
 
     return vs30_df.merge(station_df, left_index=True, right_index=True)
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_rrup_file(rrup_file: str) -> pd.DataFrame:
     """Reads the rrup file into a pandas dataframe
 
@@ -279,7 +279,7 @@ def load_rrup_file(rrup_file: str) -> pd.DataFrame:
     return pd.read_csv(rrup_file, header=0, index_col=0, engine="c")
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_fault_selection_file(fault_selection_file: str | Path) -> dict[str, int]:
     """Load a fault selection file into a dictionary of fault names and counts.
 
