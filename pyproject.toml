@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest", "hypothesis[numpy]"]
+test = ["pytest", "hypothesis[numpy]", "pytest-cov"]
 dev = ["ruff", "deptry", "ty"]
 
 [tool.setuptools.package-dir]
