@@ -87,7 +87,7 @@ def _fs_low(
     c10: np.ndarray,
     k1: np.ndarray,
     k2: np.ndarray,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """Compute site factor based on vs30 value - low code path
 
     Parameters
@@ -139,7 +139,9 @@ def _fs_mid(
 
 
 @njit
-def _fs_high(t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray):
+def _fs_high(
+    t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray
+):  # pragma: no cover
     """Compute site factor based on vs30 value - high code path
 
     Parameters
@@ -167,7 +169,7 @@ def _compute_fs_value(
     c10: np.ndarray,
     k1: np.ndarray,
     k2: np.ndarray,
-):
+):  # pragma: no cover
     """Compute site factor based on vs30 value
 
     Parameters
@@ -201,7 +203,7 @@ def _cb_amp(
     version: int = 2014,
     flowcap: float = 0.0,
     freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """
     Numba translation of cb_amp.
 
@@ -375,7 +377,7 @@ def _cb_amp_multi(
     version: int,
     flowcap: float,
     freqs: np.ndarray,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """Numba version of cb_amp that processes multiple parameter sets.
 
     Parameters
@@ -584,7 +586,9 @@ def cb2014_to_fas_amplification_factors(
 @njit(
     parallel=True,
 )
-def interp_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+def interp_2d(
+    x: np.ndarray, xp: np.ndarray, fp: np.ndarray
+) -> np.ndarray:  # pragma: no cover
     """Perform interpolation of a vector-valued function f at `x` with interpolation nodes `xp` and `fp`.
 
     This handles the case where `fp` is not 1-D. Interpolation is
@@ -688,7 +692,7 @@ def amp_bandpass(
     fmidbot: float,
     fmin: float,
     fftfreq: np.ndarray,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """Frequency-dependent amplification adjustment for site amplification factors.
 
     This function applies frequency-dependent amplification adjustments
