@@ -16,12 +16,13 @@ dependencies = [
   "pyproj",
   "pooch",
   "requests",
-  "shapely",
+  "scipy",
   "numpy",
   "numba",
   "typer",
   "docstring_parser",
   "xarray",
+  "pyyaml"
 ]
 
 [project.optional-dependencies]
