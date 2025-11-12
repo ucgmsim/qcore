@@ -16,6 +16,7 @@ Functions:
 from typing import Optional
 
 import numpy as np
+import numpy.typing as npt
 import scipy as sp
 
 
@@ -99,7 +100,10 @@ def truncated_weibull_expected_value(
 
 
 def truncated_log_normal(
-    mean: float, std_dev: float, std_dev_limit: float = 2, seed: Optional[int] = None
+    mean: npt.ArrayLike,
+    std_dev: float,
+    std_dev_limit: float = 2,
+    seed: Optional[int] = None,
 ) -> float:
     """
     Generate a random value from a truncated log-normal distribution.

@@ -5,7 +5,7 @@ Miscellaneous functions whose usage is shared across a number of repositories.
 import re
 import subprocess
 import sys
-from io import IOBase
+from io import FileIO
 from pathlib import Path
 from typing import AnyStr, Optional, Union
 
@@ -62,7 +62,7 @@ def get_corners(
 
     Parameters
     ----------
-    model_params : Path or str
+    model_params_ffp : Path or str
         The file path of the model_params file.
     gmt_format : bool, default False
         If True, also returns corners in GMT string format.
@@ -102,11 +102,11 @@ def get_corners(
 def non_blocking_exe(
     cmd: Union[str, list[str]],
     debug: bool = True,
-    stdout: Union[bool, IOBase] = True,
-    stderr: Union[bool, IOBase] = True,
+    stdout: Union[bool, FileIO] = True,
+    stderr: Union[bool, FileIO] = True,
     **kwargs,
 ) -> subprocess.Popen:
-    """Run a command without blocking the calling thread.
+    r"""Run a command without blocking the calling thread.
 
     *DO NOT USE THIS FUNCTION* Instead, call subprocess.run or
     subprocess.check_call to execute processes.
@@ -126,13 +126,13 @@ def non_blocking_exe(
         to Popen.
     debug : bool, default True
         If True, print out the command to run before running.
-    stdout : bool or IOBase, default True
+    stdout : bool or FileIO, default True
         The stdout file handle to send output. If True, will default to
         subprocess.PIPE.
-    stderr : bool or IOBase, default True
+    stderr : bool or FileIO, default True
         The stderr file handle to send output. If True, will default to
         subprocess.PIPE.
-    kwargs : dict
+    **kwargs : dict
         Additional arguments, passed to Popen.
 
     Returns
@@ -148,19 +148,21 @@ def non_blocking_exe(
     if debug:
         virtual_cmd = " ".join(cmd)
 
-        if isinstance(stdout, IOBase):
+        if isinstance(stdout, FileIO):
             virtual_cmd += f" 1>{stdout.name}"
-        if isinstance(stderr, IOBase):
+        if isinstance(stderr, FileIO):
             virtual_cmd += f" 2>{stderr.name}"
         print(virtual_cmd, file=sys.stderr)
 
     # special cases for stderr and stdout
+    stdout_pipe = stdout
+    stderr_pipe = stderr
     if stdout is True:
-        stdout = subprocess.PIPE
+        stdout_pipe = subprocess.PIPE
     if stderr is True:
-        stderr = subprocess.PIPE
+        stderr_pipe = subprocess.PIPE
 
-    p = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, **kwargs)
+    p = subprocess.Popen(cmd, stdout=stdout_pipe, stderr=stderr_pipe, **kwargs)
     return p
 
 
@@ -186,7 +188,7 @@ def exe(
         If True, print out the command to run before running.
     stdin : str-like, optional
         If not None, then given to the running process as standard input.
-    kwargs : dict
+    **kwargs : dict
         Additional arguments, passed to Popen.
 
     Returns

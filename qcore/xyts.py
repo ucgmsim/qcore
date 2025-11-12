@@ -7,10 +7,6 @@ This module includes the XYTSFile class, which represents an XYTS file. It
 allows users to load metadata, retrieve data, and calculate PGV (Peak Ground
 Velocity) and MMI (Modified Mercalli Intensity) values from the XYTS file.
 
-Classes
-----------------
-- XYTSFile: Represents an XYTS file and provides methods to interact with it.
-
 Notes
 -----
 - This module assumes that the simulation domain is flat, and the timeseries
@@ -39,13 +35,14 @@ _, mmi_values = xyts_file.pgv(mmi=True)
 """
 
 import dataclasses
+from enum import Enum
 from math import cos, radians, sin
 from pathlib import Path
+from typing import Literal, overload
 
 import numpy as np
 
 from qcore import geo
-from enum import Enum
 
 
 class Component(Enum):
@@ -68,89 +65,121 @@ class XYTSFile:
     - dip = 0: Simulation domain is flat.
     - t0 = 0: Complete timeseries from t = 0.
 
-    Attributes:
-        x0: Starting x-coordinate.
-        y0: Starting y-coordinate.
-        z0: Starting z-coordinate.
-        t0: Starting time.
-        local_nx: Number of local x-coordinates (for proc-local files only).
-        local_ny: Number of local y-coordinates (for proc-local files only).
-        local_nz: Number of local z-coordinates (for proc-local files only).
-        nx: Total number of x-coordinates.
-        ny: Total number of y-coordinates.
-        nz: Total number of z-coordinates.
-        nt: Total number of time steps.
-        dx: Grid spacing in the x-direction.
-        dy: Grid spacing in the y-direction.
-        hh: Grid spacing in the z-direction.
-        dt: Time step size.
-        mrot: Rotation angle for model origin.
-        mlat: Latitude of the model origin.
-        mlon: Longitude of the model origin.
-        dxts: Original simulation grid spacing in the x-direction.
-        dyts: Original simulation grid spacing in the y-direction.
-        nx_sim: Original simulation size in the x-direction.
-        ny_sim: Original simulation size in the y-direction.
-        dip: Dip angle.
-        comps: Orientation of components (X, Y, Z).
-        cosR: Cosine of the rotation angle.
-        sinR: Sine of the rotation angle.
-        cosP: Cosine of the dip angle.
-        sinP: Sine of the dip angle.
-        rot_matrix: Rotation matrix for components.
-        data: Memory-mapped array containing the data.
-        ll_map: Longitude-latitude map for data.
+    Parameters
+    ----------
+    xyts_path : Path | str
+        Path to the xyts file.
+    meta_only : bool
+        If True, only loads metadata and doesn't prepare gridpoint datum
+        locations (slower).
+    proc_local_file : bool
+        If True, indicates a proc-local file.
+    round_dt : bool
+        If True, round the dt value to 4dp (present only for backwards
+        compatibility).
 
-    Methods:
-        __init__(xyts_path, meta_only=False, proc_local_file=False):
-            Initializes the XYTSFile object by loading metadata and memmapping
-            data sections.
-
-        corners(gmt_format=False):
-            Retrieves the corners of the simulation domain.
-
-        region(corners=None):
-            Returns the simulation region as a tuple (x_min, x_max, y_min, y_max).
-
-        tslice_get(step, comp=-1, outfile=None):
-            Retrieves timeslice data.
-
-        pgv(mmi=False, pgvout=None, mmiout=None):
-            Retrieves PGV map and optionally calculates MMI.
+    Raises
+    ------
+    ValueError
+        ValueError: If the file is not an XY timeslice file.
     """
 
     # Header values
     x0: int
+    """Starting x-coordinate."""
+
     y0: int
+    """Starting y-coordinate."""
+
     z0: int
+    """Starting z-coordinate."""
+
     t0: int
-    #######################
+    """Starting time."""
+
     nx: int
+    """Total number of x-coordinates."""
+
     ny: int
+    """Total number of y-coordinates."""
+
     nz: int
+    """Total number of z-coordinates."""
+
     nt: int
+    """Total number of time steps."""
+
     dx: float
+    """Grid spacing in the x-direction."""
+
     dy: float
+    """Grid spacing in the y-direction."""
+
     hh: float
+    """Grid spacing in the z-direction."""
+
     dt: float
+    """Time step size."""
+
     mrot: float
+    """Rotation angle for model origin."""
+
     mlat: float
+    """Latitude of the model origin."""
+
     mlon: float
+    """Longitude of the model origin."""
+
     # Derived values
     dxts: int
+    """Original simulation grid spacing in the x-direction."""
+
     dyts: int
+    """Original simulation grid spacing in the y-direction."""
+
     nx_sim: int
+    """Original simulation size in the x-direction."""
+
+    ny_sim: int
+    """Original simulation size in the y-direction."""
+
     dip: float
+    """Dip angle."""
+
     comps: dict[str, float]
-    cosR: float
-    sinR: float
-    cosP: float
-    sinP: float
+    """Orientation of components (X, Y, Z)."""
+
+    cos_r: float
+    """Cosine of the rotation angle."""
+
+    sin_r: float
+    """Sine of the rotation angle."""
+
+    cos_p: float
+    """Cosine of the dip angle."""
+
+    sin_p: float
+    """Sine of the dip angle."""
+
     rot_matrix: np.ndarray
+    """Rotation matrix for components."""
+
     # proc-local files only
     local_nx: int | None = None
+    """Number of local x-coordinates (for proc-local files only)."""
+
     local_ny: int | None = None
+    """Number of local y-coordinates (for proc-local files only)."""
+
     local_nz: int | None = None
+    """Number of local z-coordinates (for proc-local files only)."""
+
+    # data arrays
+    data: np.memmap | None = None
+    """Memory-mapped array containing the data."""
+
+    ll_map: np.ndarray | None = None
+    """Longitude-latitude map for data."""
 
     # contents
     data: np.memmap | None = (
@@ -159,34 +188,13 @@ class XYTSFile:
 
     ll_map: np.ndarray | None = None
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         xyts_path: Path | str,
         meta_only: bool = False,
         proc_local_file: bool = False,
         round_dt: bool = True,
-    ):
-        """Initializes the XYTSFile object.
-
-        Parameters
-        ----------
-        xyts_path : Path | str
-            Path to the xyts file.
-        meta_only : bool
-            If True, only loads metadata and doesn't prepare gridpoint datum
-            locations (slower).
-        proc_local_file : bool
-            If True, indicates a proc-local file.
-        round_dt : bool
-            If True, round the dt value to 4dp (present only for backwards
-            compatibility).
-
-        Raises
-        ------
-        ValueError
-            ValueError: If the file is not an XY timeslice file.
-        """
-
+    ):  # numpydoc ignore=GL08
         xytf = open(xyts_path, "rb")
 
         self.xyts_path = xyts_path
@@ -239,11 +247,11 @@ class XYTSFile:
             "Z": radians(90 - self.dip),
         }
         # rotation of components so Y is true north
-        self.cosR = cos(self.comps["X"])
-        self.sinR = sin(self.comps["X"])
+        self.cos_r = cos(self.comps["X"])
+        self.sin_r = sin(self.comps["X"])
         # simulation plane always flat, dip = 0
-        self.cosP = 0  # cos(self.comps['Z'])
-        self.sinP = 1  # sin(self.comps['Z'])
+        self.cos_p = 0  # cos(self.comps['Z'])
+        self.sin_p = 1  # sin(self.comps['Z'])
         # xy dual component rotation matrix
         # must also flip vertical axis
         theta = radians(self.mrot)
@@ -258,16 +266,21 @@ class XYTSFile:
         if proc_local_file:
             self.data = np.memmap(
                 xyts_path,
-                dtype="%sf4" % (endian),
+                dtype=f"{endian}f4",
                 mode="r",
                 offset=72,
-                shape=(self.nt, len(self.comps), self.local_ny, self.local_nx),
+                shape=(
+                    int(self.nt),
+                    len(self.comps),
+                    int(self.local_ny),
+                    int(self.local_nx),
+                ),
             )
         else:
             # memory map for data section
             self.data = np.memmap(
                 xyts_path,
-                dtype="%sf4" % (endian),
+                dtype=f"{endian}f4",
                 mode="r",
                 offset=60,
                 shape=(self.nt, len(self.comps), self.ny, self.nx),
@@ -288,6 +301,18 @@ class XYTSFile:
             ll_map[ll_map[:, :, 0] < 0, 0] += 360
         self.ll_map = ll_map
 
+    @overload
+    def corners(
+        self, gmt_format: Literal[True]
+    ) -> tuple[list[list[float]], str]: ...  # numpydoc ignore=GL08
+
+    @overload
+    def corners(
+        self, gmt_format: Literal[False]
+    ) -> list[list[float]]: ...  # numpydoc ignore=GL08
+
+    @overload
+    def corners(self) -> list[list[float]]: ...  # numpydoc ignore=GL08
     def corners(
         self, gmt_format: bool = False
     ) -> list[list[float]] | tuple[list[list[float]], str]:
@@ -347,7 +372,7 @@ class XYTSFile:
             The simulation region as a tuple (x_min, x_max, y_min, y_max).
         """
         if corners is None:
-            corners = self.corners()
+            corners: np.ndarray = np.asarray(self.corners())
         x_min, y_min = np.min(corners, axis=0)
         x_max, y_max = np.max(corners, axis=0)
 
@@ -372,18 +397,22 @@ class XYTSFile:
         np.ndarray
             Retrieved timeslice data.
         """
+        if self.data is None:
+            raise AttributeError(
+                "The data attribute must be set to use `tslice_get`. Did you set `meta_only=True` when you initialised the class?"
+            )
         match comp:
             case Component.MAGNITUDE:
                 return np.linalg.norm(self.data[step, :3, :, :], axis=0)
             case Component.X:
                 return (
-                    self.data[step, 0, :, :] * self.sinR
-                    + self.data[step, 1, :, :] * self.cosR
+                    self.data[step, 0, :, :] * self.sin_r
+                    + self.data[step, 1, :, :] * self.cos_r
                 )
             case Component.Y:
                 return (
-                    self.data[step, 0, :, :] * self.cosR
-                    - self.data[step, 1, :, :] * self.sinR
+                    self.data[step, 0, :, :] * self.cos_r
+                    - self.data[step, 1, :, :] * self.sin_r
                 )
             case Component.Z:
                 return self.data[step, 2, :, :] * -1
@@ -411,6 +440,11 @@ class XYTSFile:
             PGV map or tuple of (PGV map, MMI map) or None (if both are written to a
             file).
         """
+
+        if self.data is None or self.ll_map is None:
+            raise AttributeError(
+                "The data and ll_map attributes must be set to use `pgv`. Did you set `meta_only=True` when you initialised the class?"
+            )
         # PGV as timeslices reduced to maximum value at each point
         pgv = np.zeros(self.nx * self.ny)
         for ts in range(self.t0, self.nt):

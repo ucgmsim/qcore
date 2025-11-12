@@ -1,8 +1,0 @@
-{
-    "tools_dir" : "/scratch/hpc11a02/gmsim_home/opt/nurion/hybrid_sim_tools/current",
-    "cores_per_node": 64,
-    "memory_per_core" : 1.4,
-    "MAX_NODES_PER_JOB" : 4970,
-    "MAX_JOB_WCT" : 48,
-    "MAX_CH_PER_JOB": Infinity
-}

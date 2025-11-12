@@ -1,8 +1,0 @@
-{
-    "tools_dir" : "/nesi/project/nesi00213/tools",
-    "cores_per_node" : 1,
-    "memory_per_core" : 1,
-    "MAX_NODES_PER_JOB" : 1,
-    "MAX_JOB_WCT" : 1000,
-    "MAX_CH_PER_JOB": Infinity
-}

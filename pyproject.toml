@@ -8,23 +8,33 @@ version = "1.2"
 description = "QuakeCoRE Library"
 authors = [{ name = "QuakeCoRE" }]
 readme = "README.md"
-requires-python = ">=3.11"
-dynamic = ["dependencies"]
+requires-python = ">=3.13"
+dependencies = [
+  "pandas",
+  "pyfftw",
+  "filelock",
+  "pyproj",
+  "pooch",
+  "requests",
+  "shapely",
+  "numpy",
+  "numba",
+  "typer",
+  "docstring_parser",
+  "xarray",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "hypothesis[numpy]"]
+dev = ["ruff", "deptry", "ty"]
 
 [tool.setuptools.package-dir]
 qcore = "qcore"
 
 [tool.setuptools.package-data]
 "qcore" = [
-  "configs/*.json",
-  "data/*",
-  "data/*/*",
-  "data/*/*/*",
   "registry/registry.txt",
 ]
-
-[tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
 
 [tool.ruff.lint]
 extend-select = [

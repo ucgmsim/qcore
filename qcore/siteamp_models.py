@@ -559,8 +559,6 @@ def cb2014_to_fas_amplification_factors(
 
     Parameters
     ----------
-    freqs : np.ndarray
-        The SA frequencies corresponding to site-amplification factors.
     ampf0 : np.ndarray
         The amplification factors.
     dt : float
@@ -569,6 +567,8 @@ def cb2014_to_fas_amplification_factors(
         The number of timesteps of the waveforms.
     fmin, fmidbot, fhightop, fmax : float, optional
         Bandpass filter parameters, see `amp_bandpass`.
+    freqs : np.ndarray, optional
+        The SA frequencies corresponding to site-amplification factors.
 
     Returns
     -------
@@ -722,7 +722,7 @@ def amp_bandpass(
         logarithmically between (fmin, fmidbot].
     fmin : float
         The minimum frequency. Amplification is set to 1 below this frequency.
-    ftfreq : np.ndarray
+    fftfreq : np.ndarray
         A 1D array of Fourier transform frequencies corresponding to
         the amplification values.
 

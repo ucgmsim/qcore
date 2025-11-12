@@ -1,16 +1,5 @@
 """
 This module provides functions for working with planar regions defined by geographical coordinates.
-
-Functions
----------
-grid_corners
-    Returns the corners of a plane from a series of parameters.
-
-coordinate_meshgrid
-    Creates a meshgrid of points in a bounded plane region.
-
-gridpoint_count_in_length
-    Calculate the number of gridpoints that fit into a given length.
 """
 
 from typing import Optional
@@ -148,8 +137,8 @@ def coordinate_meshgrid(
     length_x = np.linalg.norm(x_upper - origin)
     length_y = np.linalg.norm(y_bottom - origin)
 
-    nx = nx or gridpoint_count_in_length(length_x, resolution)
-    ny = ny or gridpoint_count_in_length(length_y, resolution)
+    nx = nx or gridpoint_count_in_length(float(length_x), resolution)
+    ny = ny or gridpoint_count_in_length(float(length_y), resolution)
 
     # We first create a meshgrid of coordinates across a flat rectangle like the following
     #
@@ -237,12 +226,12 @@ def coordinate_patchgrid(
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
 
-    Note
-    ----
+    Notes
+    -----
     The patch grid may have different sizes than given in as resolution if the resolution does not divide the lengths of the sides of the plane evenly.
 
-    Example
-    -------
+    Examples
+    --------
     >>> origin = np.array([-43.5321, 172.6362, 0.0])  # Christchurch, NZ
     >>> x_upper = np.array([-43.5311, 172.6462, 0.0]) # ~800m to the east
     >>> y_bottom = np.array([-43.5421, 172.6362, 0.0]) # ~1.2km to the south
@@ -261,8 +250,8 @@ def coordinate_patchgrid(
     len_x = np.linalg.norm(v_x)
     len_y = np.linalg.norm(v_y)
 
-    nx = nx or max(1, round(len_x / resolution))
-    ny = ny or max(1, round(len_y / resolution))
+    nx = nx or max(1, round(float(len_x / resolution)))
+    ny = ny or max(1, round(float(len_y / resolution)))
 
     alpha, beta = np.meshgrid(
         # The 1 / (2 * nx) term is to ensure that the patches are centred on the grid points.

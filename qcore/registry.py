@@ -1,3 +1,5 @@
+"""Registry-management related utilities"""
+
 import re
 from pathlib import Path, PurePath
 from typing import Optional
@@ -5,6 +7,7 @@ from typing import Optional
 import filelock
 import pooch
 import requests
+from pooch import core
 
 
 def resolve_git_reference(reference: str = "main") -> str:
@@ -63,7 +66,6 @@ def qcore_registry(
         reference = resolve_git_reference()
 
     if not registry:
-
         with requests.get(
             f"https://raw.githubusercontent.com/ucgmsim/registry/{reference}/registry.txt",
             timeout=30,
@@ -109,7 +111,7 @@ def fetch_file(
     """
     local_path = registry.abspath / filepath
     known_hash = registry.registry[str(filepath)]
-    if pooch.core.download_action(local_path, known_hash)[0] != "fetch":
+    if core.download_action(local_path, known_hash)[0] != "fetch":
         lock_path = registry.abspath / filepath.with_suffix(filepath.suffix + ".lock")
         with filelock.FileLock(lock_path, timeout=lock_timeout):
             return Path(registry.fetch(str(filepath)))
