@@ -6,7 +6,9 @@ from numba import jit, njit
 
 
 @jit(nopython=True)
-def is_inside_postgis(polygon: np.ndarray, point: np.ndarray) -> int:
+def is_inside_postgis(
+    polygon: np.ndarray, point: np.ndarray
+) -> int:  # pragma: no cover
     """
     Function that checks if a point is inside a polygon
     Based on solutions found here
@@ -56,7 +58,9 @@ def is_inside_postgis(polygon: np.ndarray, point: np.ndarray) -> int:
 
 
 @njit(parallel=True)
-def is_inside_postgis_parallel(points: np.ndarray, polygon: np.ndarray) -> np.ndarray:
+def is_inside_postgis_parallel(
+    points: np.ndarray, polygon: np.ndarray
+) -> np.ndarray:  # pragma: no cover
     """
     Function that checks if a set of points is inside a polygon in parallel
 
