@@ -1,7 +1,5 @@
 import os
 
-import pytest
-
 from qcore import simulation_structure
 
 
@@ -90,18 +88,21 @@ def test_get_im_calc_dir_with_realisation():
     sim_root = "/sim/root"
     realisation = "MyFault_REL01"
     result = simulation_structure.get_im_calc_dir(sim_root, realisation)
-    expected = os.path.join(
-        "/sim/root", "Runs", "MyFault", "MyFault_REL01", "IM_calc"
-    )
+    expected = os.path.join("/sim/root", "Runs", "MyFault", "MyFault_REL01", "IM_calc")
     assert result == expected
 
 
-def test_get_IM_csv_from_root():
+def test_get_IM_csv_from_root():  # noqa: N802
     cybershake_root = "/cybershake"
     realisation = "MyFault_REL01"
     result = simulation_structure.get_IM_csv_from_root(cybershake_root, realisation)
     expected = os.path.join(
-        "/cybershake", "Runs", "MyFault", "MyFault_REL01", "IM_calc", "MyFault_REL01.csv"
+        "/cybershake",
+        "Runs",
+        "MyFault",
+        "MyFault_REL01",
+        "IM_calc",
+        "MyFault_REL01.csv",
     )
     assert result == expected
 

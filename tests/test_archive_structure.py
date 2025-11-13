@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 from qcore import archive_structure
 
 
@@ -19,7 +17,7 @@ def test_get_fault_im_dir():
     assert isinstance(result, Path)
 
 
-def test_get_IM_csv_from_root():
+def test_get_IM_csv_from_root():  # noqa: N802
     archive_root = Path("/archive/root")
     realisation = "SomeFault_REL01"
     result = archive_structure.get_IM_csv_from_root(archive_root, realisation)
@@ -28,7 +26,7 @@ def test_get_IM_csv_from_root():
     assert isinstance(result, Path)
 
 
-def test_get_IM_csv_from_root_different_realisation():
+def test_get_IM_csv_from_root_different_realisation():  # noqa: N802
     archive_root = Path("/archive/root")
     realisation = "AlpineF2K3T1_REL03"
     result = archive_structure.get_IM_csv_from_root(archive_root, realisation)
