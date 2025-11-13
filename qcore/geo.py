@@ -459,10 +459,10 @@ def avg_wbearing(angles: list[list[float]]) -> float:
 
 def path_from_corners(
     corners: list[tuple[float, float]],
-    output: str = "sim.modelpath_hr",
+    output: str | None = "sim.modelpath_hr",
     min_edge_points: int = 100,
     close: bool = True,
-) -> list[tuple[float]] | None:
+) -> list[tuple[float | int, float | int]] | None:
     """
     Generate a path connecting the corners of a region with optional subdivision and output.
 

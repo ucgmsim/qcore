@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 from hypothesis import given
@@ -13,8 +15,12 @@ from qcore import geo
         (80, 180, 100),
         (320, 0, 40),
         (180, -180, 0),
-        (10, 200, -170),  # Test case where result > 180: (200-10)%360=190, returns 190-360=-170
-        (0, 270, -90),    # Another test case: (270-0)%360=270, returns 270-360=-90
+        (
+            10,
+            200,
+            -170,
+        ),  # Test case where result > 180: (200-10)%360=190, returns 190-360=-170
+        (0, 270, -90),  # Another test case: (270-0)%360=270, returns 270-360=-90
     ],
 )
 def test_angle_diff(test_b1: float, test_b2: float, expected_angle: float) -> None:
@@ -174,9 +180,9 @@ def test_get_distances_single_reference() -> None:
     """Test get_distances with a single reference point."""
     locations = np.array([[174.7645, -36.8509], [174.7787, -41.2924]])  # lon, lat
     ref_lon, ref_lat = 174.7645, -36.8509
-    
+
     distances = geo.get_distances(locations, ref_lon, ref_lat)
-    
+
     assert distances.shape == (2,)
     assert distances[0] == pytest.approx(0.0, abs=1e-6)  # Same location
     assert distances[1] > 0  # Different location
@@ -187,9 +193,9 @@ def test_get_distances_multiple_references() -> None:
     locations = np.array([[174.7645, -36.8509], [174.7787, -41.2924]])
     ref_lons = np.array([174.7645, 174.7787])
     ref_lats = np.array([-36.8509, -41.2924])
-    
+
     distances = geo.get_distances(locations, ref_lons, ref_lats)
-    
+
     assert distances.shape == (2, 2)
     assert distances[0, 0] == pytest.approx(0.0, abs=1e-6)
     assert distances[1, 1] == pytest.approx(0.0, abs=1e-6)
@@ -197,11 +203,13 @@ def test_get_distances_multiple_references() -> None:
 
 def test_closest_location() -> None:
     """Test closest_location function."""
-    locations = np.array([[174.7645, -36.8509], [174.7787, -41.2924], [172.6366, -43.5320]])
+    locations = np.array(
+        [[174.7645, -36.8509], [174.7787, -41.2924], [172.6366, -43.5320]]
+    )
     ref_lon, ref_lat = 174.7650, -36.8510
-    
+
     idx, distance = geo.closest_location(locations, ref_lon, ref_lat)
-    
+
     assert idx == 0  # First location should be closest
     assert isinstance(idx, int)
     assert isinstance(distance, float)
@@ -211,9 +219,9 @@ def test_closest_location() -> None:
 def test_gen_mat() -> None:
     """Test gen_mat transformation matrix generation."""
     mrot, mlon, mlat = 45.0, 174.0, -43.0
-    
+
     amat, ainv = geo.gen_mat(mrot, mlon, mlat)
-    
+
     assert amat.shape == (9,)  # Flattened 3x3 matrix
     assert ainv.shape == (9,)
     # Test that the matrices are valid (not all zeros)
@@ -222,24 +230,25 @@ def test_gen_mat() -> None:
     # Test basic properties of transformation matrices
     amat_2d = amat.reshape(3, 3)
     ainv_2d = ainv.reshape(3, 3)
-    # The determinant should be non-zero
-    assert np.abs(np.linalg.det(amat_2d)) > 1e-6
+    # The determinant should be close to 1
+    assert np.linalg.det(amat_2d) == pytest.approx(1)
+    assert amat_2d @ ainv_2d == pytest.approx(np.eye(3, dtype=amat_2d.dtype), abs=1e-6)
 
 
 def test_xy2ll_and_ll2xy_roundtrip() -> None:
     """Test that xy2ll and ll2xy are inverses of each other."""
     mrot, mlon, mlat = 0.0, 174.0, -43.0
     amat, ainv = geo.gen_mat(mrot, mlon, mlat)
-    
+
     # Test with some XY offsets
     xy_km = np.array([[10.0, 20.0], [5.0, -15.0], [0.0, 0.0]])
-    
+
     # Convert XY to lat/lon
     ll = geo.xy2ll(xy_km, amat)
-    
+
     # Convert back to XY
     xy_recovered = geo.ll2xy(ll, ainv)
-    
+
     assert xy_recovered == pytest.approx(xy_km, abs=1e-3)
 
 
@@ -248,9 +257,9 @@ def test_gp2xy() -> None:
     gp = np.array([[0, 0], [1, 0], [0, 1], [2, 2]])
     nx, ny = 3, 3
     hh = 1.0  # 1 km spacing
-    
+
     xy = geo.gp2xy(gp, nx, ny, hh)
-    
+
     assert xy.shape == (4, 2)
     # Check that origin is at center
     # For nx=3, ny=3, center should be at index (1, 1)
@@ -262,9 +271,9 @@ def test_gp2xy() -> None:
 def test_rotation_matrix() -> None:
     """Test rotation_matrix function."""
     angle = np.pi / 4  # 45 degrees
-    
+
     rot = geo.rotation_matrix(angle)
-    
+
     assert rot.shape == (2, 2)
     # Test that it's a proper rotation matrix (determinant = 1)
     assert np.linalg.det(rot) == pytest.approx(1.0, abs=1e-6)
@@ -278,21 +287,23 @@ def test_rotation_matrix() -> None:
 def test_path_from_corners_return() -> None:
     """Test path_from_corners when returning points."""
     corners = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
-    
+
     path = geo.path_from_corners(corners, output=None, min_edge_points=5, close=True)
-    
+
     assert path is not None
     assert len(path) >= 20  # At least 5 points per edge * 4 edges
     assert path[0] == path[-1]  # Should be closed
 
 
-def test_path_from_corners_output_file(tmp_path) -> None:
+def test_path_from_corners_output_file(tmp_path: Path) -> None:
     """Test path_from_corners when writing to a file."""
     corners = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
     output_file = tmp_path / "test_path.txt"
-    
-    result = geo.path_from_corners(corners, output=str(output_file), min_edge_points=5, close=True)
-    
+
+    result = geo.path_from_corners(
+        corners, output=str(output_file), min_edge_points=5, close=True
+    )
+
     assert result is None
     assert output_file.exists()
     with open(output_file, "r") as f:
@@ -305,12 +316,12 @@ def test_ll_cross_along_track_dist() -> None:
     # Define a great circle path from point 1 to point 2
     lon1, lat1 = 0.0, 0.0
     lon2, lat2 = 10.0, 0.0  # Path along equator
-    lon3, lat3 = 5.0, 1.0   # Point slightly north of the path
-    
+    lon3, lat3 = 5.0, 1.0  # Point slightly north of the path
+
     cross_track, along_track = geo.ll_cross_along_track_dist(
         lon1, lat1, lon2, lat2, lon3, lat3
     )
-    
+
     # The function returns values, test that they are computed
     assert isinstance(cross_track, (float, np.floating))
     assert isinstance(along_track, (float, np.floating))
@@ -324,21 +335,21 @@ def test_ll_cross_along_track_dist_with_precomputed() -> None:
     lon1, lat1 = 0.0, 0.0
     lon2, lat2 = 10.0, 0.0
     lon3, lat3 = 5.0, 1.0
-    
+
     # Precompute values
     a12 = np.radians(geo.ll_bearing(lon1, lat1, lon2, lat2))
     a13 = np.radians(geo.ll_bearing(lon1, lat1, lon3, lat3))
     d13 = geo.ll_dist(lon1, lat1, lon3, lat3)
-    
+
     cross_track_precomputed, along_track_precomputed = geo.ll_cross_along_track_dist(
         lon1, lat1, lon2, lat2, lon3, lat3, a12=a12, a13=a13, d13=d13
     )
-    
+
     # Compute without precomputed values
     cross_track, along_track = geo.ll_cross_along_track_dist(
         lon1, lat1, lon2, lat2, lon3, lat3
     )
-    
+
     # Results should be the same whether precomputed or not
     assert cross_track_precomputed == pytest.approx(cross_track, abs=1e-6)
     assert along_track_precomputed == pytest.approx(along_track, abs=1e-6)
