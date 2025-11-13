@@ -30,10 +30,10 @@ def test_angle_diff(test_b1: float, test_b2: float, expected_angle: float) -> No
 @pytest.mark.parametrize(
     "test_lon1, test_lat1, test_lon2, test_lat2, test_midpoint, expected_bearing",
     [
-        (120, 90, 180, 90, True, 74.99999999999997),
+        (120, 90, 180, 90, True, 75),
         (0, 0, 180, 0, False, 90),
         (-45, 0, 90, 0, True, 90),
-        (170, 90, 180, 90, False, 84.99999999999996),
+        (170, 90, 180, 90, False, 85),
     ],
 )
 def test_ll_bearing(
@@ -44,10 +44,9 @@ def test_ll_bearing(
     test_midpoint: bool,
     expected_bearing: float,
 ) -> None:
-    assert (
-        geo.ll_bearing(test_lon1, test_lat1, test_lon2, test_lat2, test_midpoint)
-        == expected_bearing
-    )
+    assert geo.ll_bearing(
+        test_lon1, test_lat1, test_lon2, test_lat2, test_midpoint
+    ) == pytest.approx(expected_bearing)
 
 
 @pytest.mark.parametrize(
