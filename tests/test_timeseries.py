@@ -860,3 +860,76 @@ def test_read_lf_seis_file_plural(inputs: list[tuple], tmp_path: Path) -> None:
     assert dset.attrs["resolution"] == header.resolution
     assert dset.attrs["rotation"] == header.rotation
     assert dset.attrs["units"] == "cm/s^2"
+
+
+def test_timeseries_to_text_full(tmp_path: Path) -> None:
+    """
+    Tests the function with a timeseries that is not an even multiple
+    of values_per_line, ensuring both header and data lines are correct.
+    """
+    test_file = tmp_path / "output.txt"
+
+    test_timeseries = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.123456, 8.987654])
+
+    params = {
+        "timeseries": test_timeseries,
+        "filename": test_file,
+        "dt": 0.01,
+        "stat": "TEST",
+        "comp": "090",
+        "values_per_line": 6,
+        "start_hr": 1,
+        "start_min": 2,
+        "start_sec": 3.4,
+        "edist": 100.1,
+        "az": 45.0,
+        "baz": 225.0,
+        "title": "This is a test title",
+    }
+
+    # Note: We use b"" for a bytes literal because the file is opened in "wb" mode.
+    expected_output = b"""TEST       090 This is a test title
+8  1.00000e-02 1 2  3.40000e+00  1.00100e+02  4.50000e+01  2.25000e+02
+  1.00000e+00   2.00000e+00   3.00000e+00   4.00000e+00   5.00000e+00   6.00000e+00
+  7.12346e+00   8.98765e+00
+"""
+
+    timeseries.timeseries_to_text(**params)  # type: ignore
+
+    assert test_file.exists()
+    actual_output = test_file.read_bytes()
+
+    assert actual_output.strip() == expected_output.strip()
+
+
+def test_timeseries_to_text_empty(tmp_path: Path) -> None:
+    """
+    Tests the function with an empty timeseries to ensure it
+    writes the header correctly and doesn't crash.
+    """
+    # 1. Arrange
+    test_file = tmp_path / "empty.txt"
+    test_timeseries = np.array([])
+
+    params = {
+        "timeseries": test_timeseries,
+        "filename": test_file,
+        "dt": 0.05,
+        "stat": "EMPTY",
+        "comp": "N",
+        "title": "Empty Test",
+    }
+
+    # Expected output is just the header
+    expected_output = b"""EMPTY        N Empty Test
+0  5.00000e-02 0 0  0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00
+"""
+
+    timeseries.timeseries_to_text(**params)  # type: ignore
+
+    assert test_file.exists()
+    actual_output = test_file.read_bytes()
+
+    assert actual_output.strip() == expected_output.strip(), (
+        f"Expected output differs: {actual_output}"
+    )

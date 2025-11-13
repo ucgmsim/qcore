@@ -40,7 +40,6 @@ omit = [
   "qcore/shared.py",
   "qcore/simulation_structure.py",
   "qcore/src_site_dist.py",
-  "qcore/uncertainties/distributions.py",
   "qcore/utils.py",
 ]
 
