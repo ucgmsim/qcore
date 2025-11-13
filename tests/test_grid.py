@@ -135,3 +135,13 @@ def test_coordinate_patchgrid():
 def test_gridpoint_count_in_length(length: float, resolution: float, expected: int):
     """Test gridpoint_count_in_length function"""
     assert grid.gridpoint_count_in_length(length, resolution) == expected
+
+
+def test_coordinate_patchgrid_missing_resolution_and_nx_ny():
+    """Test that ValueError is raised when neither resolution nor nx/ny are provided"""
+    origin = np.array([-43.5, 172.5, 5000])
+    x_upper = np.array([-43.45498004, 172.50037108, 5000.0])
+    y_bottom = np.array([-43.50025372, 172.56184531, 5000.0])
+    
+    with pytest.raises(ValueError, match="If resolution is not provided, nx and ny must be."):
+        grid.coordinate_patchgrid(origin, x_upper, y_bottom)
