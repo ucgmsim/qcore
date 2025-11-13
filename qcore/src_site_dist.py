@@ -4,9 +4,29 @@ History of this file:
 https://github.com/ucgmsim/IM_calculation/commits/afa9bf02d5e197300e3a91f87a9136b4ebcabd62/IM_calculation/source_site_dist/src_site_dist.py
 """
 
+from typing import Literal, overload
+
 import numpy as np
 
 from qcore import geo
+
+
+@overload
+def calc_rrup_rjb(
+    srf_points: np.ndarray,
+    locations: np.ndarray,
+    n_stations_per_iter: int = 1000,
+    return_rrup_points: Literal[True] = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]: ...
+
+
+@overload
+def calc_rrup_rjb(
+    srf_points: np.ndarray,
+    locations: np.ndarray,
+    n_stations_per_iter: int = 1000,
+    return_rrup_points: Literal[False] = False,
+) -> tuple[np.ndarray, np.ndarray]: ...
 
 
 def calc_rrup_rjb(
