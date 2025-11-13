@@ -33,14 +33,6 @@ dev = ["ruff", "deptry", "ty"]
 omit = [
   "qcore/constants.py",
   "qcore/formats.py",
-  "qcore/archive_structure.py",
-  "qcore/nhm.py",
-  "qcore/point_in_polygon.py",
-  "qcore/registry.py",
-  "qcore/shared.py",
-  "qcore/simulation_structure.py",
-  "qcore/src_site_dist.py",
-  "qcore/utils.py",
 ]
 
 
