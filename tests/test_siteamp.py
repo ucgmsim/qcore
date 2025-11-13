@@ -333,3 +333,44 @@ def test_regression_amp_bandpass(test_df: pd.DataFrame) -> None:
         interpolated, fmin=0.2, fmidbot=0.5, fhightop=10.0, fmax=15.0, ftfreq=ftfreq
     )
     assert ampv_new == pytest.approx(ampv_old, rel=0.01)
+
+
+def test_cb_2014_siteamp_empty_dataframe() -> None:
+    """Test that ValueError is raised for empty DataFrame."""
+    empty_df = pd.DataFrame()
+    with pytest.raises(ValueError, match="Input DataFrame is empty"):
+        siteamp_models.cb_amp_multi(empty_df)
+
+
+def test_cb_2014_siteamp_missing_columns() -> None:
+    """Test that KeyError is raised for missing required columns."""
+    incomplete_df = pd.DataFrame({"vref": [500.0], "vpga": [500.0]})
+    with pytest.raises(KeyError, match="Missing required columns"):
+        siteamp_models.cb_amp_multi(incomplete_df)
+
+
+def test_cb_2014_siteamp_nan_values() -> None:
+    """Test that ValueError is raised for NaN values."""
+    nan_df = pd.DataFrame(
+        {"vref": [np.nan], "vpga": [500.0], "pga": [0.4], "vsite": [500.0]}
+    )
+    with pytest.raises(ValueError, match="Column 'vref' contains NaN values"):
+        siteamp_models.cb_amp_multi(nan_df)
+
+
+def test_cb_2014_siteamp_infinite_values() -> None:
+    """Test that ValueError is raised for infinite values."""
+    inf_df = pd.DataFrame(
+        {"vref": [np.inf], "vpga": [500.0], "pga": [0.4], "vsite": [500.0]}
+    )
+    with pytest.raises(ValueError, match="Column 'vref' contains infinite values"):
+        siteamp_models.cb_amp_multi(inf_df)
+
+
+def test_cb_2014_siteamp_non_positive_values() -> None:
+    """Test that ValueError is raised for non-positive values."""
+    negative_df = pd.DataFrame(
+        {"vref": [-500.0], "vpga": [500.0], "pga": [0.4], "vsite": [500.0]}
+    )
+    with pytest.raises(ValueError, match="Column 'vref' contains non-positive values"):
+        siteamp_models.cb_amp_multi(negative_df)
