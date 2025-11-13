@@ -17,7 +17,7 @@ def calc_rrup_rjb(
     locations: np.ndarray,
     n_stations_per_iter: int = 1000,
     return_rrup_points: Literal[True] = True,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]: ...
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]: ...  # numpydoc ignore=GL08
 
 
 @overload
@@ -26,7 +26,7 @@ def calc_rrup_rjb(
     locations: np.ndarray,
     n_stations_per_iter: int = 1000,
     return_rrup_points: Literal[False] = False,
-) -> tuple[np.ndarray, np.ndarray]: ...
+) -> tuple[np.ndarray, np.ndarray]: ...  # numpydoc ignore=GL08
 
 
 def calc_rrup_rjb(
