@@ -1,4 +1,5 @@
 from io import StringIO
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -56,6 +57,55 @@ def test_nhm_fault_creation():
     assert fault.length == 50.0
     assert fault.dip == 45.0
     assert np.array_equal(fault.trace, trace)
+
+
+def test_load_nhm_single_fault(tmp_path: Path):
+    # Minimal fake NHM content with one fault entry
+    content = """Header line 1
+Header line 2
+Header line 3
+Header line 4
+Header line 5
+Header line 6
+Header line 7
+Header line 8
+Header line 9
+Header line 10
+Header line 11
+Header line 12
+Header line 13
+Header line 14
+Header line 15
+FakeFault
+TECTONIC FAULTTYPE
+10.0 0.5
+45.0 5.0
+270.0
+90.0
+15.0 1.0
+5.0 4.0 6.0
+1.2 0.1
+0.9 0.05
+7.1 1200.0
+100.0 200.0
+101.0 201.0"""
+
+    nhm_file = tmp_path / "fake_faults.nhm"
+    nhm_file.write_text(content)
+
+    # Run loader with skiprows=15 to skip header lines
+    faults = nhm.load_nhm(str(nhm_file), skiprows=15)
+
+    # Basic structure check
+    assert isinstance(faults, dict)
+    assert "FakeFault" in faults
+    fault = faults["FakeFault"]
+    assert isinstance(fault, nhm.NHMFault)
+
+    # Sanity check on parsed values
+    assert np.isclose(fault.length, 10.0)
+    assert np.isclose(fault.dip, 45.0)
+    assert fault.trace.shape == (1, 2)
 
 
 def test_nhm_fault_write():

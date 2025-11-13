@@ -8,6 +8,7 @@ import sys
 from io import FileIO
 from pathlib import Path
 from typing import AnyStr, Optional, Union
+from warnings import deprecated
 
 import pandas as pd
 
@@ -99,13 +100,14 @@ def get_corners(
     return corners, cnr_str
 
 
+@deprecated("use subprocess.run or subprocess.check_call")
 def non_blocking_exe(
     cmd: Union[str, list[str]],
     debug: bool = True,
     stdout: Union[bool, FileIO] = True,
     stderr: Union[bool, FileIO] = True,
     **kwargs,
-) -> subprocess.Popen:
+) -> subprocess.Popen:  # pragma: no cover
     r"""Run a command without blocking the calling thread.
 
     *DO NOT USE THIS FUNCTION* Instead, call subprocess.run or
@@ -166,12 +168,13 @@ def non_blocking_exe(
     return p
 
 
+@deprecated("use subprocess.run or subprocess.check_call")
 def exe(
     cmd: Union[str, list[str]],
     debug: bool = True,
     stdin: Optional[AnyStr] = None,
     **kwargs,
-) -> Union[tuple[str, str], tuple[bytes, bytes]]:
+) -> Union[tuple[str, str], tuple[bytes, bytes]]:  # pragma: no cover
     """
     Runs a command in the shell using the provided parameters.
 
@@ -201,7 +204,7 @@ def exe(
         conversion fails.
     """
 
-    exe_process = non_blocking_exe(cmd, debug=debug, **kwargs)
+    exe_process = non_blocking_exe(cmd, debug=debug, **kwargs)  # type: ignore
 
     out, err = exe_process.communicate(stdin)
     _ = exe_process.wait()
