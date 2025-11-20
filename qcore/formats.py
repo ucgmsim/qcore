@@ -13,7 +13,7 @@ import pandas as pd
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def load_im_file_pd(
     imcsv: Path | str, all_ims: bool = False, comp: str | None = None
-) -> pd.DataFrame:
+) -> pd.DataFrame | pd.Series:
     """Load an Intensity Measure (IM) CSV file into a pandas DataFrame.
 
     Parameters
@@ -28,8 +28,8 @@ def load_im_file_pd(
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame containing IM values, indexed by station and component.
+    pd.DataFrame or series
+        DataFrame or series containing IM values, indexed by station and component.
     """
     df = pd.read_csv(imcsv, index_col=[0, 1])
 

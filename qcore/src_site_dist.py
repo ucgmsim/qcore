@@ -214,8 +214,10 @@ def calc_rx_ry_GC1(  # noqa: N802
                 up_strike_top_point,
             )
 
+        tp_lon, tp_lat = up_strike_top_point
+        ds_lon, ds_lat = down_strike_top_point
         r_x[iloc], r_y[iloc] = geo.ll_cross_along_track_dist(
-            *up_strike_top_point, *down_strike_top_point, lon, lat
+            tp_lon, tp_lat, ds_lon, ds_lat, lon, lat
         )
 
     return r_x, r_y
