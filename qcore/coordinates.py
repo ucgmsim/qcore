@@ -200,12 +200,14 @@ def great_circle_bearing_to_nztm_bearing(
     x, y = origin
     great_circle_heading = np.array(geo.ll_shift(x, y, distance, great_circle_bearing))
 
-    return geo.oriented_bearing_wrt_normal(
-        np.array([1, 0, 0]),
-        np.append(
-            wgs_depth_to_nztm(great_circle_heading) - wgs_depth_to_nztm(origin), 0
-        ),
-        np.array([0, 0, 1]),
+    return float(
+        geo.oriented_bearing_wrt_normal(
+            np.array([1, 0, 0]),
+            np.append(
+                wgs_depth_to_nztm(great_circle_heading) - wgs_depth_to_nztm(origin), 0
+            ),
+            np.array([0, 0, 1]),
+        )
     )
 
 

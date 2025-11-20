@@ -5,9 +5,7 @@ Functions and classes to load data that doesn't belong elsewhere.
 import argparse
 from pathlib import Path
 from typing import overload
-
-# For some reason, ty can't find the deprecated member of the warnings module
-from warnings import deprecated  # type: ignore
+from warnings import deprecated
 
 import pandas as pd
 
@@ -158,7 +156,7 @@ def load_generic_station_file(
         DataFrame with index as station name and columns including longitude,
         latitude, and any additional specified columns.
     """
-    cols = {"stat_name": stat_name_col}
+    cols: dict[str, int] = {"stat_name": stat_name_col}
     if lon_col is not None:
         cols["lon"] = lon_col
     if lat_col is not None:
@@ -167,10 +165,10 @@ def load_generic_station_file(
     if other_cols and other_names:
         for col_idx, col_name in zip(other_cols, other_names):
             cols[col_name] = col_idx
-
     return pd.read_csv(
         stat_file,
-        usecols=cols.values(),  # we will be loading columns of these indices (order doesn't matter)
+        # we will be loading columns of these indices (order doesn't matter)
+        usecols=list(cols.values()),
         names=sorted(
             cols, key=cols.get
         ),  # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"]
@@ -178,7 +176,7 @@ def load_generic_station_file(
         sep=sep,
         header=None,
         skiprows=skiprows,
-    )
+    )  # type: ignore
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")

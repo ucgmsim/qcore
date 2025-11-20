@@ -307,10 +307,10 @@ def ll_shift(
     lat, lon, bearing = list(map(np.radians, [lat, lon, bearing]))
 
     shift = distance / R_EARTH
-    lat2 = np.asin(
+    lat2 = np.arcsin(
         np.sin(lat) * np.cos(shift) + np.cos(lat) * np.sin(shift) * np.cos(bearing)
     )
-    lon2 = lon + np.atan2(
+    lon2 = lon + np.arctan2(
         np.sin(bearing) * np.sin(shift) * np.cos(lat),
         np.cos(shift) - np.sin(lat) * np.sin(lat2),
     )
@@ -340,10 +340,10 @@ def ll_mid(lon1: float, lat1: float, lon2: float, lat2: float) -> tuple[float, f
     bx = np.cos(lat2) * np.cos(dlon)
     by = np.cos(lat2) * np.sin(dlon)
 
-    lat3 = np.atan2(
+    lat3 = np.arctan2(
         np.sin(lat1) + np.sin(lat2), np.sqrt((np.cos(lat1) + bx) ** 2 + by**2)
     )
-    lon3 = lon1 + np.atan2(by, np.cos(lat1) + bx)
+    lon3 = lon1 + np.arctan2(by, np.cos(lat1) + bx)
 
     return np.degrees(lon3), np.degrees(lat3)
 
@@ -370,7 +370,7 @@ def ll_dist(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     )
 
     a = np.sin(dlat / 2.0) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0) ** 2
-    return R_EARTH * 2.0 * np.atan2(np.sqrt(a), np.sqrt(1 - a))
+    return R_EARTH * 2.0 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
 
 
 def ll_bearing(
@@ -398,7 +398,7 @@ def ll_bearing(
     lat1, lat2, lon_diff = map(np.radians, [lat1, lat2, (lon2 - lon1)])
     return (
         np.degrees(
-            np.atan2(
+            np.arctan2(
                 np.cos(lat2) * np.sin(lon_diff),
                 np.cos(lat1) * np.sin(lat2)
                 - np.sin(lat1) * np.cos(lat2) * np.cos(lon_diff),
@@ -454,7 +454,7 @@ def avg_wbearing(angles: list[list[float]]) -> float:
         q_diff = np.pi
     elif x < 0:
         q_diff = 2 * np.pi
-    return np.degrees(np.atan(x / y) + q_diff)
+    return np.degrees(np.arctan2(y, x) + q_diff)
 
 
 def path_from_corners(
@@ -625,10 +625,10 @@ def ll_cross_along_track_dist(
         d13 = ll_dist(lon1, lat1, lon3, lat3)
     d13 /= R_EARTH
     # Only keeping the cross track angle saves a division on the following line
-    xta = np.asin(np.sin(d13) * np.sin(a13 - a12))
+    xta = np.arcsin(np.sin(d13) * np.sin(a13 - a12))
     # The sign factor of this line is a modification of the original formula to distinguish between up/down strike
     # locations
-    ata = np.acos(np.cos(d13) / np.cos(xta)) * np.sign(np.cos(a13 - a12))
+    ata = np.arccos(np.cos(d13) / np.cos(xta)) * np.sign(np.cos(a13 - a12))
 
     # Multiply the angles by radius to get the distance across the earth surface
     return xta * R_EARTH, ata * R_EARTH
