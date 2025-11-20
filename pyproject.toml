@@ -12,7 +12,6 @@ requires-python = ">=3.13"
 dependencies = [
   "pandas",
   "pyfftw",
-  "filelock",
   "pyproj",
   "pooch",
   "requests",
