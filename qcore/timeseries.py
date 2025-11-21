@@ -10,7 +10,7 @@ import multiprocessing
 import os
 from enum import StrEnum, auto
 from pathlib import Path
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
@@ -89,8 +89,11 @@ def bwfilter(
         case Band.LOWPASS:
             cutoff_frequencies = taper_frequency * _BW_LOWPASS_SHIFT
 
+    btype: Literal["highpass"] | Literal["lowpass"] = (
+        "highpass" if band == Band.HIGHPASS else "lowpass"
+    )
     return sp.signal.sosfiltfilt(
-        sp.signal.butter(4, cutoff_frequencies, btype=band, output="sos", fs=1.0 / dt),
+        sp.signal.butter(4, cutoff_frequencies, btype=btype, output="sos", fs=1.0 / dt),
         waveform,
         padtype=None,
     )
