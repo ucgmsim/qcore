@@ -26,7 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest", "hypothesis[numpy]", "pytest-cov"]
-types = ["pandas-stubs"]
+types = ["pandas-stubs", "scipy-stubs", "types-PyYAML"]
 dev = ["ruff", "deptry", "ty"]
 
 [tool.coverage.run]
