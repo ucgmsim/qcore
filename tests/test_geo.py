@@ -120,11 +120,11 @@ def test_ll_shift(
         ([[40, 1], [270, 1]], 335),
         ([[45, 10], [180, 1], [112.5, 2]], 59.252104114837415),
         ([[45, 1], [180, 1], [112.5, 2]], 112.5),
-        ([[45, 1], [180, 1]], 112.49999999999999),
+        ([[45, 1], [180, 1]], 112.5),
     ],
 )
 def test_avg_wbearing(test_angles: list[list[float]], output_degrees: float) -> None:
-    assert geo.avg_wbearing(test_angles) == output_degrees
+    assert geo.avg_wbearing(test_angles) == pytest.approx(output_degrees)
 
 
 @given(target_bearing=st.floats(0, 360))
