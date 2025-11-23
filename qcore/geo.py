@@ -454,7 +454,7 @@ def avg_wbearing(angles: list[list[float]]) -> float:
         q_diff = np.pi
     elif x < 0:
         q_diff = 2 * np.pi
-    return np.degrees(np.arctan2(y, x) + q_diff)
+    return np.degrees(np.arctan2(x, y) + q_diff)
 
 
 def path_from_corners(
