@@ -1,25 +1,27 @@
-"""Numba routines for point-in-polygon checks."""
+"numba.booleanNumba routines for point-in-polygon checks."
+
+from typing import Any, Literal, TypeVar
 
 import numba
 import numpy as np
+import numpy.typing as npt
 from numba import jit, njit
+
+TFloat = TypeVar("TFloat", bound=np.floating[Any])
 
 
 @jit(nopython=True)
 def is_inside_postgis(
-    polygon: np.ndarray, point: np.ndarray
-) -> int:  # pragma: no cover
-    """
-    Function that checks if a point is inside a polygon
-    Based on solutions found here
-    (https://stackoverflow.com/questions/36399381/whats-the-fastest-way-of-checking-if-a-point-is-inside-a-polygon-in-python)
+    polygon: npt.NDArray[TFloat], point: npt.NDArray[TFloat]
+) -> Literal[0, 1, 2]:  # pragma: no cover
+    """Function that checks if a point is inside a polygon.
 
     Parameters
     ----------
     polygon : np.ndarray
-        List of points that define the polygon e.g. [[x1, y1], [x2, y2], ...]
+        List of points that define the polygon e.g. [[x1, y1], [x2, y2], ...].
     point : np.ndarray
-        List of points that define the point e.g. [x, y]
+        Point to test [x, y].
 
     Returns
     -------
@@ -54,13 +56,13 @@ def is_inside_postgis(
 
         jj += 1
 
-    return intersections != 0
+    return 1 if intersections != 0 else 0
 
 
 @njit(parallel=True)
 def is_inside_postgis_parallel(
-    points: np.ndarray, polygon: np.ndarray
-) -> np.ndarray:  # pragma: no cover
+    points: npt.NDArray[TFloat], polygon: npt.NDArray[TFloat]
+) -> npt.NDArray[bool]:  # pragma: no cover
     """
     Function that checks if a set of points is inside a polygon in parallel
 
@@ -77,7 +79,7 @@ def is_inside_postgis_parallel(
         List of boolean values that indicate if the point is inside the polygon
     """
     ln = len(points)
-    D = np.empty(ln, dtype=numba.boolean)  # noqa: N806
+    D = np.empty(ln, dtype=np.bool_)  # noqa: N806
     for i in numba.prange(ln):  # type: ignore
         D[i] = is_inside_postgis(polygon, points[i])
     return D
