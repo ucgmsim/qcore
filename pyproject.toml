@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qcore"
-version = "1.2"
+version = "2025.12.03"
 description = "QuakeCoRE Library"
 authors = [{ name = "QuakeCoRE" }]
 readme = "README.md"
@@ -20,7 +20,7 @@ dependencies = [
   "typer",
   "docstring_parser",
   "xarray",
-  "pyyaml"
+  "pyyaml",
 ]
 
 [project.optional-dependencies]
@@ -29,19 +29,14 @@ types = ["pandas-stubs", "scipy-stubs", "types-PyYAML"]
 dev = ["ruff", "deptry", "ty"]
 
 [tool.coverage.run]
-omit = [
-  "qcore/constants.py",
-  "qcore/formats.py",
-]
+omit = ["qcore/constants.py", "qcore/formats.py"]
 
 
 [tool.setuptools.package-dir]
 qcore = "qcore"
 
 [tool.setuptools.package-data]
-"qcore" = [
-  "registry/registry.txt",
-]
+"qcore" = ["registry/registry.txt"]
 
 [tool.ruff.lint]
 extend-select = [
