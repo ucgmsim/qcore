@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -97,5 +97,3 @@ exclude = [ # don't report on objects that match any of these regex
   '\.undocumented_method$',
   '\.__repr__$',
 ]
-
-[tool.setuptools_scm]
