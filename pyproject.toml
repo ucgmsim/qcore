@@ -98,4 +98,4 @@ exclude = [ # don't report on objects that match any of these regex
   '\.__repr__$',
 ]
 
-[tools.setuptools_scm]
+[tool.setuptools_scm]
