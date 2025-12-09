@@ -50,7 +50,7 @@ jobs:
       url: https://pypi.org/p/qcore-utils
 
     permissions:
-      id-token: write  
+      id-token: write
 
     steps:
     - name: Download all the dists
