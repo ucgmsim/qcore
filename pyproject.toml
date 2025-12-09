@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qcore-utils"
-version = "1.2"
 description = "Utils Library"
 authors = [{ name = "ucgmsim" }]
 readme = "README.md"
 requires-python = ">=3.11"
-dynamic = ["dependencies"]
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools_scm]
 
 [tool.setuptools.package-dir]
 qcore = "qcore"
