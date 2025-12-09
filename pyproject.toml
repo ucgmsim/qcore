@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qcore-utils"
 version = "1.2"
-description = "QuakeCoRE Library"
-authors = [{ name = "QuakeCoRE" }]
+description = "Utils Library"
+authors = [{ name = "ucgmsim" }]
 readme = "README.md"
 requires-python = ">=3.11"
 dynamic = ["dependencies"]
