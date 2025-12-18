@@ -8,9 +8,7 @@ description = "Utils Library"
 authors = [{ name = "ucgmsim" }]
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
-dynamic = ["version", "dependencies"]
-readme = "README.md"
-requires-python = ">=3.13"
+dynamic = ["version"]
 dependencies = [
   "pandas",
   "pyfftw",
