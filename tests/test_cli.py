@@ -1,3 +1,4 @@
+import inspect
 from typing import Annotated, Optional
 
 import pytest
@@ -8,7 +9,7 @@ from qcore import cli
 
 runner = CliRunner()
 
-DOCSTRING = """Example command.
+DOCSTRING = inspect.cleandoc("""Example command.
 
 Parameters
 ----------
@@ -16,7 +17,7 @@ param1 : int
     This is the first parameter.
 param2 : Optional[str]
     This is an optional parameter.
-"""
+""")
 
 
 def test_from_docstring(capsys: pytest.CaptureFixture[str]):
@@ -41,7 +42,8 @@ def test_from_docstring(capsys: pytest.CaptureFixture[str]):
         print("Hello World", param1, param2)
 
     # Ensure the docstring is unchanged
-    assert example_command.__doc__ == DOCSTRING
+    assert example_command.__doc__, "Example command missing docstring."
+    assert inspect.cleandoc(example_command.__doc__) == DOCSTRING
     # Run `--help` and check output
 
     result = runner.invoke(app, ["--help"])
@@ -179,7 +181,8 @@ def test_from_docstring_kwargs(capsys: pytest.CaptureFixture[str]) -> None:
         print("Hello World from command 2", param1, param2)
 
     # Ensure the docstring is unchanged
-    assert example_command.__doc__ == DOCSTRING
+    assert example_command.__doc__, "Example command is missing docstring"
+    assert inspect.cleandoc(example_command.__doc__) == DOCSTRING
     # Run `--help` and check output
 
     result = runner.invoke(app, ["command_1", "--help"])
