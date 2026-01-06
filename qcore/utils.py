@@ -5,9 +5,9 @@ Mostly related to file system operations and other non-specific functionality.
 
 from pathlib import Path
 from typing import Any, Union
-from warnings import deprecated
 
 import yaml
+from typing_extensions import deprecated
 
 
 @deprecated("use yaml.safe_load")

@@ -7,7 +7,7 @@ name = "qcore-utils"
 description = "Utils Library"
 authors = [{ name = "ucgmsim" }]
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11"
 dynamic = ["version"]
 dependencies = [
   "pandas",
@@ -21,6 +21,7 @@ dependencies = [
   "docstring_parser",
   "xarray",
   "pyyaml",
+  "typing-extensions>=4.9.0",                # Last change to the @deprecated module
 ]
 
 [project.optional-dependencies]

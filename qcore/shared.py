@@ -8,9 +8,9 @@ import sys
 from io import FileIO
 from pathlib import Path
 from typing import AnyStr, Optional, Union
-from warnings import deprecated
 
 import pandas as pd
+from typing_extensions import deprecated
 
 
 def get_stations(

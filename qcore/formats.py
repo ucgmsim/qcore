@@ -5,9 +5,9 @@ Functions and classes to load data that doesn't belong elsewhere.
 import argparse
 from pathlib import Path
 from typing import overload
-from warnings import deprecated
 
 import pandas as pd
+from typing_extensions import deprecated
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")

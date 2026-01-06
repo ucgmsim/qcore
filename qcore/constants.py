@@ -3,7 +3,8 @@
 from collections.abc import Generator
 from enum import Enum
 from typing import Any
-from warnings import deprecated  # type: ignore
+
+from typing_extensions import deprecated  # type: ignore
 
 
 @deprecated("Use built-in Enum")
