@@ -1,4 +1,4 @@
-"numba.booleanNumba routines for point-in-polygon checks."
+"Numba routines for point-in-polygon checks."
 
 from typing import Any, Literal, TypeVar
 
