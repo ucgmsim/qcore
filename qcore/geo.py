@@ -121,9 +121,6 @@ def oriented_bearing_wrt_normal(
     return np.degrees(angle_signed * (orientation or 1)) % 360
 
 
-    """
-
-
 def gen_mat(mrot: float, mlon: float, mlat: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Precursor for xy2ll and ll2xy functions.
@@ -326,9 +323,6 @@ def ll_bearing(
     )
 
 
-    """
-
-
 def angle_diff(b1: float, b2: float) -> float:
     """
     Return smallest difference (clockwise, -180 -> 180) from b1 to b2.
@@ -358,12 +352,6 @@ def avg_wbearing(angles: List[List[float]]) -> float:
     return degrees(atan(x / y) + q_diff)
 
 
-    """
-    Parameters
-    ----------
-
-    Returns
-    -------
 def path_from_corners(
     corners: List[Tuple[float, float]],
     output: str = "sim.modelpath_hr",
