@@ -6,7 +6,7 @@ import pytest
 from qcore import shared
 
 
-def test_get_stations_without_locations():
+def test_get_stations_without_locations() -> None:
     # Create a temporary station file
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
         f.write("# Comment line\n")
@@ -14,7 +14,7 @@ def test_get_stations_without_locations():
         f.write("173.0 -44.0 STAT2\n")
         f.write("174.5 -45.5 STAT3\n")
         station_file = f.name
-    
+
     try:
         result = shared.get_stations(station_file, locations=False)
         assert isinstance(result, list)
@@ -24,12 +24,12 @@ def test_get_stations_without_locations():
         Path(station_file).unlink()
 
 
-def test_get_stations_with_locations():
+def test_get_stations_with_locations() -> None:
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
         f.write("172.5 -43.5 STAT1\n")
         f.write("173.0 -44.0 STAT2\n")
         station_file = f.name
-    
+
     try:
         stations, lats, lons = shared.get_stations(station_file, locations=True)
         assert isinstance(stations, list)
@@ -45,7 +45,7 @@ def test_get_stations_with_locations():
         Path(station_file).unlink()
 
 
-def test_get_corners():
+def test_get_corners() -> None:
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
         f.write("# Model params\n")
         f.write("  c1= 172.164 -41.414\n")
@@ -53,7 +53,7 @@ def test_get_corners():
         f.write("  c3= 173.000 -41.800\n")
         f.write("  c4= 172.700 -42.100\n")
         model_params_file = f.name
-    
+
     try:
         result = shared.get_corners(model_params_file, gmt_format=False)
         assert isinstance(result, list)
@@ -66,14 +66,14 @@ def test_get_corners():
         Path(model_params_file).unlink()
 
 
-def test_get_corners_with_gmt_format():
+def test_get_corners_with_gmt_format() -> None:
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
         f.write("  c1= 172.164 -41.414\n")
         f.write("  c2= 172.500 -41.200\n")
         f.write("  c3= 173.000 -41.800\n")
         f.write("  c4= 172.700 -42.100\n")
         model_params_file = f.name
-    
+
     try:
         corners, cnr_str = shared.get_corners(model_params_file, gmt_format=True)
         assert isinstance(corners, list)

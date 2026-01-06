@@ -6,7 +6,7 @@ import yaml
 from qcore import utils
 
 
-def test_load_yaml():
+def test_load_yaml() -> None:
     # Create a temporary YAML file
     data = {"key1": "value1", "key2": 123, "key3": ["a", "b", "c"]}
 

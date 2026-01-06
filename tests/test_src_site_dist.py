@@ -4,7 +4,7 @@ import pytest
 from qcore import src_site_dist
 
 
-def test_calc_rrup_rjb_single_point():
+def test_calc_rrup_rjb_single_point() -> None:
     # Simple test with a single fault point and a single location
     srf_points = np.array([[172.0, -43.0, 5.0]])
     locations = np.array([[172.0, -43.0, 0.0]])
@@ -22,7 +22,7 @@ def test_calc_rrup_rjb_single_point():
     assert rrup[0] > 0
 
 
-def test_calc_rrup_rjb_multiple_points():
+def test_calc_rrup_rjb_multiple_points() -> None:
     # Multiple fault points and multiple locations
     srf_points = np.array(
         [
@@ -48,7 +48,7 @@ def test_calc_rrup_rjb_multiple_points():
     assert np.all(rjb >= 0)
 
 
-def test_calc_rrup_rjb_with_return_points():
+def test_calc_rrup_rjb_with_return_points() -> None:
     srf_points = np.array(
         [
             [172.0, -43.0, 5.0],
@@ -68,7 +68,7 @@ def test_calc_rrup_rjb_with_return_points():
     assert rrup_points.dtype == np.float32
 
 
-def test_calc_rrup_rjb_custom_iterations():
+def test_calc_rrup_rjb_custom_iterations() -> None:
     # Test with custom n_stations_per_iter parameter
     srf_points = np.array(
         [
@@ -95,7 +95,7 @@ def test_calc_rrup_rjb_custom_iterations():
     assert np.all(rjb >= 0)
 
 
-def test_calc_rrup_rjb_rjb_less_than_rrup():
+def test_calc_rrup_rjb_rjb_less_than_rrup() -> None:
     # rjb should always be <= rrup since rjb is horizontal distance
     # and rrup includes vertical component
     srf_points = np.array([[172.0, -43.0, 10.0]])

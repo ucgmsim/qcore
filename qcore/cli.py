@@ -5,6 +5,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import (
     Annotated,
+    Any,
     ParamSpec,
     TypeVar,
     get_args,
@@ -22,12 +23,10 @@ P = ParamSpec("P")
 # R captures the return type of the decorated function.
 R = TypeVar("R")
 
-T = ParamSpec("T")
-
 
 def from_docstring(
     app: typer.Typer,
-    **kwargs: T.kwargs,
+    **kwargs: Any,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Apply help texts from the function's docstring to Typer arguments/options and command.
 

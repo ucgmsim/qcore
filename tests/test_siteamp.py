@@ -210,7 +210,7 @@ def test_dc_component_is_unity(basic_setup: dict):
     np.all(result[:, 0] == 1.0)
 
 
-def test_single_site():
+def test_single_site() -> None:
     """Test function with single site (1D amplification array)."""
     fftfreq = np.logspace(-1, 2, 10)
     ampv = np.random.uniform(0.5, 2.0, (1, 10))
@@ -221,7 +221,7 @@ def test_single_site():
     assert result[0, 0] == 1.0
 
 
-def test_multiple_sites():
+def test_multiple_sites() -> None:
     """Test function with multiple sites."""
     fftfreq = np.logspace(-1, 2, 10)
     ampv = np.random.uniform(0.5, 2.0, (5, 10))

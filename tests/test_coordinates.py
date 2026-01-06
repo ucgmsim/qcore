@@ -62,7 +62,7 @@ def test_nztm_to_wgs_depth_nominal(coords: np.ndarray, expected: np.ndarray) -> 
     assert result.dtype == np.float64
 
 
-def test_distance_between_wgs_depth_coordinates_single_point():
+def test_distance_between_wgs_depth_coordinates_single_point() -> None:
     # Two points in lat/lon
     point_a = np.array([-43.5320, 172.6366])
     point_b = np.array([-43.5310, 172.6376])
@@ -72,7 +72,7 @@ def test_distance_between_wgs_depth_coordinates_single_point():
     assert dist > 0  # distance should be positive
 
 
-def test_distance_between_wgs_depth_coordinates_with_depth():
+def test_distance_between_wgs_depth_coordinates_with_depth() -> None:
     point_a = np.array([-43.5320, 172.6366, 10])
     point_b = np.array([-43.5325, 172.6370, 20])
 
@@ -81,17 +81,17 @@ def test_distance_between_wgs_depth_coordinates_with_depth():
     assert dist > 0
 
 
-def test_distance_between_wgs_depth_coordinates_multiple_points():
+def test_distance_between_wgs_depth_coordinates_multiple_points() -> None:
     points_a = np.array([[-43.5320, 172.6366], [-41.2924, 174.7787]])
     points_b = np.array([[-43.5310, 172.6376], [-41.2920, 174.7790]])
 
     dist = coordinates.distance_between_wgs_depth_coordinates(points_a, points_b)
     assert isinstance(dist, np.ndarray)
     assert dist.shape == (2,)
-    assert np.all(dist > 0)
+    assert np.all(dist > 0)  # type: ignore[unsupported-operator]
 
 
-def test_nztm_to_gc_bearing_inverse():
+def test_nztm_to_gc_bearing_inverse() -> None:
     origin = np.array([-43.5, 172.6])
     distance = 10.0  # km
     nztm_bearing = 45.0  # degrees

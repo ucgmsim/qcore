@@ -72,6 +72,9 @@ class ExtendedEnum(Enum):
 class ExtendedStrEnum(ExtendedEnum):  # type: ignore
     """DEPRECATED: Utility Enum extension for string mappings. Use built-in StrEnum."""
 
+    _value_: Any
+    str_value: str
+
     def __new__(cls, value: Any, str_value: str):  # noqa: D102 # numpydoc ignore=GL08
         obj = object.__new__(cls)
         obj._value_ = value

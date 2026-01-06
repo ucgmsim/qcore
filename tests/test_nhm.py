@@ -7,7 +7,7 @@ import pytest
 from qcore import nhm
 
 
-def test_mag2mom_nm():
+def test_mag2mom_nm() -> None:
     # Test magnitude to moment conversion
     mw = 7.0
     result = nhm.mag2mom_nm(mw)
@@ -17,14 +17,14 @@ def test_mag2mom_nm():
     assert result == pytest.approx(expected)
 
 
-def test_mag2mom_nm_small_magnitude():
+def test_mag2mom_nm_small_magnitude() -> None:
     mw = 5.0
     result = nhm.mag2mom_nm(mw)
     expected = 10 ** (9.05 + 1.5 * 5.0)
     assert result == pytest.approx(expected)
 
 
-def test_nhm_fault_creation():
+def test_nhm_fault_creation() -> None:
     # Test creating an NHMFault instance
     trace = np.array([[172.0, -43.0], [172.1, -43.1]])
 
@@ -108,7 +108,7 @@ TECTONIC FAULTTYPE
     assert fault.trace.shape == (1, 2)
 
 
-def test_nhm_fault_write():
+def test_nhm_fault_write() -> None:
     # Test writing an NHMFault to a file
     trace = np.array([[172.0, -43.0], [172.1, -43.1]])
 
@@ -147,7 +147,7 @@ def test_nhm_fault_write():
     assert "2\n" in content  # Number of trace points
 
 
-def test_nhm_fault_write_with_header():
+def test_nhm_fault_write_with_header() -> None:
     trace = np.array([[172.0, -43.0]])
 
     fault = nhm.NHMFault(
@@ -183,7 +183,7 @@ def test_nhm_fault_write_with_header():
     assert "TestFault" in content
 
 
-def test_nhm_fault_sample_2012():
+def test_nhm_fault_sample_2012() -> None:
     # Test sampling/perturbation of fault parameters
     np.random.seed(42)  # Set seed for reproducibility
 
@@ -230,7 +230,7 @@ def test_nhm_fault_sample_2012():
     assert np.array_equal(sampled_fault.trace, fault.trace)
 
 
-def test_nhm_fault_sample_2012_without_mw_perturbation():
+def test_nhm_fault_sample_2012_without_mw_perturbation() -> None:
     np.random.seed(42)
 
     trace = np.array([[172.0, -43.0]])
@@ -265,7 +265,7 @@ def test_nhm_fault_sample_2012_without_mw_perturbation():
     assert sampled_fault.mw == fault.mw
 
 
-def test_get_fault_header_points():
+def test_get_fault_header_points() -> None:
     # Test getting fault header and points
     trace = np.array([[172.0, -43.0], [172.1, -43.1]])
 

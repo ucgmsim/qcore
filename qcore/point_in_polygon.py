@@ -1,18 +1,18 @@
 "Numba routines for point-in-polygon checks."
 
-from typing import Any, Literal, TypeVar
+from typing import Literal
 
 import numba
 import numpy as np
 import numpy.typing as npt
 from numba import jit, njit
 
-TFloat = TypeVar("TFloat", bound=np.floating[Any])
+from qcore.typing import TNFloat
 
 
 @jit(nopython=True)
 def is_inside_postgis(
-    polygon: npt.NDArray[TFloat], point: npt.NDArray[TFloat]
+    polygon: npt.NDArray[TNFloat], point: npt.NDArray[TNFloat]
 ) -> Literal[0, 1, 2]:  # pragma: no cover
     """Function that checks if a point is inside a polygon.
 
@@ -61,8 +61,8 @@ def is_inside_postgis(
 
 @njit(parallel=True)
 def is_inside_postgis_parallel(
-    points: npt.NDArray[TFloat], polygon: npt.NDArray[TFloat]
-) -> npt.NDArray[bool]:  # pragma: no cover
+    points: npt.NDArray[TNFloat], polygon: npt.NDArray[TNFloat]
+) -> npt.NDArray[np.bool_]:  # pragma: no cover
     """
     Function that checks if a set of points is inside a polygon in parallel
 

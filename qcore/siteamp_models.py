@@ -528,7 +528,7 @@ def cb_amp_multi(
 
     # Use pga for reference dtype because it is more reliably a float,
     # where vref can sometimes be an int.
-    freqs = freqs.astype(pga.dtype)
+    freqs = freqs.astype(pga.dtype)  # type: ignore[no-matching-overload]
     # Call the numba-accelerated function
     results = _cb_amp_multi(
         vref=vref,

@@ -11,7 +11,7 @@ from qcore.uncertainties.distributions import (
 )
 
 
-def test_truncated_normal_with_size_1():
+def test_truncated_normal_with_size_1() -> None:
     mean = 0
     std_dev = 1.0
     limit = 5.0
@@ -19,13 +19,13 @@ def test_truncated_normal_with_size_1():
     assert isinstance(samples, float)
 
 
-def test_truncated_weibull_with_size_1():
+def test_truncated_weibull_with_size_1() -> None:
     upper = 1
     samples = truncated_weibull(upper, size=1, seed=0)
     assert isinstance(samples, float)
 
 
-def test_truncated_log_normal_with_size_1():
+def test_truncated_log_normal_with_size_1() -> None:
     mean = 1
     std_dev = 0.1
     samples = truncated_log_normal(mean, std_dev, size=1, seed=0)
@@ -78,7 +78,7 @@ def test_truncated_log_normal_vectorized(mean: float, std_dev: float, seed: int)
     assert val1 == val2
 
 
-def test_rand_shyp_vectorized():
+def test_rand_shyp_vectorized() -> None:
     samples = rand_shyp(size=200, seed=0)
     assert np.all(np.isfinite(samples))
     assert np.all(samples >= -0.5)

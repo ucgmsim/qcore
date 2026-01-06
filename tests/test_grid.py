@@ -6,7 +6,7 @@ import pytest
 from qcore import coordinates, grid
 
 
-def test_grid_corners():
+def test_grid_corners() -> None:
     """Test the grid_corners function to verify corner calculations"""
     centroid = np.array([-43.5, 172.5])
     strike = 90
@@ -36,7 +36,7 @@ def test_grid_corners():
     assert np.allclose(np.mean(corners, axis=0)[:2], centroid)
 
 
-def test_coordinate_meshgrid():
+def test_coordinate_meshgrid() -> None:
     """Test the coordinate_meshgrid function to verify grid creation"""
     origin = np.array([-43.5, 172.5, 5000])  # (lat, lon, depth in m)
     x_upper = np.array([-43.45498004, 172.50037108, 5000.0])
@@ -62,15 +62,15 @@ def test_coordinate_meshgrid():
     assert np.all(meshgrid[:, :, 2] == pytest.approx(origin[2], rel=1e-2))
 
 
-def test_coordinate_meshgrid_x_boundary():
+def test_coordinate_meshgrid_x_boundary() -> None:
     """Test the coordinate_meshgrid function when you only have one patch in x and y direction"""
     origin = np.array([-43.5, 172.5, 5000])  # (lat, lon, depth in m)
     x_upper = np.array([-43.45498004, 172.50037108, 5000.0])
     y_bottom = np.array([-43.50025372, 172.56184531, 5000.0])
-    resolution = float(
-        coordinates.distance_between_wgs_depth_coordinates(x_upper, origin)
+    resolution = coordinates.distance_between_wgs_depth_coordinates(
+        x_upper, origin
     )  # 1 km resolution
-
+    assert isinstance(resolution, np.floating)
     meshgrid = grid.coordinate_patchgrid(origin, x_upper, y_bottom, resolution)
     assert meshgrid.shape[2] == 3  # Should have shape (ny, nx, 3) for (lat, lon, depth)
     ny, nx = meshgrid.shape[:2]
@@ -86,7 +86,7 @@ def test_coordinate_meshgrid_x_boundary():
     )
 
 
-def test_coordinate_patchgrid_different_nx_ny():
+def test_coordinate_patchgrid_different_nx_ny() -> None:
     """Test the coordinate_meshgrid function to verify nx/ny parameters"""
     origin = np.array([-43.5, 172.5, 5000])  # (lat, lon, depth in m)
     x_upper = np.array([-43.45498004, 172.50037108, 5000.0])
@@ -97,7 +97,7 @@ def test_coordinate_patchgrid_different_nx_ny():
     assert meshgrid.shape == (ny, nx, 3)
 
 
-def test_coordinate_patchgrid():
+def test_coordinate_patchgrid() -> None:
     """Test the coordinate_meshgrid function to verify grid creation"""
     origin = np.array([-43.5, 172.5, 5000])  # (lat, lon, depth in m)
     x_upper = np.array([-43.45498004, 172.50037108, 5000.0])
@@ -119,6 +119,8 @@ def test_coordinate_patchgrid():
     ny, nx = meshgrid.shape[:2]
     width = coordinates.distance_between_wgs_depth_coordinates(y_bottom, origin)
     length = coordinates.distance_between_wgs_depth_coordinates(x_upper, origin)
+    assert isinstance(length, np.floating)
+    assert isinstance(width, np.floating)
     assert ny == round(length / resolution)
     assert nx == round(width / resolution)
 
@@ -132,16 +134,20 @@ def test_coordinate_patchgrid():
     "length,resolution,expected",
     [(10, 5, 3), (10, 3, 5), (10000, 1000, 11), (1500, 500, 4)],
 )
-def test_gridpoint_count_in_length(length: float, resolution: float, expected: int):
+def test_gridpoint_count_in_length(
+    length: float, resolution: float, expected: int
+) -> None:
     """Test gridpoint_count_in_length function"""
     assert grid.gridpoint_count_in_length(length, resolution) == expected
 
 
-def test_coordinate_patchgrid_missing_resolution_and_nx_ny():
+def test_coordinate_patchgrid_missing_resolution_and_nx_ny() -> None:
     """Test that ValueError is raised when neither resolution nor nx/ny are provided"""
     origin = np.array([-43.5, 172.5, 5000])
     x_upper = np.array([-43.45498004, 172.50037108, 5000.0])
     y_bottom = np.array([-43.50025372, 172.56184531, 5000.0])
-    
-    with pytest.raises(ValueError, match="If resolution is not provided, nx and ny must be."):
+
+    with pytest.raises(
+        ValueError, match="If resolution is not provided, nx and ny must be."
+    ):
         grid.coordinate_patchgrid(origin, x_upper, y_bottom)

@@ -264,6 +264,10 @@ class XYTSFile:
             return
 
         if proc_local_file:
+            if not self.local_ny or not self.local_nx:
+                raise ValueError(
+                    "Local nx, ny must be set when parsing a process local XYTS file."
+                )
             self.data = np.memmap(
                 xyts_path,
                 dtype=f"{endian}f4",

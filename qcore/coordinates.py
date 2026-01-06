@@ -127,6 +127,8 @@ def distance_between_wgs_depth_coordinates(
         The distance (in metres) between point_a and point_b. Will
         return an array of floats if input contains multiple points
     """
+    point_a = np.asarray(point_a)
+    point_b = np.asarray(point_b)
     if len(point_a.shape) > 1:
         return np.linalg.norm(
             wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=1

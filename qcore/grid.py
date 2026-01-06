@@ -7,6 +7,7 @@ from typing import Optional
 import numpy as np
 
 from qcore import coordinates
+from qcore.typing import TFloat
 
 
 def grid_corners(
@@ -192,7 +193,7 @@ def coordinate_patchgrid(
     origin: np.ndarray,
     x_upper: np.ndarray,
     y_bottom: np.ndarray,
-    resolution: Optional[float] = None,
+    resolution: Optional[TFloat] = None,
     nx: Optional[int] = None,
     ny: Optional[int] = None,
 ) -> np.ndarray:

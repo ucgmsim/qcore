@@ -3,7 +3,7 @@ import numpy as np
 from qcore import point_in_polygon
 
 
-def test_is_inside_postgis_point_inside():
+def test_is_inside_postgis_point_inside() -> None:
     # Square polygon from (0,0) to (10,10)
     polygon = np.array([[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]])
     point = np.array([5.0, 5.0])
@@ -12,7 +12,7 @@ def test_is_inside_postgis_point_inside():
     assert result == 1
 
 
-def test_is_inside_postgis_point_outside():
+def test_is_inside_postgis_point_outside() -> None:
     polygon = np.array([[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]])
     point = np.array([15.0, 15.0])
 
@@ -20,7 +20,7 @@ def test_is_inside_postgis_point_outside():
     assert result == 0
 
 
-def test_is_inside_postgis_point_on_edge():
+def test_is_inside_postgis_point_on_edge() -> None:
     polygon = np.array([[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]])
     # Use a point that's exactly on an edge with proper alignment
     point = np.array([5.0, 0.0])
@@ -29,7 +29,7 @@ def test_is_inside_postgis_point_on_edge():
     assert result == 2  # On edge
 
 
-def test_is_inside_postgis_parallel_single_point():
+def test_is_inside_postgis_parallel_single_point() -> None:
     polygon = np.array([[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]])
     points = np.array([[5.0, 5.0]])
 
@@ -38,7 +38,7 @@ def test_is_inside_postgis_parallel_single_point():
     assert result[0]
 
 
-def test_is_inside_postgis_parallel_multiple_points():
+def test_is_inside_postgis_parallel_multiple_points() -> None:
     polygon = np.array([[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]])
     points = np.array([[5.0, 5.0], [15.0, 15.0], [0.0, 5.0]])
 
@@ -49,7 +49,7 @@ def test_is_inside_postgis_parallel_multiple_points():
     assert result[2]  # on edge (returns 2, which is truthy)
 
 
-def test_is_inside_postgis_triangle():
+def test_is_inside_postgis_triangle() -> None:
     # Triangle polygon
     polygon = np.array([[0.0, 0.0], [10.0, 0.0], [5.0, 10.0]])
     point_inside = np.array([5.0, 3.0])
