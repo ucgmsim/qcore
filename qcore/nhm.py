@@ -10,7 +10,6 @@ import pandas as pd
 import pooch
 
 from qcore import geo
-from qcore.uncertainties import mag_scaling
 from qcore.uncertainties.distributions import truncated_normal as sample_trunc_norm_dist
 
 NHM_HEADER = f"""FAULT SOURCES - (created {datetime.datetime.now().strftime("%d-%b-%Y")})
@@ -42,35 +41,25 @@ NHM_MODEL_URL = "https://www.dropbox.com/scl/fi/q93swheg6pqs0fiwviohg/NZ_FLTmode
 NHM_MODEL_HASH = "3e70bf86f00d89d8191b7e0d27d052e3c5784900e7bdc4963d3772e692305d7a"
 
 
+def mag2mom_nm(mw: float) -> float:
+    """Converts magnitude to moment - Newton-metre
+
+    Parameters
+    ----------
+    mw : float
+        The magnitude to convert.
+
+    Returns
+    -------
+    float
+        The moment in newton-metres.
+    """
+    return 10 ** (9.05 + 1.5 * mw)
+
+
 @dataclass
 class NHMFault:
-    """Contains the information for a single fault from a NHM file.
-
-    Attributes
-    ----------
-    name : str
-    tectonic_type : str
-    fault_type : str - Fault Style of the rupture (REVERSE, NORMAL etc)
-    length : float, (km)
-    length_sigma : float (km)
-    dip : float  (deg)
-    dip_sigma : float (deg) - Strike
-    dip_dir : float
-    rake : float
-    dbottom : float (km)
-    dbottom_sigma : float (km)
-    dtop_mean : float (km)
-    dtop_min : float (km)
-    dtop_max : float (km)
-    slip_rate : float (mm/yr)
-    slip_rate_sigma : float (mm/yr)
-    coupling_coeff : float (mm/yr)
-    coupling_coeff_sigma : float (mm/yr)
-    mw : float
-    recur_int_median : float (yr)
-    trace: np.ndarray
-        fault surface trace (lon, lat) for the top edge of fault
-    """
+    """Contains the information for a single fault from a NHM file."""
 
     name: str
     tectonic_type: str
@@ -123,8 +112,8 @@ class NHMFault:
             if mw_perturbation:
                 mw = sample_trunc_norm_dist(self.mw, mw_sigma, std_dev_limit=1)
 
-        moment = mag_scaling.mag2mom_nm(mw)
-        moment_base = mag_scaling.mag2mom_nm(self.mw)
+        moment = mag2mom_nm(mw)
+        moment_base = mag2mom_nm(self.mw)
         moment_rate_base = moment_base * 1 / self.recur_int_median
 
         # if the slip rate is 0, then the moment rate does not need scaling

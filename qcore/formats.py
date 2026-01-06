@@ -2,45 +2,17 @@
 Functions and classes to load data that doesn't belong elsewhere.
 """
 
-import pandas as pd
-import numpy as np
 import argparse
+from pathlib import Path
+from typing import overload
+
+# For some reason, ty can't find the deprecated member of the warnings module
+from warnings import deprecated  # type: ignore
+
+import pandas as pd
 
 
-def load_im_file(csv_file, all_psa=False, comp=None):
-
-    # process column names
-    use_cols = []
-    col_names = []
-    with open(csv_file, "r") as f:
-        raw_cols = list(map(str.strip, f.readline().split(",")))
-    for i, c in enumerate(raw_cols):
-        # filter out pSA that aren't round numbers, duplicates
-        if c not in col_names and (
-            all_psa or not (c.startswith("pSA_") and len(c) > 12)
-        ):
-            use_cols.append(i)
-            col_names.append(c)
-
-    # create numpy datatype
-    dtype = [(n, np.float32) for n in col_names]
-    # first 2 columns are actually strings
-    # Non uniform grid station names are a maximum of 7 chars (EMOD restriction)
-    # Component has been set to 10 to accomodate ROTD100_50
-    dtype[0] = ("station", "|U7")
-    dtype[1] = ("component", "|U10")
-
-    # load all at once
-    imdb = np.rec.array(
-        np.loadtxt(
-            csv_file, dtype=dtype, delimiter=",", skiprows=1, usecols=tuple(use_cols)
-        )
-    )
-    if comp is None:
-        return imdb
-    return imdb[imdb.component == comp]
-
-
+@deprecated
 def load_im_file_pd(imcsv, all_ims=False, comp=None):
     """
     Loads an IM file using pandas and returns a dataframe
@@ -62,6 +34,7 @@ def load_im_file_pd(imcsv, all_ims=False, comp=None):
     return df
 
 
+@deprecated
 def station_file_argparser(parser=None):
     """
     Return a parser object with formatting information of a generic station file. To facilitate the use of load_generic_station_file()
@@ -137,6 +110,7 @@ def station_file_argparser(parser=None):
     return parser
 
 
+@deprecated
 def load_generic_station_file(
     stat_file: str,
     stat_name_col: int = 2,
@@ -190,6 +164,7 @@ def load_generic_station_file(
     )
 
 
+@deprecated
 def load_station_file(station_file: str):
     """Reads the station file into a pandas dataframe
 
@@ -213,6 +188,7 @@ def load_station_file(station_file: str):
     )
 
 
+@deprecated
 def load_vs30_file(vs30_file: str):
     """Reads the vs30 file into a pandas dataframe
 
@@ -223,6 +199,7 @@ def load_vs30_file(vs30_file: str):
     return pd.read_csv(vs30_file, sep=r"\s+", index_col=0, header=None, names=["vs30"])
 
 
+@deprecated
 def load_z_file(z_file: str):
     """Reads the z file into a pandas dataframe
 
@@ -233,6 +210,7 @@ def load_z_file(z_file: str):
     return pd.read_csv(z_file, names=["z1p0", "z2p5", "sigma"], index_col=0, skiprows=1)
 
 
+@deprecated
 def load_station_ll_vs30(station_file: str, vs30_file: str):
     """Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
 
@@ -248,6 +226,7 @@ def load_station_ll_vs30(station_file: str, vs30_file: str):
     return vs30_df.merge(station_df, left_index=True, right_index=True)
 
 
+@deprecated
 def load_rrup_file(rrup_file: str):
     """Reads the rrup file into a pandas dataframe
 
@@ -264,6 +243,7 @@ def load_rrup_file(rrup_file: str):
     return pd.read_csv(rrup_file, header=0, index_col=0, engine="c")
 
 
+@deprecated
 def load_fault_selection_file(fault_selection_file):
     """
     Loads a fault selection file, returning a dictionary of fault:count pairs
@@ -307,26 +287,3 @@ def load_fault_selection_file(fault_selection_file):
             faults.update({fault: count})
 
     return faults
-
-
-def load_e3d_par(fp: str, comment_chars=("#",)):
-    """
-    Loads an emod3d parameter file as a dictionary
-    As the original file does not have type data all values will be strings. Typing must be done manually.
-    Crashes if duplicate keys are found
-    :param fp: The path to the parameter file
-    :param comment_chars: Any single characters that denote the line as a comment if they are the first non whitespace character
-    :return: The dictionary of key:value pairs, as found in the parameter file
-    """
-    vals = {}
-    with open(fp) as e3d:
-        for line in e3d:
-            if line.lstrip()[0] in comment_chars:
-                pass
-            key, value = line.split("=")
-            if key in vals:
-                raise KeyError(
-                    f"Key {key} is in the emod3d parameter file at least twice. Resolve this before re running."
-                )
-            vals[key] = value
-    return vals
