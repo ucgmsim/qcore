@@ -2,18 +2,11 @@
 qcore geometry utilities.
 """
 
-import functools
-import itertools
-from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
-from subprocess import PIPE, Popen
-from typing import Any, Dict, List, Optional, Tuple, Union
-from warnings import warn
+from math import asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
+from typing import Union
 
 import numpy as np
 import numpy.typing as npt
-import scipy as sp
-
-from qcore.binary_version import get_unversioned_bin
 
 R_EARTH = 6378.139
 
@@ -53,7 +46,7 @@ def get_distances(
 
 def closest_location(
     locations: np.ndarray, lon: float, lat: float
-) -> Tuple[int, float]:
+) -> tuple[int, float]:
     """
     Find position and distance of closest location in 2D np.array of (lon, lat).
     """
@@ -121,7 +114,7 @@ def oriented_bearing_wrt_normal(
     return np.degrees(angle_signed * (orientation or 1)) % 360
 
 
-def gen_mat(mrot: float, mlon: float, mlat: float) -> Tuple[np.ndarray, np.ndarray]:
+def gen_mat(mrot: float, mlon: float, mlat: float) -> tuple[np.ndarray, np.ndarray]:
     """
     Precursor for xy2ll and ll2xy functions.
     mrot: model rotation
@@ -257,7 +250,7 @@ def gp2xy(gp: np.ndarray, nx: int, ny: int, hh: float) -> np.ndarray:
 
 def ll_shift(
     lat: float, lon: float, distance: float, bearing: float
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """
     Shift lat/long by distance at bearing.
     """
@@ -273,7 +266,7 @@ def ll_shift(
     return degrees(lat2), degrees(lon2)
 
 
-def ll_mid(lon1: float, lat1: float, lon2: float, lat2: float) -> Tuple[float, float]:
+def ll_mid(lon1: float, lat1: float, lon2: float, lat2: float) -> tuple[float, float]:
     """
     Return midpoint between a pair of lat, long points.
     """
@@ -333,7 +326,7 @@ def angle_diff(b1: float, b2: float) -> float:
     return r
 
 
-def avg_wbearing(angles: List[List[float]]) -> float:
+def avg_wbearing(angles: list[list[float]]) -> float:
     """
     Return average angle given angles and weightings.
     NB: angles are clockwise from North, not anti-clockwise from East.
@@ -353,7 +346,7 @@ def avg_wbearing(angles: List[List[float]]) -> float:
 
 
 def path_from_corners(
-    corners: List[Tuple[float, float]],
+    corners: list[tuple[float, float]],
     output: str = "sim.modelpath_hr",
     min_edge_points: int = 100,
     close: bool = True,
