@@ -11,7 +11,7 @@ def get_fault_from_realisation(realisation):
 
 
 def get_realisation_name(fault_name, rel_no):
-    return "{}_REL{:0>2}".format(fault_name, rel_no)
+    return f"{fault_name}_REL{rel_no:0>2}"
 
 
 # SRF

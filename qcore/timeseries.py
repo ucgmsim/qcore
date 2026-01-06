@@ -6,12 +6,9 @@ Shared functions to work on time-series.
 """
 
 import io
-import math
 import multiprocessing
 import os
-import warnings
 from enum import StrEnum, auto
-from glob import glob
 from pathlib import Path
 from typing import NamedTuple
 
@@ -22,9 +19,6 @@ import pyfftw
 import pyfftw.interfaces.numpy_fft as pyfftw_fft
 import scipy as sp
 import xarray as xr
-
-from qcore.constants import MAXIMUM_EMOD3D_TIMESHIFT_1_VERSION
-from qcore.utils import compare_versions
 
 # The `sosfiltfilt` function So we instead shift the cutoff frequency
 # up for a highpass filter (resp. down for a lowpass filter) so that

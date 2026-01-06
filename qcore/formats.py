@@ -3,8 +3,6 @@ Functions and classes to load data that doesn't belong elsewhere.
 """
 
 import argparse
-from pathlib import Path
-from typing import overload
 
 # For some reason, ty can't find the deprecated member of the warnings module
 from warnings import deprecated  # type: ignore
@@ -271,18 +269,12 @@ def load_fault_selection_file(fault_selection_file):
                     raise ValueError()
             except ValueError:
                 raise ValueError(
-                    "Error encountered on line {lineno} when loading fault selection file {fault_selection_file}. "
-                    "Line content: {line}".format(
-                        lineno=lineno,
-                        fault_selection_file=fault_selection_file,
-                        line=line,
-                    )
+                    f"Error encountered on line {lineno} when loading fault selection file {fault_selection_file}. "
+                    f"Line content: {line}"
                 )
             if fault in faults.keys():
                 raise ValueError(
-                    "Fault {} has been found twice in the fault selection file, please check the file".format(
-                        fault
-                    )
+                    f"Fault {fault} has been found twice in the fault selection file, please check the file"
                 )
             faults.update({fault: count})
 
