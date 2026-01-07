@@ -3,7 +3,7 @@ qcore geometry utilities.
 """
 
 from math import asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -437,3 +437,44 @@ def point_to_segment_distance(
     closest_point = q + t * qr
 
     return float(np.linalg.norm(p - closest_point))
+
+
+def ll_cross_along_track_dist(
+    lon1: float,
+    lat1: float,
+    lon2: float,
+    lat2: float,
+    lon3: float,
+    lat3: float,
+    a12: Optional[float] = None,
+    a13: Optional[float] = None,
+    d13: Optional[float] = None,
+) -> tuple[float, float]:
+    """
+    Returns both the distance of point 3 to the nearest point on the great circle line that passes through point 1 and
+    point 2 and how far away that nearest point is from point 1, along the great line circle
+    If any of a12, a13, d13 are given the calculations for them are skipped
+    If all of a12, a13, d13 are given, none of the lon, lat values are used and may be junk data
+    Taken from https://www.movable-type.co.uk/scripts/latlong.html
+    :param lon1, lat1: The lon, lat coordinates for point 1
+    :param lon2, lat2: The lon, lat coordinates for point 2
+    :param lon3, lat3: The lon, lat coordinates for point 3
+    :param a12: The angle between point 1 (lon1, lat1) and point 2 (lon2, lat2) in radians
+    :param a13: The angle between point 1 (lon1, lat1) and point 3 (lon3, lat3) in radians
+    :param d13: The distance between point 1 (lon1, lat1) and point 3 (lon3, lat3) in km
+    """
+    if a12 is None:
+        a12 = radians(ll_bearing(lon1, lat1, lon2, lat2))
+    if a13 is None:
+        a13 = radians(ll_bearing(lon1, lat1, lon3, lat3))
+    if d13 is None:
+        d13 = ll_dist(lon1, lat1, lon3, lat3)
+    d13 /= R_EARTH
+    # Only keeping the cross track angle saves a division on the following line
+    xta = asin(sin(d13) * sin(a13 - a12))
+    # The sign factor of this line is a modification of the original formula to distinguish between up/down strike
+    # locations
+    ata = acos(cos(d13) / cos(xta)) * np.sign(np.cos(a13 - a12))
+
+    # Multiply the angles by radius to get the distance across the earth surface
+    return xta * R_EARTH, ata * R_EARTH
