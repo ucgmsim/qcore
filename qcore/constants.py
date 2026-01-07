@@ -59,7 +59,3 @@ class ExtendedStrEnum(ExtendedEnum):
             if ignore_none and item.str_value is None:
                 continue
             yield item.str_value
-
-
-        """
-        )
