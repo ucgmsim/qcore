@@ -32,6 +32,9 @@ test = ["pytest", "hypothesis[numpy]", "pytest-cov"]
 types = ["pandas-stubs", "scipy-stubs", "types-PyYAML"]
 dev = ["ruff", "deptry", "ty"]
 
+[tool.deptry]
+pep621_dev_dependency_groups = ["test", "dev", "types"]
+
 [tool.coverage.run]
 omit = ["qcore/constants.py", "qcore/formats.py"]
 
@@ -39,9 +42,6 @@ omit = ["qcore/constants.py", "qcore/formats.py"]
 
 [tool.setuptools.package-dir]
 qcore = "qcore"
-
-[tool.setuptools.package-data]
-"qcore" = ["registry/registry.txt"]
 
 [tool.ruff.lint]
 extend-select = [
