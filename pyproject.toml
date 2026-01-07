@@ -15,6 +15,7 @@ dependencies = [
   "pyproj",
   "pooch",
   "scipy",
+  "matplotlib",
   "numpy",
   "numba>=0.57.0; python_version == '3.11'",
   "numba>=0.59.0; python_version == '3.12'",
@@ -24,7 +25,6 @@ dependencies = [
   "docstring_parser",
   "xarray",
   "pyyaml",
-  "typing-extensions>=4.9.0",                # Last change to the @deprecated module
 ]
 
 [project.optional-dependencies]
@@ -42,9 +42,6 @@ omit = ["qcore/constants.py", "qcore/formats.py"]
 
 [tool.setuptools.package-dir]
 qcore = "qcore"
-
-[tool.setuptools.package-data]
-"qcore" = ["registry/registry.txt"]
 
 [tool.ruff.lint]
 extend-select = [
