@@ -1,0 +1,20 @@
+name: Deptry Dependency Check
+
+on: [pull_request]
+
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Setup the minimum required python distribution
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+      - run: uv sync --dev --all-extras
+      # Install deptry
+      - run: uv pip install deptry
+      # Run deptry to check that all dependencies are present.
+      - run: uv run deptry . -ddg test,dev,types
