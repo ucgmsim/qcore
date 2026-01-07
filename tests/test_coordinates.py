@@ -1,13 +1,18 @@
+import re
+
 import numpy as np
 import pyproj
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from qcore import coordinates
 from qcore.coordinates import R_EARTH, SphericalProjection
 
 
-def latitude(min_value: float = -90.0, max_value: float = 90.0, **kwargs):
+def latitude(
+    min_value: float = -90.0, max_value: float = 90.0, **kwargs
+) -> st.SearchStrategy:
     return st.floats(
         min_value=min_value,
         max_value=max_value,
@@ -17,7 +22,9 @@ def latitude(min_value: float = -90.0, max_value: float = 90.0, **kwargs):
     )
 
 
-def longitude(min_value: float = -180.0, max_value: float = 180.0, **kwargs):
+def longitude(
+    min_value: float = -180.0, max_value: float = 180.0, **kwargs
+) -> st.SearchStrategy:
     return st.floats(
         min_value=min_value,
         max_value=max_value,
@@ -32,7 +39,7 @@ HALF_SPHERE = R_EARTH * np.pi / 2.0  # Half-circumference of a hemisphere
 
 
 @st.composite
-def points_in_same_hemisphere(draw):
+def points_in_same_hemisphere(draw: st.DrawFn) -> tuple[float, float, float, float]:
     mlat = draw(latitude())
     mlon = draw(longitude())
     # Pick a second pair of points in the same hemisphere
@@ -44,7 +51,9 @@ def points_in_same_hemisphere(draw):
 
 
 @given(points=points_in_same_hemisphere(), mrot=st.floats(-360, 360))
-def test_projection_inverse_is_identity(points, mrot):
+def test_projection_inverse_is_identity(
+    points: tuple[float, float, float, float], mrot: float
+) -> None:
     mlat, mlon, lat, lon = points
     proj = SphericalProjection(mlon, mlat, mrot)
     fwd = proj.project(lat, lon)
@@ -64,7 +73,7 @@ def test_projection_inverse_is_identity(points, mrot):
 # longitude at the poles is equivalent to staying put (and hence the
 # mlon +/- eps) tests will always fail.
 @given(mlat=latitude(exclude_min=True, exclude_max=True), mlon=longitude())
-def test_identity_rotation_preserves_axes(mlat, mlon):
+def test_identity_rotation_preserves_axes(mlat: float, mlon: float) -> None:
     proj = SphericalProjection(mlon, mlat, 0)
 
     # The coordinate frame of reference is south is y-positive, west
@@ -79,19 +88,21 @@ def test_identity_rotation_preserves_axes(mlat, mlon):
 
 
 @given(mlat=latitude(), mlon=longitude(), mrot=st.floats(-360, 360))
-def test_center_maps_to_origin(mlat, mlon, mrot):
+def test_center_maps_to_origin(mlat: float, mlon: float, mrot: float) -> None:
     proj = SphericalProjection(mlon, mlat, mrot)
     out = proj.project(mlat, mlon)
     assert pytest.approx(np.zeros_like(out), abs=1e-3) == out
 
 
 @given(points=points_in_same_hemisphere(), mrot=st.floats(-360, 360))
-def test_projection_preserves_distance(points, mrot):
+def test_projection_preserves_distance(
+    points: tuple[float, float, float, float], mrot: float
+) -> None:
     mlat, mlon, lat, lon = points
     proj = SphericalProjection(mlon, mlat, mrot)
     geod = proj.geod  # Pyproj spherical geodesic
 
-    dist1 = GEOD.inv(mlon, mlat, lon, lat)[2] / 1000.0
+    dist1 = geod.inv(mlon, mlat, lon, lat)[2] / 1000.0
 
     x, y = proj.project(lat, lon)
     dist2 = np.hypot(x, y)
@@ -100,7 +111,7 @@ def test_projection_preserves_distance(points, mrot):
     assert pytest.approx(dist1, abs=0.1) == dist2
 
 
-def test_projection_preserves_depth():
+def test_projection_preserves_depth() -> None:
     # Test that the projection does not change depth
     proj = SphericalProjection(0, 0, 0)  # Centered at the origin
     depth = 100.0
@@ -110,7 +121,7 @@ def test_projection_preserves_depth():
     assert pytest.approx(projected[2]) == depth  # Depth should remain unchanged
 
 
-def test_inverse_projection_preserves_depth():
+def test_inverse_projection_preserves_depth() -> None:
     # Test that the projection does not change depth
     proj = SphericalProjection(0, 0, 0)  # Centered at the origin
     depth = 100.0

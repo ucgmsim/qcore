@@ -86,7 +86,9 @@ class NHMFault:
     # TODO: add x y z fault plane data as in SRF info
     # TODO: add leonard mw function
 
-    def sample_2012(self, mw_area_scaling: bool = True, mw_perturbation: bool = True):
+    def sample_2012(
+        self, mw_area_scaling: bool = True, mw_perturbation: bool = True
+    ) -> "NHMFault":
         """
         Permutates the current NHM fault as per the OpenSHA implementation. This uses the same Mw scaling relations
         as Stirling 2012
@@ -149,7 +151,7 @@ class NHMFault:
             trace=self.trace,
         )
 
-    def write(self, out_fp: TextIO, header: bool = False):
+    def write(self, out_fp: TextIO, header: bool = False) -> None:
         """
         Writes a section of the NHM file
 
@@ -179,7 +181,7 @@ class NHMFault:
 
 def load_nhm(
     nhm_path: str | None = None, skiprows: int = len(NHM_HEADER.splitlines()) + 1
-):
+) -> dict[str, NHMFault]:
     """Reads the nhm_path and returns a dictionary of NHMFault by fault name.
 
     Parameters
@@ -299,7 +301,9 @@ def load_nhm_df(nhm_ffp: str, erf_name: str | None = None):
     return pd.DataFrame.from_dict(rupture_dict, orient="index").sort_index()
 
 
-def get_fault_header_points(fault: NHMFault):
+def get_fault_header_points(
+    fault: NHMFault,
+) -> tuple[list[dict[str, int | float]], np.ndarray]:
     """
     Calculates and produces fault information such as the entire trace and fault header info per plane
 

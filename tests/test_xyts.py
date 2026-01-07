@@ -204,6 +204,5 @@ def test_xyts_invalid_file(tmp_path: Path) -> None:
     # Create a file with invalid header
     with open(invalid_file, "wb") as f:
         f.write(b"\x00" * 100)
-
     with pytest.raises(ValueError, match="File is not an XY timeslice file"):
         xyts.XYTSFile(str(invalid_file))

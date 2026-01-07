@@ -17,8 +17,6 @@ See LINZ[0] for a description of the NZTM coordinate system.
 [0]: https://www.linz.govt.nz/guidance/geodetic-system/coordinate-systems-used-new-zealand/projections/new-zealand-transverse-mercator-2000-nztm2000
 """
 
-from typing import Union
-
 import numpy as np
 import numpy.typing as npt
 import pyproj
@@ -114,8 +112,8 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
 
 
 def distance_between_wgs_depth_coordinates(
-    point_a: np.ndarray, point_b: np.ndarray
-) -> Union[float, np.ndarray]:
+    point_a: npt.ArrayLike, point_b: npt.ArrayLike
+) -> npt.ArrayLike:
     """Return the distance between two points in lat, lon, depth format.
 
     Valid only for points that can be converted into NZTM format.
@@ -136,6 +134,8 @@ def distance_between_wgs_depth_coordinates(
         The distance (in metres) between point_a and point_b. Will
         return an array of floats if input contains multiple points
     """
+    point_a = np.asarray(point_a)
+    point_b = np.asarray(point_b)
     if len(point_a.shape) > 1:
         return np.linalg.norm(
             wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=1
@@ -206,16 +206,17 @@ def great_circle_bearing_to_nztm_bearing(
         The equivalent bearing such that:
         `geo.ll_shift`(*`origin`, `distance`, `ll_bearing`) ≅ nztm_heading.
     """
-    great_circle_heading = np.array(
-        geo.ll_shift(*origin, distance, great_circle_bearing)
-    )
+    x, y = origin
+    great_circle_heading = np.array(geo.ll_shift(x, y, distance, great_circle_bearing))
 
-    return geo.oriented_bearing_wrt_normal(
-        np.array([1, 0, 0]),
-        np.append(
-            wgs_depth_to_nztm(great_circle_heading) - wgs_depth_to_nztm(origin), 0
-        ),
-        np.array([0, 0, 1]),
+    return float(
+        geo.oriented_bearing_wrt_normal(
+            np.array([1, 0, 0]),
+            np.append(
+                wgs_depth_to_nztm(great_circle_heading) - wgs_depth_to_nztm(origin), 0
+            ),
+            np.array([0, 0, 1]),
+        )
     )
 
 
@@ -252,43 +253,43 @@ class SphericalProjection:
         Rotation angle in the projected plane in degrees.
     """
 
-    def __init__(self, mlon: float, mlat: float, mrot: float, radius: float = R_EARTH):  # noqa: D107
+    def __init__(self, mlon: float, mlat: float, mrot: float, radius: float = R_EARTH):  # noqa: D107 # numpydoc ignore=GL08
         self.mlon = mlon
         self.mlat = mlat
         self.mrot = mrot
         self.radius = radius
 
         arg = np.radians(mrot)
-        cosA = np.cos(arg)
-        sinA = np.sin(arg)
+        cos_a = np.cos(arg)
+        sin_a = np.sin(arg)
 
         arg = np.radians(90.0 - mlat)
-        cosT = np.cos(arg)
-        sinT = np.sin(arg)
+        cos_t = np.cos(arg)
+        sin_t = np.sin(arg)
 
         arg = np.radians(mlon)
-        cosP = np.cos(arg)
-        sinP = np.sin(arg)
+        cos_p = np.cos(arg)
+        sin_p = np.sin(arg)
 
         self.amat = np.array(
             [
                 [
-                    cosA * cosT * cosP + sinA * sinP,
-                    sinA * cosT * cosP - cosA * sinP,
-                    sinT * cosP,
+                    cos_a * cos_t * cos_p + sin_a * sin_p,
+                    sin_a * cos_t * cos_p - cos_a * sin_p,
+                    sin_t * cos_p,
                 ],
                 [
-                    cosA * cosT * sinP - sinA * cosP,
-                    sinA * cosT * sinP + cosA * cosP,
-                    sinT * sinP,
+                    cos_a * cos_t * sin_p - sin_a * cos_p,
+                    sin_a * cos_t * sin_p + cos_a * cos_p,
+                    sin_t * sin_p,
                 ],
-                [-cosA * sinT, -sinA * sinT, cosT],
+                [-cos_a * sin_t, -sin_a * sin_t, cos_t],
             ],
             dtype=np.float64,
         )
 
     @property
-    def geod(self) -> pyproj.Geod:
+    def geod(self) -> pyproj.Geod:  # numpydoc ignore=RT01
         """pyproj.Geod: A pyproj representation of the EMOD3D earth as a Geod."""
         return pyproj.Geod(ellps="sphere", a=self.radius, b=self.radius)
 
