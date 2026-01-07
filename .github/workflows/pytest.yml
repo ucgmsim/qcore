@@ -20,12 +20,10 @@ jobs:
           enable-cache: true
 
       - name: Install the project
-        run: uv sync --all-extras --dev
+        run: uv sync --all-extras
 
       - name: Run tests
-        run: |
-          source .venv/bin/activate
-          pytest --cov=qcore --cov-report=html tests
+        run: uv run pytest --cov=qcore --cov-report=html tests
 
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
@@ -46,7 +44,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: 3.13
 
       - name: Install dependencies
         run: |
