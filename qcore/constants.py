@@ -1,6 +1,5 @@
 """DEPRECATED - Global constants and Enum helper."""
 
-from collections.abc import Generator
 from enum import Enum
 from typing import Any
 from warnings import deprecated  # type: ignore
@@ -44,7 +43,7 @@ class ExtendedStrEnum(ExtendedEnum):
     @classmethod
     def from_str(cls, str_value):
         if not cls.has_str_value(str_value):
-            raise ValueError("{} is not a valid {}".format(str_value, cls.__name__))
+            raise ValueError(f"{str_value} is not a valid {cls.__name__}")
         else:
             for item in cls:
                 if item.str_value == str_value:
