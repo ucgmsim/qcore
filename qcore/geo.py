@@ -2,7 +2,7 @@
 qcore geometry utilities.
 """
 
-from math import asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
+from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from typing import Optional, Union
 
 import numpy as np
