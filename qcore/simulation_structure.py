@@ -53,6 +53,11 @@ def get_stoch_path(cybershake_root, realisation):
     )
 
 
+def get_runs_dir(cybershake_root):
+    """Gets the path to the Runs directory of a cybershake run"""
+    return os.path.join(cybershake_root, "Runs")
+
+
 def get_fault_dir(cybershake_root, fault_name):
     return os.path.join(get_runs_dir(cybershake_root), fault_name)
 
