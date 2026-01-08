@@ -4,7 +4,6 @@ Functions and classes to load data that doesn't belong elsewhere.
 
 import argparse
 from pathlib import Path
-from typing import overload
 
 import pandas as pd
 from typing_extensions import deprecated
@@ -42,20 +41,10 @@ def load_im_file_pd(
     return df
 
 
-@overload
-def station_file_argparser(
-    parser: argparse.ArgumentParser,
-) -> None: ...  # numpydoc ignore=GL08
-
-
-@overload
-def station_file_argparser() -> argparse.ArgumentParser: ...  # numpydoc ignore=GL08
-
-
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def station_file_argparser(
     parser: argparse.ArgumentParser | None = None,
-) -> argparse.ArgumentParser | None:
+) -> argparse.ArgumentParser:
     """Add station file argument options to an ArgumentParser.
 
     Parameters

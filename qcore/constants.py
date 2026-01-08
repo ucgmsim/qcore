@@ -42,7 +42,7 @@ class ExtendedEnum(Enum):
             True if any enum value is a substring of `parent_string`.
         """
         return any(
-            not isinstance(item.value, str) or item.value in parent_string
+            isinstance(item.value, str) and item.value in parent_string
             for item in cls
         )
 
