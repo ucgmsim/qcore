@@ -35,20 +35,10 @@ def load_im_file_pd(
     return df
 
 
-@overload
-def station_file_argparser(
-    parser: argparse.ArgumentParser,
-) -> None: ...  # numpydoc ignore=GL08
-
-
-@overload
-def station_file_argparser() -> argparse.ArgumentParser: ...  # numpydoc ignore=GL08
-
-
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def station_file_argparser(
     parser: argparse.ArgumentParser | None = None,
-) -> argparse.ArgumentParser | None:
+) -> argparse.ArgumentParser:
     """
     Return a parser object with formatting information of a generic station file. To facilitate the use of load_generic_station_file()
 
