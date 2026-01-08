@@ -1,16 +1,5 @@
 """
 This module provides functions for working with planar regions defined by geographical coordinates.
-
-Functions
----------
-grid_corners
-    Returns the corners of a plane from a series of parameters.
-
-coordinate_meshgrid
-    Creates a meshgrid of points in a bounded plane region.
-
-gridpoint_count_in_length
-    Calculate the number of gridpoints that fit into a given length.
 """
 
 from typing import Optional
@@ -238,12 +227,17 @@ def coordinate_patchgrid(
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
 
-    Note
-    ----
+    Raises
+    ------
+    ValueError
+        If resolution, nx and ny are not provided.
+
+    Notes
+    -----
     The patch grid may have different sizes than given in as resolution if the resolution does not divide the lengths of the sides of the plane evenly.
 
-    Example
-    -------
+    Examples
+    --------
     >>> origin = np.array([-43.5321, 172.6362, 0.0])  # Christchurch, NZ
     >>> x_upper = np.array([-43.5311, 172.6462, 0.0]) # ~800m to the east
     >>> y_bottom = np.array([-43.5421, 172.6362, 0.0]) # ~1.2km to the south

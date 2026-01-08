@@ -39,26 +39,26 @@ def calc_rrup_rjb(
 
     Parameters
     ----------
-    srf_points: np.ndarray
+    srf_points : np.ndarray
         The fault points from the srf file (qcore, srf.py, read_srf_points),
-        format (lon, lat, depth)
-    locations: np.ndarray
+        format (lon, lat, depth).
+    locations : np.ndarray
         The locations for which to calculate the distances,
-        format (lon, lat, depth)
-    n_stations_per_iter: int
+        format (lon, lat, depth).
+    n_stations_per_iter : int
         Number of stations to iterate over, default to 1000.
         Change based on memory requirements
-    return_rrup_points: bool (optional) default False
-        If True, returns the lon, lat, depth of the rrup points on the srf
+    return_rrup_points : bool (optional) default False
+        If True, returns the lon, lat, depth of the rrup points on the srf.
 
     Returns
     -------
-    rrups : np.ndarray
-        The rrup distance for the locations, shape/order same as locations
-    rjb : np.ndarray
-        The rjb distance for the locations, shape/order same as locations
-    rrups_points : np.ndarray (optional)
-        The lon, lat, depth of the rrup points, shape/order same as locations
+    np.ndarray
+        The rrup distance for the locations, shape/order same as locations.
+    np.ndarray
+        The rjb distance for the locations, shape/order same as locations.
+    np.ndarray (optional)
+        The lon, lat, depth of the rrup points, shape/order same as locations.
     """
     rrups = np.empty(locations.shape[0], dtype=np.float32)
     rjb = np.empty(locations.shape[0], dtype=np.float32)
@@ -114,10 +114,10 @@ def calc_rx_ry(
         A list of srf header dictionaries, as retrieved from qcore.srf.get_headers with idx=True.
     locations : np.ndarray
         An array with shape (m, 2) giving the lon, lat locations of each location to get Rx, Ry values for.
-    type : int, optional
-        Allows switching between the two GC types if desired. Default is 2.
     hypocentre_origin : bool, optional
         If True, sets the Ry origin/0 point to the fault trace projection of the hypocentre. If False, the most upstrike subfault of the first fault trace is used. Only used for GC2.
+    type : int, optional
+        Allows switching between the two GC types if desired. Default is 2.
 
     Returns
     -------

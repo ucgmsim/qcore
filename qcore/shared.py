@@ -63,7 +63,7 @@ def get_corners(
 
     Parameters
     ----------
-    model_params : Path or str
+    model_params_ffp : Path or str
         The file path of the model_params file.
     gmt_format : bool, default False
         If True, also returns corners in GMT string format.
@@ -108,7 +108,8 @@ def non_blocking_exe(
     stderr: Union[bool, FileIO] = True,
     **kwargs,
 ) -> subprocess.Popen:  # pragma: no cover
-    """
+    r"""Run a command without blocking the calling thread.
+
     *DO NOT USE THIS FUNCTION* Instead, call subprocess.run or
     subprocess.check_call to execute processes.
 
@@ -127,13 +128,13 @@ def non_blocking_exe(
         to Popen.
     debug : bool, default True
         If True, print out the command to run before running.
-    stdout : bool or IOBase, default True
+    stdout : bool or FileIO, default True
         The stdout file handle to send output. If True, will default to
         subprocess.PIPE.
-    stderr : bool or IOBase, default True
+    stderr : bool or FileIO, default True
         The stderr file handle to send output. If True, will default to
         subprocess.PIPE.
-    kwargs : dict
+    **kwargs : dict
         Additional arguments, passed to Popen.
 
     Returns
@@ -190,7 +191,7 @@ def exe(
         If True, print out the command to run before running.
     stdin : str-like, optional
         If not None, then given to the running process as standard input.
-    kwargs : dict
+    **kwargs : dict
         Additional arguments, passed to Popen.
 
     Returns

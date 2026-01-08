@@ -4,7 +4,6 @@ Functions and classes to load data that doesn't belong elsewhere.
 
 import argparse
 from pathlib import Path
-from typing import overload
 
 import pandas as pd
 from typing_extensions import deprecated
@@ -14,16 +13,23 @@ from typing_extensions import deprecated
 def load_im_file_pd(
     imcsv: Path | str, all_ims: bool = False, comp: str | None = None
 ) -> pd.DataFrame | pd.Series:
-    """
-    Loads an IM file using pandas and returns a dataframe
-    :param imcsv: FFP to im_csv
-    :param all_ims: returns all_ims. Defaultly returns only short IM names (standard pSA periods etc).
-                    Setting this to true includes all pSA periods (and other long IM names). Extended pSA periods have
-                    longer IM names and are filtered out by this flag.
-    :param comp: component to return. Default is to return all
-    :return:
-    """
+    """Load an Intensity Measure (IM) CSV file into a pandas DataFrame.
 
+    Parameters
+    ----------
+    imcsv : Path or str
+        Path to the IM CSV file.
+    all_ims : bool, optional
+        Whether to load all IMs. If False (default), only standard IMs
+        with short names (e.g., common pSA periods) are included.
+    comp : str or None, optional
+        Specific component to return (e.g., 'pga', 'pgv'). If None, all components are returned.
+
+    Returns
+    -------
+    pd.DataFrame or series
+        DataFrame or series containing IM values, indexed by station and component.
+    """
     df = pd.read_csv(imcsv, index_col=[0, 1])
 
     if not all_ims:
@@ -39,34 +45,22 @@ def load_im_file_pd(
 def station_file_argparser(
     parser: argparse.ArgumentParser | None = None,
 ) -> argparse.ArgumentParser:
-    """
-    Return a parser object with formatting information of a generic station file. To facilitate the use of load_generic_station_file()
-
-    Example:
-    In your script, X.py, you already have some arguments parsed by ArgumentParser(), but if you wish to handle extra arguments related to the format of a station file
-
-    def get_args():
-        parser = argparse.ArgumentParser()
-        arg = parser.add_argument
-        arg("--arg1", help="argument 1")
-        arg("--arg2", help="argument 2")
-        parser = formats.station_file_argparser(parser=parser)  # pass the parser argument, update it with the return value
-        return parser.parse_args()
-
-    if __name__ == '__main__':
-        args = get_args()
-        ....
-
-    python X.py --arg1 ARG1 --arg2 ARG2 --stat_file some_station_file.csv --stat_name_col 0 --lat_col 1 --lon_col 2 --sep , --skiprows 1
+    """Add station file argument options to an ArgumentParser.
 
     Parameters
     ----------
-    parser : parser created to handle other arguments unrelated to the station file loading (default: None)
+    parser : argparse.ArgumentParser or None, optional
+        Existing parser to extend. If None, a new parser is created.
 
     Returns
     -------
-    parser object with arguments related to station file loading
+    argparse.ArgumentParser
+        Parser object with added station file-related arguments.
 
+    Examples
+    --------
+    >>> parser = station_file_argparser()
+    >>> args = parser.parse_args(["--stat_file", "stations.ll"])
     """
     if parser is None:
         parser = argparse.ArgumentParser(description="Station Data Loader")
@@ -124,26 +118,32 @@ def load_generic_station_file(
     sep: str = r"\s+",
     skiprows: int = 0,
 ) -> pd.DataFrame:
-    """
-    Reads the station file of any format into a pandas dataframe
+    """Load a generic station file into a pandas DataFrame.
 
-    Can be useful to obtain necessary format info with station_file_argparser()
     Parameters
     ----------
-    stat_file: str
-        Path to the station file. Can be .ll or any other format
-    stat_name_col: column index of station name (default: 2 for .ll file)
-    lon_col: column index of lon (default 0 for .ll file)
-    lat_col: column index of lat (default 1 for .ll file)
-    other_cols : column indices of other columns to load eg eg. [3,5,6]
-    other_names : column names of other_cols eg. ["vs30","z1p0","z2p5"]
-    sep : delimiter (by default "\\s+" (whitespace) for .ll file
-    skiprows : number of rows to skip (if header rows exist)
+    stat_file : str
+        Path to the station file (e.g., .ll file or other format).
+    stat_name_col : int, optional
+        Column index for station names. Default is 2.
+    lon_col : int, optional
+        Column index for longitude. Default is 0.
+    lat_col : int, optional
+        Column index for latitude. Default is 1.
+    other_cols : list of int, optional
+        Indices of additional columns to include.
+    other_names : list of str, optional
+        Names corresponding to `other_cols`.
+    sep : str, optional
+        Column delimiter. Default is whitespace.
+    skiprows : int, optional
+        Number of rows to skip (for header lines).
 
     Returns
     -------
     pd.DataFrame
-        station as index and columns lon, lat and other columns
+        DataFrame with index as station name and columns including longitude,
+        latitude, and any additional specified columns.
     """
     cols: dict[str, int] = {"stat_name": stat_name_col}
     if lon_col is not None:
@@ -170,17 +170,17 @@ def load_generic_station_file(
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def load_station_file(station_file: str) -> pd.DataFrame:
-    """Reads the station file into a pandas dataframe
+    """Load a station file into a pandas DataFrame.
 
     Parameters
     ----------
     station_file : str
-        Path to the station file
+        Path to the station file.
 
     Returns
     -------
     pd.DataFrame
-        station as index and columns lon, lat
+        DataFrame indexed by station, with longitude and latitude columns.
     """
     return pd.read_csv(
         station_file,
@@ -194,35 +194,55 @@ def load_station_file(station_file: str) -> pd.DataFrame:
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def load_vs30_file(vs30_file: str) -> pd.DataFrame:
-    """Reads the vs30 file into a pandas dataframe
+    """Load a Vs30 (shear-wave velocity) file into a pandas DataFrame.
 
-    :param vs30_file: Path to the vs30 file
-    :return: pd.DataFrame
-        station as index and columns vs30
+    Parameters
+    ----------
+    vs30_file : str
+        Path to the Vs30 file.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame indexed by station, with a single column ``vs30``.
     """
     return pd.read_csv(vs30_file, sep=r"\s+", index_col=0, header=None, names=["vs30"])
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def load_z_file(z_file: str) -> pd.DataFrame:
-    """Reads the z file into a pandas dataframe
+    """Load a z-file containing depth parameters (e.g., z1.0, z2.5) into a pandas DataFrame.
 
-    :param z_file: Path to the z file
-    :return: pd.DataFrame
-        station as index and columns z1p0, z2p5
+    Parameters
+    ----------
+    z_file : str
+        Path to the z file.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame indexed by station, with columns ``z1p0``, ``z2p5``, and ``sigma``.
     """
     return pd.read_csv(z_file, names=["z1p0", "z2p5", "sigma"], index_col=0, skiprows=1)
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def load_station_ll_vs30(station_file: str, vs30_file: str) -> pd.DataFrame:
-    """Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
+    """Merge station location and Vs30 data into a single DataFrame.
 
-    :param station_file: Path to the station file
-    :param vs30_file: Path to the vs30 file
-    :return: pd.DataFrame
-        station as index and columns lon, lat, vs30
+    Parameters
+    ----------
+    station_file : str
+        Path to the station file containing longitude and latitude.
+    vs30_file : str
+        Path to the Vs30 file.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame indexed by station, with columns ``lon``, ``lat``, and ``vs30``.
     """
+
     vs30_df = load_vs30_file(vs30_file)  # type: ignore
     station_df = load_station_file(station_file)  # type: ignore
 
@@ -235,23 +255,35 @@ def load_rrup_file(rrup_file: str) -> pd.DataFrame:
 
     Parameters
     ----------
-    rrup_file: str
+    rrup_file : str
         Path to the rrup file to load
 
     Returns
     -------
     pd.DataFrame
-        station as index with columns rrup, rjb and optional rx
+        Station as index with columns rrup, rjb and optional rx
     """
     return pd.read_csv(rrup_file, header=0, index_col=0, engine="c")
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
 def load_fault_selection_file(fault_selection_file: str | Path) -> dict[str, int]:
-    """
-    Loads a fault selection file, returning a dictionary of fault:count pairs
-    :param fault_selection_file: The relative or absolute path to the fault selection file
-    :return: A dictionary of fault:count pairs for all faults found in the file
+    """Load a fault selection file into a dictionary of fault names and counts.
+
+    Parameters
+    ----------
+    fault_selection_file : str or Path
+        Path to the fault selection file.
+
+    Returns
+    -------
+    dict of str to int
+        Dictionary mapping fault names to selected counts.
+
+    Raises
+    ------
+    ValueError
+        If the file contains malformed lines or duplicate fault entries.
     """
     faults: dict[str, int] = {}
     with open(fault_selection_file) as fault_file:
