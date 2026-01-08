@@ -244,8 +244,4 @@ def rand_shyp(size: int = 1, seed: int | None = None) -> float | np.ndarray:
     float
         Random value from a truncated normal distribution (mean=0, std_dev=0.25).
     """
-    x = truncated_normal(0, 0.25, size=size, seed=seed)
-    if x.size == 1:
-        return float(x.item())
-    else:
-        return x
+    return truncated_normal(0, 0.25, size=size, seed=seed)
