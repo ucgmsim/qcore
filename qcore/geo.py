@@ -461,7 +461,7 @@ def path_from_corners(
     output: str | None = None,
     min_edge_points: int = ...,
     close: bool = ...,
-) -> list[tuple[float, float]]: ...
+) -> list[tuple[float, float]]: ...  # numpydoc ignore=GL08
 
 
 @overload
@@ -470,7 +470,7 @@ def path_from_corners(
     output: str = ...,
     min_edge_points: int = ...,
     close: bool = ...,
-) -> None: ...
+) -> None: ...  # numpydoc ignore=GL08
 
 
 def path_from_corners(
