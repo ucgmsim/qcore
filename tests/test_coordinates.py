@@ -1,12 +1,9 @@
-import re
-
 import numpy as np
 import pyproj
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from qcore import coordinates
 from qcore.coordinates import R_EARTH, SphericalProjection
 
 
