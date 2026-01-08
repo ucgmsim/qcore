@@ -206,7 +206,7 @@ def truncated_log_normal(
 
     Returns
     -------
-    float
+    float or array of floats
         Random value from the truncated log-normal distribution.
     """
     x = np.exp(
@@ -239,9 +239,16 @@ def rand_shyp(size: int = 1, seed: int | None = None) -> float | np.ndarray:
     """
     Generate a random hypocentre value along the length of a fault.
 
+    Parameters
+    ----------
+    size : int, optional
+        The number of samples to take (default is 1).
+    seed : int or None, optional
+        Random seed for reproducibility (default is None).
+
     Returns
     -------
-    float
+    float or array of floats
         Random value from a truncated normal distribution (mean=0, std_dev=0.25).
     """
     return truncated_normal(0, 0.25, size=size, seed=seed)

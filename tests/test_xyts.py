@@ -204,7 +204,7 @@ def test_xyts_invalid_file(tmp_path: Path) -> None:
     # Create a file with invalid header
     with open(invalid_file, "wb") as f:
         f.write(b"\x00" * 100)
-
+    
     with pytest.raises(ValueError, match="File is not an XY timeslice file"):
         xyts.XYTSFile(str(invalid_file))
 
@@ -214,11 +214,12 @@ def test_tslice_get_meta_only() -> None:
     test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
     if not test_file.exists():
         pytest.skip("Test file not available")
-
+    
     xyts_file = xyts.XYTSFile(str(test_file), meta_only=True)
-
+    
     with pytest.raises(
-        AttributeError, match="The data attribute must be set to use `tslice_get`"
+        AttributeError, 
+        match="The data attribute must be set to use `tslice_get`"
     ):
         xyts_file.tslice_get(10, comp=xyts.Component.MAGNITUDE)
 
@@ -228,10 +229,11 @@ def test_pgv_meta_only() -> None:
     test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
     if not test_file.exists():
         pytest.skip("Test file not available")
-
+    
     xyts_file = xyts.XYTSFile(str(test_file), meta_only=True)
-
+    
     with pytest.raises(
-        AttributeError, match="The data and ll_map attributes must be set to use `pgv`"
+        AttributeError,
+        match="The data and ll_map attributes must be set to use `pgv`"
     ):
         xyts_file.pgv()

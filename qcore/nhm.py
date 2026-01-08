@@ -59,29 +59,78 @@ def mag2mom_nm(mw: float) -> float:
 
 @dataclass
 class NHMFault:
-    """Contains the information for a single fault from a NHM file."""
+    """
+    Contains the information for a single fault from a NHM file.
+
+    Notes
+    -----
+    This class stores geometric, kinematic, and statistical parameters
+    describing an individual fault, as defined in the New Zealand
+    National Hazard Model (NHM) fault database.
+    """
 
     name: str
+    """Name of the fault."""
+
     tectonic_type: str
+    """Tectonic setting type of the fault."""
+
     fault_type: str
+    """Fault style of the rupture (e.g., REVERSE, NORMAL, STRIKE-SLIP)."""
+
     length: float
+    """Fault length in kilometers."""
+
     length_sigma: float
+    """Uncertainty (standard deviation) in fault length, in kilometers."""
+
     dip: float
+    """Fault dip angle in degrees."""
+
     dip_sigma: float
+    """Uncertainty (standard deviation) in dip angle, in degrees."""
+
     dip_dir: float
+    """Dip direction (azimuth) in degrees."""
+
     rake: float
+    """Slip rake angle in degrees."""
+
     dbottom: float
+    """Depth to the bottom of the fault plane, in kilometers."""
+
     dbottom_sigma: float
+    """Uncertainty (standard deviation) in bottom depth, in kilometers."""
+
     dtop: float
+    """Mean depth to the top of the fault plane, in kilometers."""
+
     dtop_min: float
+    """Minimum depth to the top of the fault plane, in kilometers."""
+
     dtop_max: float
+    """Maximum depth to the top of the fault plane, in kilometers."""
+
     slip_rate: float
+    """Slip rate along the fault, in millimeters per year."""
+
     slip_rate_sigma: float
+    """Uncertainty (standard deviation) in slip rate, in millimeters per year."""
+
     coupling_coeff: float
+    """Fault coupling coefficient."""
+
     coupling_coeff_sigma: float
+    """Uncertainty (standard deviation) in coupling coefficient."""
+
     mw: float
+    """Moment magnitude of the fault."""
+
     recur_int_median: float
+    """Median recurrence interval in years."""
+
     trace: np.ndarray
+    """Fault surface trace as an array of (longitude, latitude) pairs for the top edge of the fault."""
 
     # TODO: add x y z fault plane data as in SRF info
     # TODO: add leonard mw function
@@ -90,12 +139,25 @@ class NHMFault:
         self, mw_area_scaling: bool = True, mw_perturbation: bool = True
     ) -> "NHMFault":
         """
-        Permutates the current NHM fault as per the OpenSHA implementation. This uses the same Mw scaling relations
-        as Stirling 2012
-        Dtop is peturbated with a uniform distribution between min and max.
-        The remaining parameters are perturburbated with a truncated normal distribution (2 standard deviations)
+        Perturb the current NHM fault according to the OpenSHA implementation,
+        using the same Mw scaling relations as Stirling (2012).
 
-        :return: new NHM object with the perturbated parameters containing 0 in all sigma sections
+        The top depth is perturbed uniformly between `dtop_min` and `dtop_max`.
+        All other parameters are perturbed using a truncated normal distribution
+        within two standard deviations.
+
+        Parameters
+        ----------
+        mw_area_scaling : bool, optional
+            If True, apply magnitude scaling based on rupture area. Default is True.
+        mw_perturbation : bool, optional
+            If True, apply a random perturbation to the magnitude. Default is True.
+
+        Returns
+        -------
+        NHMFault
+            A new `NHMFault` instance with perturbed parameters, where all
+            sigma values are set to zero.
         """
         mw = self.mw
 
@@ -153,11 +215,14 @@ class NHMFault:
 
     def write(self, out_fp: TextIO, header: bool = False) -> None:
         """
-        Writes a section of the NHM file
+        Write the fault parameters to an NHM file.
 
-        :param out_fp: file pointer for open file (for writing)
-        :param header: flag to write the header at the start of the file
-        :return:
+        Parameters
+        ----------
+        out_fp : TextIO
+            File pointer for the open file (for writing).
+        header : bool, optional
+            If True, write the NHM header at the start of the file. Default is False.
         """
         if header:
             out_fp.write(NHM_HEADER)
@@ -186,14 +251,15 @@ def load_nhm(
 
     Parameters
     ----------
-    nhm_path: str, optional
+    nhm_path : str, optional
         NHM file to load. If not provided, a default will be downloaded from the QuakeCoRE Dropbox.
-    skiprows: int, optional
+    skiprows : int, optional
         Skip the first skiprows lines; default: 15.
 
     Returns
     -------
-    dict of NHMFault by name
+    dict[str, NHMFault]
+        NHMFault by name
     """
     if not nhm_path:
         nhm_path = pooch.retrieve(url=NHM_MODEL_URL, known_hash=NHM_MODEL_HASH)
@@ -255,12 +321,13 @@ def load_nhm_df(nhm_ffp: str, erf_name: str | None = None):
     ----------
     nhm_ffp : str
         Path to the ERF file
-    erf_name : ERFFileType
+    erf_name : str or None
         name to identify faults from an ERF
 
     Returns
     -------
     DataFrame
+        The NHM2010 model loaded as a dataframe.
     """
     nhm_infos = load_nhm(nhm_ffp)
 
@@ -309,8 +376,15 @@ def get_fault_header_points(
 
     Parameters
     ----------
-    fault: NHMFault
+    fault : NHMFault
         A fault object from an NHM file
+
+    Returns
+    -------
+    list of dict
+        SRF Header values.
+    np.ndarray
+        SRF points.
     """
     srf_points = []
     srf_header: list[dict[str, int | float]] = []
