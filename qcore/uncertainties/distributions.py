@@ -24,7 +24,7 @@ import scipy as sp
 def truncated_normal(
     mean: float,
     std_dev: float,
-    std_dev_limit: float = 2,
+    std_dev_limit: float = ...,
     size: Literal[1] = 1,
     seed: int | None = None,
 ) -> float: ...  # numpydoc ignore=GL08
@@ -34,7 +34,7 @@ def truncated_normal(
 def truncated_normal(
     mean: float,
     std_dev: float,
-    std_dev_limit: float = 2,
+    std_dev_limit: float = ...,
     size: int = 1,
     seed: int | None = None,
 ) -> np.ndarray: ...  # numpydoc ignore=GL08
@@ -81,20 +81,20 @@ def truncated_normal(
 @overload
 def truncated_weibull(
     upper_value: float,
-    c: float = 3.353,
-    scale_factor: float = 0.612,
+    c: float = ...,
+    scale_factor: float = ...,
     size: Literal[1] = 1,
-    seed: int | None = None,
+    seed: int | None = ...,
 ) -> float: ...  # numpydoc ignore=GL08
 
 
 @overload
 def truncated_weibull(
     upper_value: float,
-    c: float = 3.353,
-    scale_factor: float = 0.612,
+    c: float = ...,
+    scale_factor: float = ...,
     size: int = 1,
-    seed: int | None = None,
+    seed: int | None = ...,
 ) -> np.ndarray: ...  # numpydoc ignore=GL08
 
 
@@ -165,9 +165,9 @@ def truncated_weibull_expected_value(
 def truncated_log_normal(
     mean: npt.ArrayLike,
     std_dev: float,
-    std_dev_limit: float = 2,
+    std_dev_limit: float = ...,
     size: Literal[1] = 1,
-    seed: int | None = None,
+    seed: int | None = ...,
 ) -> float: ...  # numpydoc ignore=GL08
 
 
@@ -175,9 +175,9 @@ def truncated_log_normal(
 def truncated_log_normal(
     mean: npt.ArrayLike,
     std_dev: float,
-    std_dev_limit: float = 2,
+    std_dev_limit: float = ...,
     size: int = 1,
-    seed: int | None = None,
+    seed: int | None = ...,
 ) -> float: ...  # numpydoc ignore=GL08
 
 
@@ -225,13 +225,13 @@ def truncated_log_normal(
 
 @overload
 def rand_shyp(
-    size: Literal[1] = 1, seed: int | None = None
+    size: Literal[1] = 1, seed: int | None = ...
 ) -> float: ...  # numpydoc ignore=GL08
 
 
 @overload
 def rand_shyp(
-    size: int = 1, seed: int | None = None
+    size: int = 1, seed: int | None = ...
 ) -> np.ndarray: ...  # numpydoc ignore=GL08
 
 
