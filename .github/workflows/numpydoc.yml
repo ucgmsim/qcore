@@ -1,13 +1,6 @@
 name: Numpydoc Lint
 
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-
+on: [pull_request]
 jobs:
   numpydoc-lint:
     runs-on: ubuntu-latest
@@ -24,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.13'  # Adjust version as needed
+          python-version: "3.13" # Adjust version as needed
 
       - name: Install dependencies
         run: |
