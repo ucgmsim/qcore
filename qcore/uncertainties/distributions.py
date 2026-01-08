@@ -72,7 +72,7 @@ def truncated_normal(
     x = sp.stats.truncnorm(-std_dev_limit, std_dev_limit, loc=mean, scale=std_dev).rvs(
         size=size, random_state=seed
     )
-    if size == 1:
+    if x.size == 1:
         return float(x.item())
     else:
         return x
@@ -129,7 +129,7 @@ def truncated_weibull(
     x = upper_value * sp.stats.truncweibull_min(
         c, 0, 1 / scale_factor, scale=scale_factor
     ).rvs(random_state=seed, size=size)
-    if size == 1:
+    if x.size == 1:
         return float(x.item())
     else:
         return x
@@ -217,7 +217,7 @@ def truncated_log_normal(
             scale=std_dev,
         ).rvs(random_state=seed)
     )
-    if size == 1:
+    if x.size == 1:
         return float(x.item())
     else:
         return x
@@ -245,7 +245,7 @@ def rand_shyp(size: int = 1, seed: int | None = None) -> float | np.ndarray:
         Random value from a truncated normal distribution (mean=0, std_dev=0.25).
     """
     x = truncated_normal(0, 0.25, size=size, seed=seed)
-    if size == 1:
+    if x.size == 1:
         return float(x.item())
     else:
         return x
