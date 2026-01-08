@@ -215,7 +215,7 @@ def truncated_log_normal(
             std_dev_limit,
             loc=np.log(np.asarray(mean).astype(np.float64)),
             scale=std_dev,
-        ).rvs(random_state=seed)
+        ).rvs(size=size, random_state=seed)
     )
     if x.size == 1:
         return float(x.item())
