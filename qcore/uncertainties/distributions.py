@@ -176,9 +176,9 @@ def truncated_log_normal(
     mean: npt.ArrayLike,
     std_dev: float,
     std_dev_limit: float = ...,
-    size: int = 1,
+    size: int = ...,
     seed: int | None = ...,
-) -> float: ...  # numpydoc ignore=GL08
+) -> np.ndarray: ...  # numpydoc ignore=GL08
 
 
 def truncated_log_normal(
