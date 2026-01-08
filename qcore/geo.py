@@ -478,7 +478,7 @@ def path_from_corners(
     output: str | None = "sim.modelpath_hr",
     min_edge_points: int = 100,
     close: bool = True,
-) -> list[tuple[float | int, float | int]] | None:
+) -> list[tuple[float, float]] | None:
     """
     Generate a path connecting the corners of a region with optional subdivision and output.
 
