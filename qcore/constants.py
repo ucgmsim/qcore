@@ -19,7 +19,7 @@ class ExtendedEnum(Enum):
     def is_substring(cls, parent_string: str) -> bool:
         """Check if an enum's string value is contained in the given string"""
         return any(
-            not isinstance(item.value, str) or item.value in parent_string
+            isinstance(item.value, str) and item.value in parent_string
             for item in cls
         )
 
