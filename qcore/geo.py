@@ -3,6 +3,7 @@ qcore geometry utilities.
 """
 
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
+from typing import overload
 
 import numpy as np
 import numpy.typing as npt
@@ -344,12 +345,30 @@ def avg_wbearing(angles: list[list[float]]) -> float:
     return degrees(atan(x / y) + q_diff)
 
 
+@overload
+def path_from_corners(
+    corners: list[tuple[float, float]],
+    output: str | None = None,
+    min_edge_points: int = ...,
+    close: bool = ...,
+) -> list[tuple[float, float]]: ...
+
+
+@overload
+def path_from_corners(
+    corners: list[tuple[float, float]],
+    output: str = ...,
+    min_edge_points: int = ...,
+    close: bool = ...,
+) -> None: ...
+
+
 def path_from_corners(
     corners: list[tuple[float, float]],
     output: str | None = "sim.modelpath_hr",
     min_edge_points: int = 100,
     close: bool = True,
-):
+) -> list[tuple[float, float]] | None:
     """
     corners: python list (4 by 2) containing (lon, lat) in order
         otherwise take from velocity model
