@@ -161,11 +161,6 @@ class XYTSFile:
 
     local_nz: int | None = None
 
-    # data arrays
-    data: np.memmap | None = None
-
-    ll_map: np.ndarray | None = None
-
     # contents
     data: np.memmap | None = (
         None  # NOTE: this is distinct (but nearly identical to) a np.ndarray
