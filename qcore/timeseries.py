@@ -10,7 +10,7 @@ import multiprocessing
 import os
 from enum import StrEnum, auto
 from pathlib import Path
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
@@ -89,8 +89,11 @@ def bwfilter(
         case Band.LOWPASS:
             cutoff_frequencies = taper_frequency * _BW_LOWPASS_SHIFT
 
+    btype: Literal["highpass"] | Literal["lowpass"] = (
+        "highpass" if band == Band.HIGHPASS else "lowpass"
+    )
     return sp.signal.sosfiltfilt(
-        sp.signal.butter(4, cutoff_frequencies, btype=band, output="sos", fs=1.0 / dt),
+        sp.signal.butter(4, cutoff_frequencies, btype=btype, output="sos", fs=1.0 / dt),
         waveform,
         padtype=None,
     )
@@ -131,7 +134,9 @@ def ampdeamp(
         the values of `amplification_factor`.
     """
 
-    pyfftw.config.NUM_THREADS = cores
+    # PyFFTW sets the globals in the config module dynamically.
+    # So type-checking must be ignored here.
+    pyfftw.config.NUM_THREADS = cores  # type: ignore
 
     nt = waveform.shape[-1]
     waveform_dtype = waveform.dtype
@@ -179,79 +184,6 @@ def ampdeamp(
     return result_full[..., :nt]
 
 
-def transf(
-    vs_soil: np.ndarray,
-    rho_soil: np.ndarray,
-    damp_soil: np.ndarray,
-    height_soil: np.ndarray,
-    vs_rock: np.ndarray,
-    rho_rock: np.ndarray,
-    damp_rock: np.ndarray,
-    nt: int,
-    dt: float,
-    ft_freq: np.ndarray | None = None,
-) -> np.ndarray:
-    """Used in de-convolution of high-frequency site-response modelling.
-
-    Can be used instead of traditional Vs30-based site-response when
-    the relevant input parameters are known. Made by Chris de la
-    Torre. It is part of the workflow described in [0]_.
-
-    Parameters
-    ----------
-    vs_soil : array of floats
-        The shear wave velocity in upper soil.
-    rho_soil : array of floats
-        The upper soil density.
-    damp_soil : array of floats
-        The upper soil damping ratio.
-    height_soil : array of floats
-        The height of the upper soil.
-    vs_rock : array of floats
-        The shear wave velocity in rock.
-    rho_rock : array of floats
-        The rock density.
-    damp_rock : array of floats
-        The rock damping ratio.
-    nt : float
-        The number of timesteps in input waveform.
-    dt : float
-        Waveform timestep.
-    ft_freq : array of floats, optional
-        Frequency space of transformed waveform.
-
-    Returns
-    -------
-    np.ndarray
-        A transfer function `H` used for waveform de-convolution.
-
-    References
-    ----------
-    ..[0] de la Torre, C. A., Bradley, B. A., & Lee, R. L. (2020). Modeling
-    nonlinear site effects in physics-based ground motion simulations
-    of the 2010–2011 Canterbury earthquake sequence. Earthquake
-    Spectra, 36(2), 856-879.
-    """
-    if ft_freq is None:
-        ft_len = int(2.0 ** np.ceil(np.log(nt) / np.log(2)))
-        ft_freq = np.arange(0, ft_len / 2 + 1) / (ft_len * dt)
-    omega = 2.0 * np.pi * ft_freq
-    Gs = rho_soil * vs_soil**2.0  # noqa: N806
-    Gr = rho_rock * vs_rock**2.0  # noqa: N806
-
-    kS = omega / (vs_soil * (1.0 + 1j * damp_soil))  # noqa: N806
-    kR = omega / (vs_rock * (1.0 + 1j * damp_rock))  # noqa: N806
-
-    alpha = Gs * kS / (Gr * kR)
-
-    H = 2.0 / (  # noqa: N806
-        (1.0 + alpha) * np.exp(1j * kS * height_soil)
-        + (1.0 - alpha) * np.exp(-1j * kS * height_soil)
-    )
-    H[0] = 1
-    return H
-
-
 _HEAD_STAT = 48  # Header size per station
 _N_COMP = 9  # Number of components in LF seis files
 
@@ -282,7 +214,12 @@ class LFSeisParser:
         `fileno`.
     """
 
-    def __init__(self, handle: io.BufferedReader):  # noqa: D107
+    handle: io.BufferedIOBase
+    length: int
+    i4: str
+    f4: str
+
+    def __init__(self, handle: io.BufferedIOBase):  # noqa: D107 # numpydoc ignore=GL08
         self.handle = handle
         self.length = self._extract_length()
         self.i4, self.f4 = self._lfseis_dtypes()
@@ -622,7 +559,7 @@ def timeseries_to_text(
     az: float = 0.0,
     baz: float = 0.0,
     title: str = "",
-):
+) -> None:
     """
     Store timeseries data into a text file.
 

@@ -3,15 +3,17 @@ Functions and classes to load data that doesn't belong elsewhere.
 """
 
 import argparse
-
-# For some reason, ty can't find the deprecated member of the warnings module
-from warnings import deprecated  # type: ignore
+from pathlib import Path
+from typing import overload
 
 import pandas as pd
+from typing_extensions import deprecated
 
 
-@deprecated
-def load_im_file_pd(imcsv, all_ims=False, comp=None):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def load_im_file_pd(
+    imcsv: Path | str, all_ims: bool = False, comp: str | None = None
+) -> pd.DataFrame | pd.Series:
     """
     Loads an IM file using pandas and returns a dataframe
     :param imcsv: FFP to im_csv
@@ -21,6 +23,7 @@ def load_im_file_pd(imcsv, all_ims=False, comp=None):
     :param comp: component to return. Default is to return all
     :return:
     """
+
     df = pd.read_csv(imcsv, index_col=[0, 1])
 
     if not all_ims:
@@ -32,8 +35,10 @@ def load_im_file_pd(imcsv, all_ims=False, comp=None):
     return df
 
 
-@deprecated
-def station_file_argparser(parser=None):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def station_file_argparser(
+    parser: argparse.ArgumentParser | None = None,
+) -> argparse.ArgumentParser:
     """
     Return a parser object with formatting information of a generic station file. To facilitate the use of load_generic_station_file()
 
@@ -108,17 +113,17 @@ def station_file_argparser(parser=None):
     return parser
 
 
-@deprecated
+@deprecated("Will be removed after Cybershake investigation concludes.")
 def load_generic_station_file(
     stat_file: str,
     stat_name_col: int = 2,
     lon_col: int = 0,
     lat_col: int = 1,
-    other_cols=[],
-    other_names=[],
-    sep=r"\s+",
-    skiprows=0,
-):
+    other_cols: list[int] | None = None,
+    other_names: list[str] | None = None,
+    sep: str = r"\s+",
+    skiprows: int = 0,
+) -> pd.DataFrame:
     """
     Reads the station file of any format into a pandas dataframe
 
@@ -140,30 +145,31 @@ def load_generic_station_file(
     pd.DataFrame
         station as index and columns lon, lat and other columns
     """
-    cols = {"stat_name": stat_name_col}
+    cols: dict[str, int] = {"stat_name": stat_name_col}
     if lon_col is not None:
         cols["lon"] = lon_col
     if lat_col is not None:
         cols["lat"] = lat_col
 
-    for i, col_idx in enumerate(other_cols):
-        cols[other_names[i]] = col_idx
-
+    if other_cols and other_names:
+        for col_idx, col_name in zip(other_cols, other_names):
+            cols[col_name] = col_idx
     return pd.read_csv(
         stat_file,
-        usecols=cols.values(),  # we will be loading columns of these indices (order doesn't matter)
+        # we will be loading columns of these indices (order doesn't matter)
+        usecols=list(cols.values()),
         names=sorted(
             cols, key=cols.get
-        ),  # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"]
+        ),  # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"] # type: ignore[no-matching-overload]
         index_col=stat_name_col,
         sep=sep,
         header=None,
         skiprows=skiprows,
-    )
+    )  # type: ignore
 
 
-@deprecated
-def load_station_file(station_file: str):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def load_station_file(station_file: str) -> pd.DataFrame:
     """Reads the station file into a pandas dataframe
 
     Parameters
@@ -183,11 +189,11 @@ def load_station_file(station_file: str):
         names=["lon", "lat"],
         engine="c",
         delim_whitespace=True,
-    )
+    )  # type: ignore[no-matching-overload]
 
 
-@deprecated
-def load_vs30_file(vs30_file: str):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def load_vs30_file(vs30_file: str) -> pd.DataFrame:
     """Reads the vs30 file into a pandas dataframe
 
     :param vs30_file: Path to the vs30 file
@@ -197,8 +203,8 @@ def load_vs30_file(vs30_file: str):
     return pd.read_csv(vs30_file, sep=r"\s+", index_col=0, header=None, names=["vs30"])
 
 
-@deprecated
-def load_z_file(z_file: str):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def load_z_file(z_file: str) -> pd.DataFrame:
     """Reads the z file into a pandas dataframe
 
     :param z_file: Path to the z file
@@ -208,8 +214,8 @@ def load_z_file(z_file: str):
     return pd.read_csv(z_file, names=["z1p0", "z2p5", "sigma"], index_col=0, skiprows=1)
 
 
-@deprecated
-def load_station_ll_vs30(station_file: str, vs30_file: str):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def load_station_ll_vs30(station_file: str, vs30_file: str) -> pd.DataFrame:
     """Reads both station and vs30 file into a single pandas dataframe - keeps only the matching entries
 
     :param station_file: Path to the station file
@@ -217,15 +223,14 @@ def load_station_ll_vs30(station_file: str, vs30_file: str):
     :return: pd.DataFrame
         station as index and columns lon, lat, vs30
     """
-
-    vs30_df = load_vs30_file(vs30_file)
-    station_df = load_station_file(station_file)
+    vs30_df = load_vs30_file(vs30_file)  # type: ignore
+    station_df = load_station_file(station_file)  # type: ignore
 
     return vs30_df.merge(station_df, left_index=True, right_index=True)
 
 
-@deprecated
-def load_rrup_file(rrup_file: str):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def load_rrup_file(rrup_file: str) -> pd.DataFrame:
     """Reads the rrup file into a pandas dataframe
 
     Parameters
@@ -241,14 +246,14 @@ def load_rrup_file(rrup_file: str):
     return pd.read_csv(rrup_file, header=0, index_col=0, engine="c")
 
 
-@deprecated
-def load_fault_selection_file(fault_selection_file):
+@deprecated("Will be removed after Cybershake investigation concludes.")
+def load_fault_selection_file(fault_selection_file: str | Path) -> dict[str, int]:
     """
     Loads a fault selection file, returning a dictionary of fault:count pairs
     :param fault_selection_file: The relative or absolute path to the fault selection file
     :return: A dictionary of fault:count pairs for all faults found in the file
     """
-    faults = {}
+    faults: dict[str, int] = {}
     with open(fault_selection_file) as fault_file:
         for lineno, line in enumerate(fault_file.readlines()):
             if len(line) == 0 or len(line.lstrip()) == 0 or line.lstrip()[0] == "#":

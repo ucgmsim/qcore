@@ -3,7 +3,7 @@ qcore geometry utilities.
 """
 
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
-from typing import Optional, Union
+from typing import overload
 
 import numpy as np
 import numpy.typing as npt
@@ -12,7 +12,7 @@ R_EARTH = 6378.139
 
 
 def get_distances(
-    locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
+    locations: np.ndarray, lon: float | np.ndarray, lat: float | np.ndarray
 ) -> np.ndarray:
     """
     Calculates the distance between the array of locations and
@@ -53,7 +53,7 @@ def closest_location(
     d = get_distances(locations, lon, lat)
     i = np.argmin(d)
 
-    return i, d[i]
+    return int(i), d[i]
 
 
 def oriented_bearing_wrt_normal(
@@ -345,12 +345,30 @@ def avg_wbearing(angles: list[list[float]]) -> float:
     return degrees(atan(x / y) + q_diff)
 
 
+@overload
 def path_from_corners(
     corners: list[tuple[float, float]],
-    output: str = "sim.modelpath_hr",
+    output: str | None = None,
+    min_edge_points: int = ...,
+    close: bool = ...,
+) -> list[tuple[float, float]]: ...
+
+
+@overload
+def path_from_corners(
+    corners: list[tuple[float, float]],
+    output: str = ...,
+    min_edge_points: int = ...,
+    close: bool = ...,
+) -> None: ...
+
+
+def path_from_corners(
+    corners: list[tuple[float, float]],
+    output: str | None = "sim.modelpath_hr",
     min_edge_points: int = 100,
     close: bool = True,
-):
+) -> list[tuple[float, float]] | None:
     """
     corners: python list (4 by 2) containing (lon, lat) in order
         otherwise take from velocity model
@@ -446,9 +464,9 @@ def ll_cross_along_track_dist(
     lat2: float,
     lon3: float,
     lat3: float,
-    a12: Optional[float] = None,
-    a13: Optional[float] = None,
-    d13: Optional[float] = None,
+    a12: float | None = None,
+    a13: float | None = None,
+    d13: float | None = None,
 ) -> tuple[float, float]:
     """
     Returns both the distance of point 3 to the nearest point on the great circle line that passes through point 1 and

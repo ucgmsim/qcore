@@ -3,15 +3,30 @@ Originally written form IM_calculation, but is relocated and modified for qcore.
 History of this file:
 https://github.com/ucgmsim/IM_calculation/commits/afa9bf02d5e197300e3a91f87a9136b4ebcabd62/IM_calculation/source_site_dist/src_site_dist.py
 """
-from typing import List, Dict
 
-import matplotlib.path as mpltPath
+from typing import Literal, overload
+
 import numpy as np
 
 from qcore import geo
 
-VOLCANIC_FRONT_COORDS = [(175.508, -39.364), (177.199, -37.73)]
-VOLCANIC_FRONT_LINE = mpltPath.Path(VOLCANIC_FRONT_COORDS)
+
+@overload
+def calc_rrup_rjb(
+    srf_points: np.ndarray,
+    locations: np.ndarray,
+    n_stations_per_iter: int = ...,
+    return_rrup_points: Literal[True] = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]: ...  # numpydoc ignore=GL08
+
+
+@overload
+def calc_rrup_rjb(
+    srf_points: np.ndarray,
+    locations: np.ndarray,
+    n_stations_per_iter: int = ...,
+    return_rrup_points: Literal[False] = False,
+) -> tuple[np.ndarray, np.ndarray]: ...  # numpydoc ignore=GL08
 
 
 def calc_rrup_rjb(
@@ -19,7 +34,7 @@ def calc_rrup_rjb(
     locations: np.ndarray,
     n_stations_per_iter: int = 1000,
     return_rrup_points: bool = False,
-):
+) -> tuple[np.ndarray, np.ndarray] | tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Calculates rrup and rjb distance
 
     Parameters
@@ -83,11 +98,11 @@ def calc_rrup_rjb(
 
 def calc_rx_ry(
     srf_points: np.ndarray,
-    plane_infos: List[Dict],
+    plane_infos: list[dict],
     locations: np.ndarray,
     hypocentre_origin: bool = False,
     type: int = 2,
-):
+):  # pragma: no cover
     """
     A wrapper script allowing external function calls to resolve to the correct location.
 
@@ -120,9 +135,9 @@ def calc_rx_ry(
         raise ValueError(f"Invalid GC type. {type} not in {{1,2}}")
 
 
-def calc_rx_ry_GC1(
-    srf_points: np.ndarray, plane_infos: List[Dict], locations: np.ndarray
-):
+def calc_rx_ry_GC1(  # noqa: N802
+    srf_points: np.ndarray, plane_infos: list[dict], locations: np.ndarray
+):  # pragma: no cover
     """
     Calculates Rx and Ry distances using the cross track and along track distance calculations.
     Uses the plane nearest to each of the given locations if there are multiple.
@@ -199,19 +214,21 @@ def calc_rx_ry_GC1(
                 up_strike_top_point,
             )
 
+        tp_lon, tp_lat = up_strike_top_point
+        ds_lon, ds_lat = down_strike_top_point
         r_x[iloc], r_y[iloc] = geo.ll_cross_along_track_dist(
-            *up_strike_top_point, *down_strike_top_point, lon, lat
+            tp_lon, tp_lat, ds_lon, ds_lat, lon, lat
         )
 
     return r_x, r_y
 
 
-def calc_rx_ry_GC2(
+def calc_rx_ry_GC2(  # noqa: N802
     srf_points: np.ndarray,
-    plane_infos: List[Dict],
+    plane_infos: list[dict],
     locations: np.ndarray,
     hypocentre_origin: bool = False,
-):
+):  # pragma: no cover
     """
     Calculates Rx and Ry distances using the cross track and along track distance calculations.
     If there are multiple fault planes, the Rx, Ry values are calculated for each fault plane individually, then weighted
@@ -255,12 +272,12 @@ def calc_rx_ry_GC2(
     return r_x[0], r_y[0]
 
 
-def calc_rx_ry_GC2_multi_hypocentre(
+def calc_rx_ry_GC2_multi_hypocentre(  # noqa: N802
     srf_points: np.ndarray,
-    plane_infos: List[Dict],
+    plane_infos: list[dict],
     locations: np.ndarray,
     origin_offsets: np.ndarray = np.asarray([0]),
-):
+):  # pragma: no cover
     """
     Vectorised version of the GC2 calculation along multiple hypocentre locations.
     Calculates Rx and Ry distances using the cross track and along track distance calculations.
@@ -324,42 +341,3 @@ def calc_rx_ry_GC2_multi_hypocentre(
     r_y = r_y_values / weights
 
     return r_x, r_y
-
-
-def calc_backarc(srf_points: np.ndarray, locations: np.ndarray):
-    """
-    This is a crude approximation of stations that are on the backarc. Defined by source-site lines that cross the
-    Volcanic front line.
-    https://user-images.githubusercontent.com/25143301/111406807-ce5bb600-8737-11eb-9c78-b909efe7d9db.png
-    https://user-images.githubusercontent.com/25143301/111408728-93a74d00-873a-11eb-9afa-5e8371ee2504.png
-
-    Parameters
-    ----------
-    srf_points : np.ndarray
-        The fault points from the srf file (qcore, srf.py, read_srf_points),
-        format (lon, lat, depth).
-    locations : np.ndarray
-        The locations for which to calculate the distances,
-        format (lon, lat, depth).
-
-    Returns
-    -------
-    np.ndarray
-        A numpy array returning 0 if the station is on the forearc and 1 if the station is on the backarc.
-    """
-    n_locations = locations.shape[0]
-    backarc = np.zeros(n_locations, dtype=np.int)
-    for loc_index in range(n_locations):
-        # Selection is every 40 SRF points (4 km) - the backarc line is ~200km long.
-        # In the case of point sources it will just take the first point
-        for srf_point in srf_points[::40]:
-            srf_stat_line = mpltPath.Path(
-                [
-                    (srf_point[0], srf_point[1]),
-                    (locations[loc_index][0], locations[loc_index][1]),
-                ]
-            )
-            if VOLCANIC_FRONT_LINE.intersects_path(srf_stat_line):
-                backarc[loc_index] = 1
-                break
-    return backarc
