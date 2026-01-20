@@ -1,1 +1,4 @@
-include qcore/configs/*.json
+prune tests
+prune .github
+prune wiki
+prune uv.lock

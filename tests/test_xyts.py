@@ -68,6 +68,8 @@ def test_corners(
         expected_array, expected_string = expected_corners
         computed_array, computed_string = computed_corners
 
+        assert isinstance(computed_string, str)
+        assert isinstance(expected_string, str)
         assert np.array(computed_array) == pytest.approx(np.array(expected_array))
 
         computed_coords = np.array(
@@ -164,6 +166,8 @@ def test_pgv(
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
             assert xyts_output == pytest.approx(sample_pgv_array)
         elif mmiout is None:
+            assert isinstance(xyts_output, tuple)
+            assert len(xyts_output) == 2
             pgv_result, mmi_result = xyts_output
             sample_pgv_array = np.fromfile(sample_pgv, dtype="3<f4")
             assert pgv_result == pytest.approx(sample_pgv_array)
@@ -192,3 +196,14 @@ def test_tslice_get(
     test_output = xyts_file.tslice_get(step, comp=comp)
     sample_array = np.fromfile(sample_file, dtype="3<f4")
     assert test_output == pytest.approx(sample_array[:, -1].reshape(test_output.shape))
+
+
+def test_xyts_invalid_file(tmp_path: Path) -> None:
+    """Test that ValueError is raised for invalid XYTS file."""
+    invalid_file = tmp_path / "invalid.e3d"
+    # Create a file with invalid header
+    with open(invalid_file, "wb") as f:
+        f.write(b"\x00" * 100)
+
+    with pytest.raises(ValueError, match="File is not an XY timeslice file"):
+        xyts.XYTSFile(str(invalid_file))

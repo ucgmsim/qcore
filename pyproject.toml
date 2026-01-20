@@ -8,25 +8,41 @@ description = "Utils Library"
 authors = [{ name = "ucgmsim" }]
 readme = "README.md"
 requires-python = ">=3.11"
-dynamic = ["version", "dependencies"]
+dynamic = ["version"]
+dependencies = [
+  "pandas",
+  "pyfftw",
+  "pyproj",
+  "pooch",
+  "scipy",
+  "matplotlib",
+  "numpy",
+  "numba>=0.57.0; python_version == '3.11'",
+  "numba>=0.59.0; python_version == '3.12'",
+  "numba>=0.61.0; python_version == '3.13'",
+  "numba>=0.63.0; python_version == '3.14'",
+  "typer",
+  "docstring_parser",
+  "xarray",
+  "pyyaml",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "hypothesis[numpy]", "pytest-cov"]
+types = ["pandas-stubs", "scipy-stubs", "types-PyYAML"]
+dev = ["ruff", "deptry", "ty"]
+
+[tool.deptry]
+pep621_dev_dependency_groups = ["test", "dev", "types"]
+
+[tool.coverage.run]
+omit = ["qcore/constants.py", "qcore/formats.py"]
 
 
 [tool.setuptools_scm]
 
 [tool.setuptools.package-dir]
 qcore = "qcore"
-
-[tool.setuptools.package-data]
-"qcore" = [
-  "configs/*.json",
-  "data/*",
-  "data/*/*",
-  "data/*/*/*",
-  "registry/registry.txt",
-]
-
-[tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
 
 [tool.ruff.lint]
 extend-select = [
