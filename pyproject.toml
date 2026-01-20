@@ -38,6 +38,7 @@ pep621_dev_dependency_groups = ["test", "dev", "types"]
 [tool.coverage.run]
 omit = ["qcore/constants.py", "qcore/formats.py"]
 
+
 [tool.setuptools_scm]
 
 [tool.setuptools.package-dir]
