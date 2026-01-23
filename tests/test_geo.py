@@ -8,28 +8,43 @@ from qcore import geo
 
 @pytest.mark.parametrize(
     "test_b1, test_b2, expected_angle",
-    [(0, 360, 0), (80, 180, 100), (320, 0, 40), (180, -180, 0)],
+    [
+        (0, 360, 0),
+        (80, 180, 100),
+        (320, 0, 40),
+        (180, -180, 0),
+        (
+            10,
+            200,
+            -170,
+        ),  # Test case where result > 180: (200-10)%360=190, returns 190-360=-170
+        (0, 270, -90),  # Another test case: (270-0)%360=270, returns 270-360=-90
+    ],
 )
-def test_angle_diff(test_b1, test_b2, expected_angle):
+def test_angle_diff(test_b1: float, test_b2: float, expected_angle: float) -> None:
     assert geo.angle_diff(test_b1, test_b2) == expected_angle
 
 
 @pytest.mark.parametrize(
     "test_lon1, test_lat1, test_lon2, test_lat2, test_midpoint, expected_bearing",
     [
-        (120, 90, 180, 90, True, 74.99999999999997),
+        (120, 90, 180, 90, True, 75),
         (0, 0, 180, 0, False, 90),
         (-45, 0, 90, 0, True, 90),
-        (170, 90, 180, 90, False, 84.99999999999996),
+        (170, 90, 180, 90, False, 85),
     ],
 )
 def test_ll_bearing(
-    test_lon1, test_lat1, test_lon2, test_lat2, test_midpoint, expected_bearing
-):
-    assert (
-        geo.ll_bearing(test_lon1, test_lat1, test_lon2, test_lat2, test_midpoint)
-        == expected_bearing
-    )
+    test_lon1: float,
+    test_lat1: float,
+    test_lon2: float,
+    test_lat2: float,
+    test_midpoint: bool,
+    expected_bearing: float,
+) -> None:
+    assert geo.ll_bearing(
+        test_lon1, test_lat1, test_lon2, test_lat2, test_midpoint
+    ) == pytest.approx(expected_bearing)
 
 
 @pytest.mark.parametrize(
@@ -41,7 +56,13 @@ def test_ll_bearing(
         (45, 0, 90, 0, 5009.378656493638),
     ],
 )
-def test_ll_dist(test_lon1, test_lat1, test_lon2, test_lat2, expected_dist):
+def test_ll_dist(
+    test_lon1: float,
+    test_lat1: float,
+    test_lon2: float,
+    test_lat2: float,
+    expected_dist: float,
+) -> None:
     assert geo.ll_dist(test_lon1, test_lat1, test_lon2, test_lat2) == expected_dist
 
 
@@ -55,8 +76,13 @@ def test_ll_dist(test_lon1, test_lat1, test_lon2, test_lat2, expected_dist):
     ],
 )
 def test_ll_mid(
-    test_lon1, test_lat1, test_lon2, test_lat2, expected_mid_lon, expected_mid_lat
-):
+    test_lon1: float,
+    test_lat1: float,
+    test_lon2: float,
+    test_lat2: float,
+    expected_mid_lon: float,
+    expected_mid_lat: float,
+) -> None:
     assert geo.ll_mid(test_lon1, test_lat1, test_lon2, test_lat2) == (
         expected_mid_lon,
         expected_mid_lat,
@@ -73,8 +99,13 @@ def test_ll_mid(
     ],
 )
 def test_ll_shift(
-    test_lat1, test_lon1, test_distance, test_bearing, expected_lat, expected_lon
-):
+    test_lat1: float,
+    test_lon1: float,
+    test_distance: float,
+    test_bearing: float,
+    expected_lat: float,
+    expected_lon: float,
+) -> None:
     assert geo.ll_shift(test_lat1, test_lon1, test_distance, test_bearing) == (
         expected_lat,
         expected_lon,
@@ -87,15 +118,15 @@ def test_ll_shift(
         ([[40, 1], [270, 1]], 335),
         ([[45, 10], [180, 1], [112.5, 2]], 59.252104114837415),
         ([[45, 1], [180, 1], [112.5, 2]], 112.5),
-        ([[45, 1], [180, 1]], 112.49999999999999),
+        ([[45, 1], [180, 1]], 112.5),
     ],
 )
-def test_avg_wbearing(test_angles, output_degrees):
-    assert geo.avg_wbearing(test_angles) == output_degrees
+def test_avg_wbearing(test_angles: list[list[float]], output_degrees: float) -> None:
+    assert geo.avg_wbearing(test_angles) == pytest.approx(output_degrees)
 
 
 @given(target_bearing=st.floats(0, 360))
-def test_oriented_bearing_wrt_normal(target_bearing: float):
+def test_oriented_bearing_wrt_normal(target_bearing: float) -> None:
     to_direction = np.array(
         [np.cos(np.radians(target_bearing)), np.sin(np.radians(target_bearing)), 0]
     )
@@ -129,12 +160,14 @@ def test_oriented_bearing_wrt_normal(target_bearing: float):
         ([1, 0], [2, 2], [0, 0], np.sqrt(0.5)),
     ],
 )
-def test_point_to_segment_distance(p, q, r, expected_distance):
+def test_point_to_segment_distance(
+    p: list[float], q: list[float], r: list[float], expected_distance: float
+) -> None:
     """Test the point_to_segment_distance function with various cases."""
     assert geo.point_to_segment_distance(p, q, r) == pytest.approx(expected_distance)
 
 
-def test_point_to_segement_degenerate():
+def test_point_to_segement_degenerate() -> None:
     """Test the failure case of a degenerate line."""
     with pytest.raises(ValueError):
         geo.point_to_segment_distance([1, 1], [0, 0], [0, 0])
