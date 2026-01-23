@@ -3,7 +3,7 @@ from typing import Union
 
 import numpy as np
 
-from .magnitude_scaling import allen_2017, strasser_2010
+from .magnitude_scaling import allen_2017, strasser_2010, contreras_2022, test_2022
 
 
 MAGNITUDE_ROUNDING_THRESHOLD = 7.5
@@ -24,6 +24,10 @@ class MagnitudeScalingRelations(Enum):
     ALLEN2017INTERFACEBILINEAR = "ALLEN2017INTERFACEBILINEAR"
     STRASSER2010SLAB = "STRASSER2010SLAB"
     STRASSER2010INTERFACE = "STRASSER2010INTERFACE"
+    CONTRERAS2022INTERFACE = "CONTRERAS2022INTERFACE"
+    CONTRERAS2022SLAB = "CONTRERAS2022SLAB"
+    TEST2022INTERFACE = "TEST2022INTERFACE"
+    TEST2022SLAB = "TEST2022SLAB"
 
 
 def mw_to_a_hanksbakun(mw):
@@ -118,6 +122,9 @@ def lw_to_mw_scaling_relation(
     elif mw_scaling_rel == MagnitudeScalingRelations.SKARLATOUDIS2016:
         mw = a_to_mw_skarlatoudis(l * w)
 
+    # elif mw_scaling_rel == MagnitudeScalingRelations.CONTRERAS2022INTERFACE:
+    #     mw = a_to_mw_contreras2022interface(l * w)
+
     elif mw_scaling_rel == MagnitudeScalingRelations.STIRLING2008:
         mw = lw_to_mw_stirling(l, w)
 
@@ -144,6 +151,8 @@ def lw_to_mw_sigma_scaling_relation(
         sigma = mw_sigma_leonard(rake)
     elif mw_scaling_rel == MagnitudeScalingRelations.SKARLATOUDIS2016:
         sigma = mw_sigma_skarlatoudis()
+    # elif mw_scaling_rel == MagnitudeScalingRelations.CONTRERAS2022INTERFACE:
+    #     sigma = mw_sigma_contreras2022interface()
     elif mw_scaling_rel == MagnitudeScalingRelations.HANKSBAKUN2002:
         sigma = mw_sigma_hanksbakun()
     elif mw_scaling_rel == MagnitudeScalingRelations.VILLAMORETAL2001:
@@ -159,6 +168,10 @@ def mw_sigma_stirling():
 
 def mw_sigma_skarlatoudis():
     return np.log10(1.498)  # 1.498 is the sigma value from Table 3 in Skarlatoudis 2016
+
+# def mw_sigma_contreras2022interface():
+#     # 10**((2/3)*0.62/np.log(10)) == 1.498, (contreras2022nga, fig12a and skarlatoudis2016source) therefore
+#     return (2/3)*0.73/np.log(10)  # conversion of sigma_A from fig12b contreras2022nga
 
 
 def mw_sigma_leonard(rake):
@@ -210,11 +223,17 @@ def a_to_mw_hanksbakun(a):
 
 
 def a_to_mw_skarlatoudis(a):
-    return np.log10(a) + 3.722
+    return np.log10(a) - (np.log10(1.77 * np.power(10.0, -10)) + 6.03)
+
+# def a_to_mw_contreras2022interface(a):
+#     return np.log10(a) + 8.890/np.log(10) # contreras2022nga, Fig12, Eq2
 
 
 def mw_to_a_skarlatoudis(mw):
-    return 10 ** (mw - 3.722)
+    return 1.77 * 10 ** -10 * (10 ** ((3 * (mw + 6.03)) / 2)) ** (2 / 3)
+
+# def mw_to_a_contreras2022interface(mw):
+#     return 10 ** ((-8.890/np.log(10)) + mw) # contreras2022nga, Fig12, Eq2
 
 
 def lw_to_mw_stirling(l, w):
@@ -235,7 +254,7 @@ def mom_to_a_murotani_2013(mom):
     :param mom: Moment of rupture in Nm
     :return: Area of rupture in km^2
     """
-    return (1.34 * 10**-10) * np.power(mom, 2 / 3)
+    return (1.34 * 10 ** -10) * np.power(mom, 2 / 3)
 
 
 def mag2mom(mw):
@@ -270,18 +289,22 @@ magnitude_only_scaling_relations = {
     MagnitudeScalingRelations.BERRYMANETAL2002: mw_to_a_berrymanetal,
     MagnitudeScalingRelations.VILLAMORETAL2001: mw_to_a_villamoretal,
     MagnitudeScalingRelations.SKARLATOUDIS2016: mw_to_a_skarlatoudis,
+    MagnitudeScalingRelations.CONTRERAS2022INTERFACE: contreras_2022.mw_to_a_contreras_2022_interface,
+    MagnitudeScalingRelations.TEST2022INTERFACE: test_2022.mw_to_a_test_2022_interface,
     MagnitudeScalingRelations.THINGBAIJAM2017: mw_to_a_thingbaijam_2017,
     MagnitudeScalingRelations.BLASER2010: mw_to_a_blaser_2010,
     MagnitudeScalingRelations.ALLEN2017SLAB: allen_2017.mw_to_a_allen_2017_slab,
     MagnitudeScalingRelations.ALLEN2017INTERFACELINEAR: allen_2017.mw_to_a_allen_2017_linear_interface,
     MagnitudeScalingRelations.ALLEN2017INTERFACEBILINEAR: allen_2017.mw_to_a_allen_2017_bilinear_interface,
     MagnitudeScalingRelations.STRASSER2010SLAB: strasser_2010.mw_to_a_strasser_2010_slab,
+    MagnitudeScalingRelations.CONTRERAS2022SLAB: contreras_2022.mw_to_a_contreras_2022_slab,
+    MagnitudeScalingRelations.TEST2022SLAB: test_2022.mw_to_a_test_2022_slab,
     MagnitudeScalingRelations.STRASSER2010INTERFACE: strasser_2010.mw_to_a_strasser_2010_interface,
 }
 
 
 def get_area(fault: "Fault"):
-    if fault.magnitude_scaling_relation in magnitude_only_scaling_relations.keys():
+    if fault.magnitude_scaling_relation in list(magnitude_only_scaling_relations.keys()):
         farea = magnitude_only_scaling_relations[fault.magnitude_scaling_relation](
             fault.magnitude
         )
@@ -293,6 +316,7 @@ def get_area(fault: "Fault"):
         farea = mom_to_a_murotani_2013(fault.moment)
 
     else:
+        print(f'wtf: {fault.magnitude_scaling_relation.value}, {MagnitudeScalingRelations.TEST2022SLAB.value}')
         raise ValueError(
             "Invalid mw_scaling_rel: {}. Exiting.".format(
                 fault.magnitude_scaling_relation
@@ -327,6 +351,19 @@ def get_width(fault: "Fault"):
 
     elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.STRASSER2010SLAB:
         fwidth = strasser_2010.mw_to_w_strasser_2010_slab(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.CONTRERAS2022INTERFACE:
+        fwidth = contreras_2022.mw_to_w_contreras_2022_interface(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.CONTRERAS2022SLAB:
+        fwidth = contreras_2022.mw_to_w_contreras_2022_slab(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.TEST2022INTERFACE:
+        fwidth = test_2022.mw_to_w_test_2022_interface(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.TEST2022SLAB:
+        fwidth = test_2022.mw_to_w_test_2022_slab(fault.magnitude)
+
 
     elif (
         fault.magnitude_scaling_relation
@@ -373,6 +410,19 @@ def get_length(fault: "Fault"):
 
     elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.STRASSER2010SLAB:
         flength = strasser_2010.mw_to_l_strasser_2010_slab(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.CONTRERAS2022INTERFACE:
+        flength = contreras_2022.mw_to_l_contreras_2022_interface(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.CONTRERAS2022SLAB:
+        flength = contreras_2022.mw_to_l_contreras_2022_slab(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.TEST2022INTERFACE:
+        flength = test_2022.mw_to_l_test_2022_interface(fault.magnitude)
+
+    elif fault.magnitude_scaling_relation == MagnitudeScalingRelations.TEST2022SLAB:
+        flength = test_2022.mw_to_l_test_2022_slab(fault.magnitude)
+
 
     elif (
         fault.magnitude_scaling_relation
