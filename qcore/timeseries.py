@@ -379,7 +379,7 @@ class LFSeis:
         # load nstats to determine total size
         nstats = np.zeros(len(self.seis), dtype="i")
         for i, s in enumerate(self.seis):
-            nstats[i] = np.fromfile(s, dtype=self.i4, count=1)
+            nstats[i] = np.fromfile(s, dtype=self.i4, count=1)[0]
         # container for station data
         stations = np.rec.array(
             np.zeros(
