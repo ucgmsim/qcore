@@ -65,5 +65,5 @@ setup(
         "qcore": [os.path.join("configs", "*.json"), "data/*", "data/*/*", "data/*/*/*"]
     },
     include_package_data=True,
-    install_requires=["numpy", "scipy>=0.16", "dataclasses"],
+    install_requires=["numpy<2.0", "scipy>=0.16", "dataclasses"],
 )
