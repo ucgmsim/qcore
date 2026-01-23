@@ -182,22 +182,69 @@ def load_fault_selection_file(fault_selection_file):
 
 def load_e3d_par(fp: str, comment_chars=("#",)):
     """
-    Loads an emod3d parameter file as a dictionary
-    As the original file does not have type data all values will be strings. Typing must be done manually.
-    Crashes if duplicate keys are found
-    :param fp: The path to the parameter file
-    :param comment_chars: Any single characters that denote the line as a comment if they are the first non whitespace character
-    :return: The dictionary of key:value pairs, as found in the parameter file
+    Load an emod3d parameter file as a dictionary.
+
+    Parses key=value pairs from an emod3d parameter file. Since the original
+    file format does not include type information, all values are returned as
+    strings. Blank lines and comment lines are skipped.
+
+    Parameters
+    ----------
+    fp : str
+        The path to the parameter file.
+    comment_chars : tuple of str, optional
+        Characters that denote a comment line when they are the first
+        non-whitespace character. Default is ("#",).
+
+    Returns
+    -------
+    dict
+        Dictionary of key:value pairs as found in the parameter file.
+        All values are strings.
+
+    Raises
+    ------
+    ValueError
+        If a line cannot be parsed (e.g., missing "=" separator).
+
+    Notes
+    -----
+    Changes by Andrew Ridden-Harper on 23 Jan 2026:
+
+    - Added handling for blank lines (lines containing only whitespace are now
+      skipped instead of causing a crash).
+    - Improved error messages to show the problematic line when parsing fails.
+    - Disabled the duplicate key check. Some e3d.par files in Cybershake v25p11
+      have duplicate keys, where the second occurrence is in a section called
+      "--- Run-Specific Overrides ---", intended to override default values.
+      Later values now override earlier ones. For a specific example, see
+      e3d.par for MS09/MS09_REL01.
     """
     vals = {}
     with open(fp) as e3d:
         for line in e3d:
-            if line.lstrip()[0] in comment_chars:
-                pass
-            key, value = line.split("=")
-            if key in vals:
-                raise KeyError(
-                    f"Key {key} is in the emod3d parameter file at least twice. Resolve this before re running."
-                )
+            try:
+                # Changed by Andrew Ridden-Harper on 23 Jan 2026 to skip blank lines (to only contain a new line character)
+                # and show the line that caused the crash in the error message.
+                stripped_line = line.strip()
+                if (len(stripped_line) == 0) or (stripped_line[0] in comment_chars):
+                    continue
+
+                key, value = stripped_line.split("=")
+            except:
+                raise ValueError(f"Crashed trying to parse the following line: {line}")
+
+            # Andrew Ridden-Harper disabled this check on 23 Jan 2026 because some of the e3d.par files
+            # in Cybershake v25p11 have duplicate keys, where the second key is in a section called
+            # " --- Run-Specific Overrides --- " which suggests that they are intended to override the default values.
+            # For a specific example, see e3d.par for MS09/MS09_REL01.
+            #
+            # if key in vals:
+            #     raise KeyError(
+            #         f"Key {key} is in the emod3d parameter file at least twice. Resolve this before re running."
+            #     )
             vals[key] = value
+
     return vals
+
+
