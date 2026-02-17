@@ -27,6 +27,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from regex import E
 
 from qcore.uncertainties import distributions
 
@@ -121,15 +122,33 @@ def cb_amp(
 
     # f_site function domains
     def fs_low(T, vs30, a1100):
-        return c10[T] * log(vs30 / k1[T]) + k2[T] * log(
-            (a1100 + scon_c * exp(scon_n * log(vs30 / k1[T]))) / (a1100 + scon_c)
-        )
+        try:
+            fs_low_result = c10[T] * log(vs30 / k1[T]) + k2[T] * log(
+                (a1100 + scon_c * exp(scon_n * log(vs30 / k1[T]))) / (a1100 + scon_c)
+            )
+        except Exception as e:
+            debug_str = f"Error calculating fs_low for T={T}, vs30={vs30}, a1100={a1100}, k1[T]={k1[T]}, c10[T]={c10[T]}, k2[T]={k2[T]}, scon_c={scon_c}, scon_n={scon_n} (error: {e})"
+            raise ValueError(debug_str)
+
+        return fs_low_result
 
     def fs_mid(T, vs30, a1100=None):
-        return (c10[T] + k2[T] * scon_n) * log(vs30 / k1[T])
+        
+        try:
+            fs_mid_result = (c10[T] + k2[T] * scon_n) * log(vs30 / k1[T])
+        except Exception as e:
+            debug_str = f"Error calculating fs_mid for T={T}, vs30={vs30}, a1100={a1100}, k1[T]={k1[T]}, c10[T]={c10[T]}, k2[T]={k2[T]}, scon_n={scon_n} (error: {e})"
+            raise ValueError(debug_str)
+
+        return fs_mid_result
 
     def fs_high(T, vs30=None, a1100=None):
-        return (c10[T] + k2[T] * scon_n) * log(1100.0 / k1[T])
+        try:
+            fs_high_result = (c10[T] + k2[T] * scon_n) * log(1100.0 / k1[T])
+        except Exception as e:
+            debug_str = f"Error calculating fs_high for T={T}, vs30={vs30}, a1100={a1100}, k1[T]={k1[T]}, c10[T]={c10[T]}, k2[T]={k2[T]}, scon_n={scon_n} (error: {e})"
+            raise ValueError(debug_str)
+        return fs_high_result
 
     def fs_auto(T, vs30):
         return fs_low if vs30 < k1[T] else fs_mid if vs30 < 1100.0 else fs_high
