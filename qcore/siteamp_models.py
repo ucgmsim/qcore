@@ -126,7 +126,9 @@ def cb_amp(
                 (a1100 + scon_c * exp(scon_n * log(vs30 / k1[T]))) / (a1100 + scon_c)
             )
         except Exception as e:
-            debug_str = f"Error calculating fs_low for T={T}, vs30={vs30}, a1100={a1100}, k1[T]={k1[T]}, c10[T]={c10[T]}, k2[T]={k2[T]}, scon_c={scon_c}, scon_n={scon_n} (error: {e})"
+            debug_str = f"""Error calculating fs_low for T={T}, vs30={vs30:.6f}, a1100={a1100:.6f}, k1[T]={k1[T]:.6f}, c10[T]={c10[T]:.6f}, k2[T]={k2[T]:.6f}, scon_c={scon_c:.6f}, scon_n={scon_n:.6f} (error: {e})
+
+Equation: {c10[T]:.6f} * log({vs30:.6f} / {k1[T]:.6f}) + {k2[T]:.6f} * log( ({a1100:.6f} + {scon_c:.6f} * exp({scon_n:.6f} * log({vs30:.6f} / {k1[T]:.6f}))) / ({a1100:.6f} + {scon_c:.6f}) )"""
             raise ValueError(debug_str)
 
         return fs_low_result
@@ -136,7 +138,9 @@ def cb_amp(
         try:
             fs_mid_result = (c10[T] + k2[T] * scon_n) * log(vs30 / k1[T])
         except Exception as e:
-            debug_str = f"Error calculating fs_mid for T={T}, vs30={vs30}, a1100={a1100}, k1[T]={k1[T]}, c10[T]={c10[T]}, k2[T]={k2[T]}, scon_n={scon_n} (error: {e})"
+            debug_str = f"""Error calculating fs_mid for T={T}, vs30={vs30:.6f}, a1100={a1100:.6f}, k1[T]={k1[T]:.6f}, c10[T]={c10[T]:.6f}, k2[T]={k2[T]:.6f}, scon_n={scon_n:.6f} (error: {e})
+
+Equation: ({c10[T]:.6f} + {k2[T]:.6f} * {scon_n:.6f}) * log({vs30:.6f} / {k1[T]:.6f})"""
             raise ValueError(debug_str)
 
         return fs_mid_result
@@ -145,7 +149,9 @@ def cb_amp(
         try:
             fs_high_result = (c10[T] + k2[T] * scon_n) * log(1100.0 / k1[T])
         except Exception as e:
-            debug_str = f"Error calculating fs_high for T={T}, vs30={vs30}, a1100={a1100}, k1[T]={k1[T]}, c10[T]={c10[T]}, k2[T]={k2[T]}, scon_n={scon_n} (error: {e})"
+            debug_str = f"""Error calculating fs_high for T={T}, vs30={vs30:.6f}, a1100={a1100:.6f}, k1[T]={k1[T]:.6f}, c10[T]={c10[T]:.6f}, k2[T]={k2[T]:.6f}, scon_n={scon_n:.6f} (error: {e})
+
+Equation: ({c10[T]:.6f} + {k2[T]:.6f} * {scon_n:.6f}) * log(1100.0 / {k1[T]:.6f})"""
             raise ValueError(debug_str)
         return fs_high_result
 
