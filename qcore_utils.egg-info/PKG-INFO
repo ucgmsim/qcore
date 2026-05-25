@@ -1,0 +1,38 @@
+Metadata-Version: 2.4
+Name: qcore-utils
+Version: 2025.12.3.dev1+g93313e926
+Summary: Utils Library
+Author: ucgmsim
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: pyfftw
+Requires-Dist: pytest
+Requires-Dist: pytest-black
+Requires-Dist: alphashape
+Requires-Dist: descartes
+Requires-Dist: filelock
+Requires-Dist: pyproj
+Requires-Dist: pooch
+Requires-Dist: requests
+Requires-Dist: shapely
+Requires-Dist: numpy
+Requires-Dist: numba
+Requires-Dist: hypothesis[numpy]
+Requires-Dist: typer
+Requires-Dist: docstring_parser
+Requires-Dist: xarray
+Requires-Dist: pyyaml
+Dynamic: license-file
+
+[![Build Status](https://quakecoresoft.canterbury.ac.nz/jenkins/job/qcore/badge/icon?build=last:${params.ghprbActualCommit=master)](https://quakecoresoft.canterbury.ac.nz/jenkins/job/qcore)
+
+## Installation:
+
+To install run `pip install -e .` from the root directory of this repository
+
+### Downloading data after install
+
+After installing, if you intend to use GMT for plotting you will need to run "download_data.py" (Located in qcore.data) to download and
+unpack the data used for these scripts
