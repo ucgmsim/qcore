@@ -240,20 +240,22 @@ class XYTSFile:
 
         self.xyts_path = xyts_path
 
-        # ---------------------------------------------------------------
-        # Step 1 – determine endianness and whether this is a proc-local
-        # (72-byte header) file.
+        # Detect endianness and file variant by inspecting the first 7 i32 words.
         #
-        # Layout of the first 7 32-bit integers:
-        #   Standard XYTS (60-byte header):
-        #     [x0, y0, z0, t0, nx, ny, nz]  →  nz == 1
-        #   Proc-local XYTS / XYZTS (72-byte header):
-        #     [x0, y0, z0, t0, local_nx, local_ny, local_nz]
+        # Standard XYTS (60-byte tsheader):
+        #   offset  0: [x0, y0, z0, t0]          (4 × i32)
+        #   offset 16: [nx, ny, nz, nt]           (4 × i32)  ← word 7 = nz == 1
+        #   offset 32: [dx, dy, hh, dt, mrot, mlat, mlon]  (7 × f32)
         #
-        # For standard XYTS the 7th word is nz=1, giving a reliable
-        # endianness probe.  For XYZTS files local_nz > 1, so the probe
-        # fails and we fall through to the proc-local branch below.
-        # ---------------------------------------------------------------
+        # Proc-local XYTS / XYZTS (72-byte tsheader_procP / tsheader_procP3):
+        #   offset  0: [x0, y0, z0, t0]                    (4 × i32)
+        #   offset 16: [local_nx, local_ny, local_nz]       (3 × i32)  ← word 7 = local_nz
+        #   offset 28: [nx, ny, nz, nt]                     (4 × i32)
+        #   offset 44: [dx, dy, hh, dt, mrot, mlat, mlon]  (7 × f32)
+        #
+        # For standard XYTS, word 7 (nz) is always 1, giving a reliable endianness
+        # probe via the byte-swapped value 0x01000000.  For XYZTS files local_nz > 1,
+        # so the probe fails and we fall through to the endianness tiebreaker below.
         raw7_be = np.fromfile(xytf, dtype=">i4", count=7)
         seventh_be = int(raw7_be[-1])
 
@@ -264,11 +266,10 @@ class XYTSFile:
             endian = "<"
             proc_local = proc_local_file
         else:
-            # The 7th word is neither 1 nor byte-swapped 1.  The only
-            # known cause is a proc-local XYZTS file where local_nz > 1.
-            # Determine endianness from local_nx (5th word, index 4):
-            # small-positive big-endian reads are implausible as
-            # little-endian because byte-swapping maps e.g. 100 → 1677721600.
+            # local_nz > 1: proc-local XYZTS file.  Determine endianness from
+            # local_nx (word 5, index 4): byte-swapping a small integer produces
+            # a value orders of magnitude larger, so only one interpretation will
+            # be in the plausible range 1…_MAX_GRID_DIM.
             local_nx_be = int(raw7_be[4])
             raw7_le = np.frombuffer(raw7_be.tobytes(), dtype="<i4")
             local_nx_le = int(raw7_le[4])
@@ -278,8 +279,7 @@ class XYTSFile:
             elif 1 <= local_nx_le <= _MAX_GRID_DIM and not (1 <= local_nx_be <= _MAX_GRID_DIM):
                 endian = "<"
             elif (1 <= local_nx_be <= _MAX_GRID_DIM) and (1 <= local_nx_le <= _MAX_GRID_DIM):
-                # Both readings look plausible; use the big-endian
-                # interpretation of local_ny as a tiebreaker.
+                # Both readings look plausible; use local_ny (word 6) as a tiebreaker.
                 local_ny_be = int(raw7_be[5])
                 local_ny_le = int(raw7_le[5])
                 if 1 <= local_ny_be <= _MAX_GRID_DIM and not (1 <= local_ny_le <= _MAX_GRID_DIM):
@@ -294,9 +294,6 @@ class XYTSFile:
             proc_local = True
         xytf.seek(0)
 
-        # ---------------------------------------------------------------
-        # Step 2 – read the header fields.
-        # ---------------------------------------------------------------
         (self.x0, self.y0, self.z0, self.t0) = np.fromfile(
             xytf, dtype="%si4" % (endian), count=4
         )
@@ -319,14 +316,8 @@ class XYTSFile:
         if round_dt:
             self.dt = np.around(self.dt, decimals=4)
 
-        # ---------------------------------------------------------------
-        # Step 3 – derive ncomp.
-        #
-        # For standard XYTS files ncomp is always 3.
-        # For proc-local files it is derived from the file size so that no
-        # explicit ncomp field is required in the header:
+        # Derive ncomp from file size for proc-local files:
         #   ncomp = (file_bytes - 72) / (4 * nt * local_nz * local_ny * local_nx)
-        # ---------------------------------------------------------------
         if proc_local:
             header_bytes = 72
             file_bytes = Path(xyts_path).stat().st_size
@@ -378,14 +369,11 @@ class XYTSFile:
         if meta_only:
             return
 
-        # ---------------------------------------------------------------
-        # Step 4 – memory-map the data payload.
-        #
+        # Memory-map the data payload.
         # Shapes:
         #   Standard XYTS             : (nt, ncomp, ny,       nx)
         #   Proc-local XYTS (nz == 1) : (nt, ncomp, local_ny, local_nx)
         #   XYZTS        (nz  > 1)   : (nt, ncomp, local_nz, local_ny, local_nx)
-        # ---------------------------------------------------------------
         if proc_local:
             if int(self.local_nz) > 1:
                 # Volumetric XYZTS: 5-D tensor
