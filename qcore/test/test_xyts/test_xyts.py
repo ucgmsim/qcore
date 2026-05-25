@@ -14,36 +14,6 @@ from qcore import xyts
 # Helpers for constructing synthetic binary timeslice files
 # ---------------------------------------------------------------------------
 
-def _write_standard_xyts_header(
-    buf: bytearray,
-    endian: str,
-    x0: int,
-    y0: int,
-    z0: int,
-    t0: int,
-    nx: int,
-    ny: int,
-    nz: int,
-    nt: int,
-    dx: float,
-    dy: float,
-    hh: float,
-    dt: float,
-    mrot: float,
-    mlat: float,
-    mlon: float,
-) -> None:
-    """Write a 60-byte standard XYTS header into *buf*."""
-    fmt = f"{endian}4i4i7f"
-    data = struct.pack(
-        fmt.replace("4i", "iiii").replace("7f", "fffffff"),
-        x0, y0, z0, t0,
-        nx, ny, nz, nt,
-        dx, dy, hh, dt, mrot, mlat, mlon,
-    )
-    buf[:60] = data
-
-
 def _make_proc_local_header(
     endian: str,
     x0: int, y0: int, z0: int, t0: int,

@@ -78,6 +78,12 @@ import numpy as np
 
 from qcore import geo
 
+# Maximum plausible grid dimension.  Values up to this threshold are treated
+# as valid local_nx / local_ny during endianness detection; byte-swapped
+# representations of small integers exceed this bound by several orders of
+# magnitude (e.g. 100 byte-swapped → 1 677 721 600).
+_MAX_GRID_DIM = 0xFFFF
+
 
 class Component(Enum):
     """Timestep component."""
@@ -267,16 +273,16 @@ class XYTSFile:
             raw7_le = np.frombuffer(raw7_be.tobytes(), dtype="<i4")
             local_nx_le = int(raw7_le[4])
 
-            if 1 <= local_nx_be <= 0xFFFF and not (1 <= local_nx_le <= 0xFFFF):
+            if 1 <= local_nx_be <= _MAX_GRID_DIM and not (1 <= local_nx_le <= _MAX_GRID_DIM):
                 endian = ">"
-            elif 1 <= local_nx_le <= 0xFFFF and not (1 <= local_nx_be <= 0xFFFF):
+            elif 1 <= local_nx_le <= _MAX_GRID_DIM and not (1 <= local_nx_be <= _MAX_GRID_DIM):
                 endian = "<"
-            elif 1 <= local_nx_be <= 0xFFFF:
+            elif 1 <= local_nx_be <= _MAX_GRID_DIM:
                 # Both readings look plausible; use the big-endian
                 # interpretation of local_ny as a tiebreaker.
                 local_ny_be = int(raw7_be[5])
                 local_ny_le = int(raw7_le[5])
-                if 1 <= local_ny_be <= 0xFFFF and not (1 <= local_ny_le <= 0xFFFF):
+                if 1 <= local_ny_be <= _MAX_GRID_DIM and not (1 <= local_ny_le <= _MAX_GRID_DIM):
                     endian = ">"
                 else:
                     endian = "<"
@@ -326,7 +332,19 @@ class XYTSFile:
             file_bytes = Path(xyts_path).stat().st_size
             data_floats = (file_bytes - header_bytes) // 4
             vol = int(self.nt) * int(self.local_nz) * int(self.local_ny) * int(self.local_nx)
-            self.ncomp = int(data_floats // vol)
+            if vol == 0:
+                raise ValueError(
+                    "Proc-local header dimensions are zero; cannot derive ncomp."
+                )
+            ncomp, remainder = divmod(data_floats, vol)
+            if remainder != 0 or ncomp not in {3, 6, 9}:
+                raise ValueError(
+                    f"Cannot determine a valid ncomp (got {ncomp}) from file size "
+                    f"{file_bytes} and local dimensions "
+                    f"{int(self.local_nz)}×{int(self.local_ny)}×{int(self.local_nx)}, "
+                    f"nt={int(self.nt)}.  Expected ncomp ∈ {{3, 6, 9}}."
+                )
+            self.ncomp = int(ncomp)
         else:
             self.ncomp = 3
 
