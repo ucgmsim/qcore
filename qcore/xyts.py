@@ -1,15 +1,40 @@
 """
-This module provides functionality to read xyts files.
+This module provides functionality to read xyts and xyzts files.
 
 Extended Summary
 ----------------
-This module includes the XYTSFile class, which represents an XYTS file. It
-allows users to load metadata, retrieve data, and calculate PGV (Peak Ground
-Velocity) and MMI (Modified Mercalli Intensity) values from the XYTS file.
+This module includes the XYTSFile class, which represents an XYTS or XYZTS
+file.  It allows users to load metadata, retrieve data, and calculate PGV
+(Peak Ground Velocity) and MMI (Modified Mercalli Intensity) values from the
+XYTS file.
+
+Two file layouts are supported:
+
+1. **Standard XYTS** (60-byte ``tsheader`` header, ``nz=1``):
+   Surface XY-plane timeslices with exactly 3 velocity components.
+   Data shape: ``(nt, 3, ny, nx)``.
+
+2. **Proc-local timeslice** (72-byte ``tsheader_procP`` / ``tsheader_procP3``
+   header):
+   Written per MPI rank.  Two sub-variants are auto-detected from the header:
+
+   a. **Proc-local XYTS** – ``local_nz == 1``, ``ncomp == 3``.
+      Data shape: ``(nt, 3, local_ny, local_nx)``.
+      Requires ``proc_local_file=True`` (backwards-compatible flag).
+
+   b. **Proc-local XYZTS** (EMOD3D ≥ v3.0.13, ``ts_xyz`` output) –
+      ``local_nz > 1``, ``ncomp ∈ {3, 6, 9}``.
+      Detected automatically without any user flag.
+      Data shape: ``(nt, ncomp, local_nz, local_ny, local_nx)``.
+      Filenames typically follow the ``*_xyzts-*`` pattern.
+
+For proc-local files ``ncomp`` is derived from the file size so that no
+explicit ``ncomp`` field is required in the header.
 
 Classes
 ----------------
-- XYTSFile: Represents an XYTS file and provides methods to interact with it.
+- XYTSFile: Represents an XYTS / XYZTS file and provides methods to interact
+  with it.
 
 Notes
 -----
@@ -25,8 +50,14 @@ References
 
 Examples
 --------
-# Load an XYTS file
-xyts_file = XYTSFile("example.x3d")
+# Load a standard XYTS file
+xyts_file = XYTSFile("example.e3d")
+
+# Load a proc-local XYTS file (backwards-compatible flag)
+xyts_file = XYTSFile("example_xyts-000000", proc_local_file=True)
+
+# Load a volumetric XYZTS file (auto-detected – no flag needed)
+xyzts_file = XYTSFile("example_xyzts-000000")
 
 # Retrieve corners of the simulation domain
 corners = xyts_file.corners()
@@ -39,13 +70,13 @@ _, mmi_values = xyts_file.pgv(mmi=True)
 """
 
 import dataclasses
+from enum import Enum
 from math import cos, radians, sin
 from pathlib import Path
 
 import numpy as np
 
 from qcore import geo
-from enum import Enum
 
 
 class Component(Enum):
@@ -60,9 +91,9 @@ class Component(Enum):
 @dataclasses.dataclass
 class XYTSFile:
     """
-    Represents an XYTS file containing time slices on the X-Y plane (z = 1, top level).
-    This class provides methods to read metadata, retrieve data, and calculate
-    PGV (Peak Ground Velocity) and MMI (Modified Mercalli Intensity) values.
+    Represents an XYTS or XYZTS file.
+
+    Supports three file layouts – see module docstring for details.
 
     Assumptions:
     - dip = 0: Simulation domain is flat.
@@ -73,9 +104,9 @@ class XYTSFile:
         y0: Starting y-coordinate.
         z0: Starting z-coordinate.
         t0: Starting time.
-        local_nx: Number of local x-coordinates (for proc-local files only).
-        local_ny: Number of local y-coordinates (for proc-local files only).
-        local_nz: Number of local z-coordinates (for proc-local files only).
+        local_nx: Number of local x-coordinates (proc-local files only).
+        local_ny: Number of local y-coordinates (proc-local files only).
+        local_nz: Number of local z-coordinates (proc-local files only).
         nx: Total number of x-coordinates.
         ny: Total number of y-coordinates.
         nz: Total number of z-coordinates.
@@ -87,6 +118,9 @@ class XYTSFile:
         mrot: Rotation angle for model origin.
         mlat: Latitude of the model origin.
         mlon: Longitude of the model origin.
+        ncomp: Number of components per grid point.  Always 3 for standard
+            XYTS and proc-local XYTS files.  For XYZTS files this is 3, 6,
+            or 9 as set by ``ts_xyz_ncomp`` in the EMOD3D configuration.
         dxts: Original simulation grid spacing in the x-direction.
         dyts: Original simulation grid spacing in the y-direction.
         nx_sim: Original simulation size in the x-direction.
@@ -99,6 +133,9 @@ class XYTSFile:
         sinP: Sine of the dip angle.
         rot_matrix: Rotation matrix for components.
         data: Memory-mapped array containing the data.
+            Shape is ``(nt, ncomp, ny, nx)`` for standard XYTS,
+            ``(nt, ncomp, local_ny, local_nx)`` for proc-local XYTS, and
+            ``(nt, ncomp, local_nz, local_ny, local_nx)`` for XYZTS.
         ll_map: Longitude-latitude map for data.
 
     Methods:
@@ -113,10 +150,11 @@ class XYTSFile:
             Returns the simulation region as a tuple (x_min, x_max, y_min, y_max).
 
         tslice_get(step, comp=-1, outfile=None):
-            Retrieves timeslice data.
+            Retrieves timeslice data (standard and proc-local XYTS only).
 
         pgv(mmi=False, pgvout=None, mmiout=None):
-            Retrieves PGV map and optionally calculates MMI.
+            Retrieves PGV map and optionally calculates MMI (standard XYTS
+            only).
     """
 
     # Header values
@@ -137,6 +175,7 @@ class XYTSFile:
     mlat: float
     mlon: float
     # Derived values
+    ncomp: int
     dxts: int
     dyts: int
     nx_sim: int
@@ -171,12 +210,16 @@ class XYTSFile:
         Parameters
         ----------
         xyts_path : Path | str
-            Path to the xyts file.
+            Path to the xyts / xyzts file.
         meta_only : bool
             If True, only loads metadata and doesn't prepare gridpoint datum
             locations (slower).
         proc_local_file : bool
-            If True, indicates a proc-local file.
+            If True, forces reading with a 72-byte proc-local header.  This
+            is still required for proc-local XYTS files whose ``local_nz``
+            equals 1, because those cannot be distinguished from standard XYTS
+            files by header inspection alone.  XYZTS files (``local_nz > 1``)
+            are detected automatically and do not need this flag.
         round_dt : bool
             If True, round the dt value to 4dp (present only for backwards
             compatibility).
@@ -184,29 +227,74 @@ class XYTSFile:
         Raises
         ------
         ValueError
-            ValueError: If the file is not an XY timeslice file.
+            If the file layout cannot be determined from the header bytes.
         """
 
         xytf = open(xyts_path, "rb")
 
         self.xyts_path = xyts_path
 
-        # determine endianness, an x-y timeslice has 1 z value
-        nz = np.fromfile(xytf, dtype=">i4", count=7)[-1]
-        if nz == 0x00000001:
+        # ---------------------------------------------------------------
+        # Step 1 – determine endianness and whether this is a proc-local
+        # (72-byte header) file.
+        #
+        # Layout of the first 7 32-bit integers:
+        #   Standard XYTS (60-byte header):
+        #     [x0, y0, z0, t0, nx, ny, nz]  →  nz == 1
+        #   Proc-local XYTS / XYZTS (72-byte header):
+        #     [x0, y0, z0, t0, local_nx, local_ny, local_nz]
+        #
+        # For standard XYTS the 7th word is nz=1, giving a reliable
+        # endianness probe.  For XYZTS files local_nz > 1, so the probe
+        # fails and we fall through to the proc-local branch below.
+        # ---------------------------------------------------------------
+        raw7_be = np.fromfile(xytf, dtype=">i4", count=7)
+        seventh_be = int(raw7_be[-1])
+
+        if seventh_be == 0x00000001:
             endian = ">"
-        elif nz == 0x01000000:
+            proc_local = proc_local_file
+        elif seventh_be == 0x01000000:
             endian = "<"
+            proc_local = proc_local_file
         else:
-            xytf.close()
-            raise ValueError("File is not an XY timeslice file: %s" % (xyts_path))
+            # The 7th word is neither 1 nor byte-swapped 1.  The only
+            # known cause is a proc-local XYZTS file where local_nz > 1.
+            # Determine endianness from local_nx (5th word, index 4):
+            # small-positive big-endian reads are implausible as
+            # little-endian because byte-swapping maps e.g. 100 → 1677721600.
+            local_nx_be = int(raw7_be[4])
+            raw7_le = np.frombuffer(raw7_be.tobytes(), dtype="<i4")
+            local_nx_le = int(raw7_le[4])
+
+            if 1 <= local_nx_be <= 0xFFFF and not (1 <= local_nx_le <= 0xFFFF):
+                endian = ">"
+            elif 1 <= local_nx_le <= 0xFFFF and not (1 <= local_nx_be <= 0xFFFF):
+                endian = "<"
+            elif 1 <= local_nx_be <= 0xFFFF:
+                # Both readings look plausible; use the big-endian
+                # interpretation of local_ny as a tiebreaker.
+                local_ny_be = int(raw7_be[5])
+                local_ny_le = int(raw7_le[5])
+                if 1 <= local_ny_be <= 0xFFFF and not (1 <= local_ny_le <= 0xFFFF):
+                    endian = ">"
+                else:
+                    endian = "<"
+            else:
+                xytf.close()
+                raise ValueError(
+                    "File is not an XY timeslice file: %s" % (xyts_path)
+                )
+            proc_local = True
         xytf.seek(0)
 
-        # read header
+        # ---------------------------------------------------------------
+        # Step 2 – read the header fields.
+        # ---------------------------------------------------------------
         (self.x0, self.y0, self.z0, self.t0) = np.fromfile(
             xytf, dtype="%si4" % (endian), count=4
         )
-        if proc_local_file:
+        if proc_local:
             (self.local_nx, self.local_ny, self.local_nz) = np.fromfile(
                 xytf, dtype="%si4" % (endian), count=3
             )
@@ -224,6 +312,23 @@ class XYTSFile:
         # dt is sensitive to float error eg 0.2 stores as 0.199999 (dangerous)
         if round_dt:
             self.dt = np.around(self.dt, decimals=4)
+
+        # ---------------------------------------------------------------
+        # Step 3 – derive ncomp.
+        #
+        # For standard XYTS files ncomp is always 3.
+        # For proc-local files it is derived from the file size so that no
+        # explicit ncomp field is required in the header:
+        #   ncomp = (file_bytes - 72) / (4 * nt * local_nz * local_ny * local_nx)
+        # ---------------------------------------------------------------
+        if proc_local:
+            header_bytes = 72
+            file_bytes = Path(xyts_path).stat().st_size
+            data_floats = (file_bytes - header_bytes) // 4
+            vol = int(self.nt) * int(self.local_nz) * int(self.local_ny) * int(self.local_nx)
+            self.ncomp = int(data_floats // vol)
+        else:
+            self.ncomp = 3
 
         # determine original sim parameters
         self.dxts = int(round(self.dx / self.hh))
@@ -255,13 +360,38 @@ class XYTSFile:
         if meta_only:
             return
 
-        if proc_local_file:
+        # ---------------------------------------------------------------
+        # Step 4 – memory-map the data payload.
+        #
+        # Shapes:
+        #   Standard XYTS             : (nt, ncomp, ny,       nx)
+        #   Proc-local XYTS (nz == 1) : (nt, ncomp, local_ny, local_nx)
+        #   XYZTS        (nz  > 1)   : (nt, ncomp, local_nz, local_ny, local_nx)
+        # ---------------------------------------------------------------
+        if proc_local:
+            if int(self.local_nz) > 1:
+                # Volumetric XYZTS: 5-D tensor
+                shape: tuple[int, ...] = (
+                    int(self.nt),
+                    self.ncomp,
+                    int(self.local_nz),
+                    int(self.local_ny),
+                    int(self.local_nx),
+                )
+            else:
+                # Surface proc-local XYTS: 4-D tensor (backwards-compatible)
+                shape = (
+                    int(self.nt),
+                    self.ncomp,
+                    int(self.local_ny),
+                    int(self.local_nx),
+                )
             self.data = np.memmap(
                 xyts_path,
                 dtype="%sf4" % (endian),
                 mode="r",
                 offset=72,
-                shape=(self.nt, len(self.comps), self.local_ny, self.local_nx),
+                shape=shape,
             )
         else:
             # memory map for data section
@@ -270,7 +400,7 @@ class XYTSFile:
                 dtype="%sf4" % (endian),
                 mode="r",
                 offset=60,
-                shape=(self.nt, len(self.comps), self.ny, self.nx),
+                shape=(int(self.nt), self.ncomp, int(self.ny), int(self.nx)),
             )
 
         # create longitude, latitude map for data
@@ -360,6 +490,10 @@ class XYTSFile:
     ) -> np.ndarray:
         """Retrieves timeslice data.
 
+        This method operates on the surface XY plane and is intended for
+        standard XYTS and proc-local XYTS files (``local_nz == 1``).  For
+        volumetric XYZTS files access ``self.data`` directly.
+
         Parameters
         ----------
         step : int
@@ -371,7 +505,17 @@ class XYTSFile:
         -------
         np.ndarray
             Retrieved timeslice data.
+
+        Raises
+        ------
+        ValueError
+            If called on a volumetric XYZTS file (``local_nz > 1``).
         """
+        if self.local_nz is not None and int(self.local_nz) > 1:
+            raise ValueError(
+                "tslice_get() is not supported for volumetric XYZTS files "
+                "(local_nz > 1).  Access self.data directly."
+            )
         match comp:
             case Component.MAGNITUDE:
                 return np.linalg.norm(self.data[step, :3, :, :], axis=0)
@@ -396,6 +540,9 @@ class XYTSFile:
     ) -> None | np.ndarray | tuple[np.ndarray, np.ndarray]:
         """Retrieves PGV and/or MMI map.
 
+        This method is intended for standard XYTS files.  It is not applicable
+        to volumetric XYZTS files.
+
         Parameters
         ----------
         mmi : bool
@@ -410,7 +557,17 @@ class XYTSFile:
         None | np.ndarray | Tuple[np.ndarray, np.ndarray]
             PGV map or tuple of (PGV map, MMI map) or None (if both are written to a
             file).
+
+        Raises
+        ------
+        ValueError
+            If called on a volumetric XYZTS file (``local_nz > 1``).
         """
+        if self.local_nz is not None and int(self.local_nz) > 1:
+            raise ValueError(
+                "pgv() is not supported for volumetric XYZTS files "
+                "(local_nz > 1)."
+            )
         # PGV as timeslices reduced to maximum value at each point
         pgv = np.zeros(self.nx * self.ny)
         for ts in range(self.t0, self.nt):

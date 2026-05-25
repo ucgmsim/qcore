@@ -1,5 +1,6 @@
 """Test module for XYTS file processing using pytest fixtures."""
 
+import struct
 from pathlib import Path
 from urllib import request
 
@@ -7,6 +8,92 @@ import numpy as np
 import pytest
 
 from qcore import xyts
+
+
+# ---------------------------------------------------------------------------
+# Helpers for constructing synthetic binary timeslice files
+# ---------------------------------------------------------------------------
+
+def _write_standard_xyts_header(
+    buf: bytearray,
+    endian: str,
+    x0: int,
+    y0: int,
+    z0: int,
+    t0: int,
+    nx: int,
+    ny: int,
+    nz: int,
+    nt: int,
+    dx: float,
+    dy: float,
+    hh: float,
+    dt: float,
+    mrot: float,
+    mlat: float,
+    mlon: float,
+) -> None:
+    """Write a 60-byte standard XYTS header into *buf*."""
+    fmt = f"{endian}4i4i7f"
+    data = struct.pack(
+        fmt.replace("4i", "iiii").replace("7f", "fffffff"),
+        x0, y0, z0, t0,
+        nx, ny, nz, nt,
+        dx, dy, hh, dt, mrot, mlat, mlon,
+    )
+    buf[:60] = data
+
+
+def _make_proc_local_header(
+    endian: str,
+    x0: int, y0: int, z0: int, t0: int,
+    local_nx: int, local_ny: int, local_nz: int,
+    nx: int, ny: int, nz: int, nt: int,
+    dx: float, dy: float, hh: float, dt: float,
+    mrot: float, mlat: float, mlon: float,
+) -> bytes:
+    """Return a 72-byte proc-local (tsheader_procP3) header as bytes."""
+    pfx = ">" if endian == ">" else "<"
+    ints = struct.pack(
+        f"{pfx}11i",
+        x0, y0, z0, t0,
+        local_nx, local_ny, local_nz,
+        nx, ny, nz, nt,
+    )
+    floats = struct.pack(
+        f"{pfx}7f",
+        dx, dy, hh, dt, mrot, mlat, mlon,
+    )
+    return ints + floats  # 44 + 28 = 72 bytes
+
+
+def _make_xyzts_file(
+    path: Path,
+    endian: str,
+    local_nx: int,
+    local_ny: int,
+    local_nz: int,
+    nx: int,
+    ny: int,
+    nt: int,
+    ncomp: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Create a synthetic XYZTS proc-local file and return the payload array."""
+    header = _make_proc_local_header(
+        endian,
+        x0=0, y0=0, z0=0, t0=0,
+        local_nx=local_nx, local_ny=local_ny, local_nz=local_nz,
+        nx=nx, ny=ny, nz=local_nz, nt=nt,
+        dx=0.4, dy=0.4, hh=0.1, dt=0.02,
+        mrot=0.0, mlat=-43.5, mlon=172.0,
+    )
+    payload = rng.random(
+        (nt, ncomp, local_nz, local_ny, local_nx), dtype=np.float32
+    )
+    dtype = f"{endian}f4"
+    path.write_bytes(header + payload.astype(dtype).tobytes())
+    return payload
 
 
 @pytest.fixture(scope="session")
@@ -192,3 +279,186 @@ def test_tslice_get(
     test_output = xyts_file.tslice_get(step, comp=comp)
     sample_array = np.fromfile(sample_file, dtype="3<f4")
     assert test_output == pytest.approx(sample_array[:, -1].reshape(test_output.shape))
+
+
+# ---------------------------------------------------------------------------
+# XYZTS-specific tests (use synthetic data; no network required)
+# ---------------------------------------------------------------------------
+
+# Common dimensions used across XYZTS tests
+_LOCAL_NX, _LOCAL_NY, _LOCAL_NZ = 4, 5, 3
+_GLOBAL_NX, _GLOBAL_NY = 20, 20
+_NT = 6
+
+
+@pytest.fixture(scope="module")
+def rng() -> np.random.Generator:
+    """Fixed-seed random number generator for reproducible tests."""
+    return np.random.default_rng(42)
+
+
+@pytest.mark.parametrize("endian,ncomp", [
+    (">", 3),
+    ("<", 3),
+    ("<", 6),
+    ("<", 9),
+])
+def test_xyzts_auto_detection(
+    tmp_path: Path,
+    rng: np.random.Generator,
+    endian: str,
+    ncomp: int,
+) -> None:
+    """XYTSFile should auto-detect an XYZTS file without proc_local_file flag."""
+    fpath = tmp_path / f"test_xyzts-{endian[0]}_ncomp{ncomp}"
+    _make_xyzts_file(
+        fpath,
+        endian=endian,
+        local_nx=_LOCAL_NX,
+        local_ny=_LOCAL_NY,
+        local_nz=_LOCAL_NZ,
+        nx=_GLOBAL_NX,
+        ny=_GLOBAL_NY,
+        nt=_NT,
+        ncomp=ncomp,
+        rng=rng,
+    )
+
+    xf = xyts.XYTSFile(fpath)
+
+    assert int(xf.local_nz) == _LOCAL_NZ
+    assert int(xf.local_ny) == _LOCAL_NY
+    assert int(xf.local_nx) == _LOCAL_NX
+    assert xf.ncomp == ncomp
+    assert int(xf.nt) == _NT
+
+
+@pytest.mark.parametrize("endian", [">", "<"])
+def test_xyzts_data_shape(
+    tmp_path: Path,
+    rng: np.random.Generator,
+    endian: str,
+) -> None:
+    """Data memmap for XYZTS should be 5-D (nt, ncomp, nz, ny, nx)."""
+    ncomp = 3
+    fpath = tmp_path / f"shape_xyzts-{endian[0]}"
+    _make_xyzts_file(
+        fpath,
+        endian=endian,
+        local_nx=_LOCAL_NX,
+        local_ny=_LOCAL_NY,
+        local_nz=_LOCAL_NZ,
+        nx=_GLOBAL_NX,
+        ny=_GLOBAL_NY,
+        nt=_NT,
+        ncomp=ncomp,
+        rng=rng,
+    )
+
+    xf = xyts.XYTSFile(fpath)
+
+    assert xf.data is not None
+    assert xf.data.ndim == 5
+    assert xf.data.shape == (_NT, ncomp, _LOCAL_NZ, _LOCAL_NY, _LOCAL_NX)
+
+
+def test_xyzts_payload_values(
+    tmp_path: Path,
+    rng: np.random.Generator,
+) -> None:
+    """Values read from the XYZTS memmap match the written payload."""
+    endian = "<"
+    ncomp = 6
+    fpath = tmp_path / "values_xyzts-0"
+    payload = _make_xyzts_file(
+        fpath,
+        endian=endian,
+        local_nx=_LOCAL_NX,
+        local_ny=_LOCAL_NY,
+        local_nz=_LOCAL_NZ,
+        nx=_GLOBAL_NX,
+        ny=_GLOBAL_NY,
+        nt=_NT,
+        ncomp=ncomp,
+        rng=rng,
+    )
+
+    xf = xyts.XYTSFile(fpath)
+
+    assert xf.data == pytest.approx(payload)
+
+
+def test_xyzts_tslice_get_raises(
+    tmp_path: Path,
+    rng: np.random.Generator,
+) -> None:
+    """tslice_get should raise ValueError for volumetric XYZTS files."""
+    fpath = tmp_path / "tslice_xyzts-0"
+    _make_xyzts_file(
+        fpath,
+        endian="<",
+        local_nx=_LOCAL_NX,
+        local_ny=_LOCAL_NY,
+        local_nz=_LOCAL_NZ,
+        nx=_GLOBAL_NX,
+        ny=_GLOBAL_NY,
+        nt=_NT,
+        ncomp=3,
+        rng=rng,
+    )
+
+    xf = xyts.XYTSFile(fpath)
+
+    with pytest.raises(ValueError, match="tslice_get"):
+        xf.tslice_get(0)
+
+
+def test_xyzts_pgv_raises(
+    tmp_path: Path,
+    rng: np.random.Generator,
+) -> None:
+    """pgv() should raise ValueError for volumetric XYZTS files."""
+    fpath = tmp_path / "pgv_xyzts-0"
+    _make_xyzts_file(
+        fpath,
+        endian="<",
+        local_nx=_LOCAL_NX,
+        local_ny=_LOCAL_NY,
+        local_nz=_LOCAL_NZ,
+        nx=_GLOBAL_NX,
+        ny=_GLOBAL_NY,
+        nt=_NT,
+        ncomp=3,
+        rng=rng,
+    )
+
+    xf = xyts.XYTSFile(fpath)
+
+    with pytest.raises(ValueError, match="pgv"):
+        xf.pgv()
+
+
+def test_xyzts_meta_only(
+    tmp_path: Path,
+    rng: np.random.Generator,
+) -> None:
+    """meta_only=True should work for XYZTS files and leave data=None."""
+    fpath = tmp_path / "meta_xyzts-0"
+    _make_xyzts_file(
+        fpath,
+        endian="<",
+        local_nx=_LOCAL_NX,
+        local_ny=_LOCAL_NY,
+        local_nz=_LOCAL_NZ,
+        nx=_GLOBAL_NX,
+        ny=_GLOBAL_NY,
+        nt=_NT,
+        ncomp=3,
+        rng=rng,
+    )
+
+    xf = xyts.XYTSFile(fpath, meta_only=True)
+
+    assert xf.data is None
+    assert int(xf.local_nz) == _LOCAL_NZ
+    assert xf.ncomp == 3
