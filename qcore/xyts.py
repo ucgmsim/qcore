@@ -277,7 +277,7 @@ class XYTSFile:
                 endian = ">"
             elif 1 <= local_nx_le <= _MAX_GRID_DIM and not (1 <= local_nx_be <= _MAX_GRID_DIM):
                 endian = "<"
-            elif 1 <= local_nx_be <= _MAX_GRID_DIM:
+            elif (1 <= local_nx_be <= _MAX_GRID_DIM) and (1 <= local_nx_le <= _MAX_GRID_DIM):
                 # Both readings look plausible; use the big-endian
                 # interpretation of local_ny as a tiebreaker.
                 local_ny_be = int(raw7_be[5])
