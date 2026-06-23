@@ -1,6 +1,7 @@
 build/
 dist/
 qcore.egg-info
+qcore_utils.egg-info
 **/*.pyc
 **/*.coverage
 .cache/

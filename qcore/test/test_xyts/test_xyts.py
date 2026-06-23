@@ -1,12 +1,69 @@
 """Test module for XYTS file processing using pytest fixtures."""
 
+import struct
+import tempfile
 from pathlib import Path
 from urllib import request
 
 import numpy as np
 import pytest
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
+from hypothesis.extra.numpy import arrays
 
 from qcore import xyts
+
+
+def _make_proc_local_header(
+    endian: str,
+    x0: int, y0: int, z0: int, t0: int,
+    local_nx: int, local_ny: int, local_nz: int,
+    nx: int, ny: int, nz: int, nt: int,
+    dx: float, dy: float, hh: float, dt: float,
+    mrot: float, mlat: float, mlon: float,
+) -> bytes:
+    """Return a 72-byte proc-local (tsheader_procP3) header as bytes."""
+    pfx = ">" if endian == ">" else "<"
+    ints = struct.pack(
+        f"{pfx}11i",
+        x0, y0, z0, t0,
+        local_nx, local_ny, local_nz,
+        nx, ny, nz, nt,
+    )
+    floats = struct.pack(
+        f"{pfx}7f",
+        dx, dy, hh, dt, mrot, mlat, mlon,
+    )
+    return ints + floats  # 44 + 28 = 72 bytes
+
+
+@st.composite
+def xyzts_file_data(draw: st.DrawFn) -> tuple:
+    """Hypothesis composite strategy generating valid XYZTS file parameters and payload.
+
+    Returns
+    -------
+    tuple
+        (endian, ncomp, local_nx, local_ny, local_nz, nx, ny, nt, payload)
+        where payload has shape (nt, ncomp, local_nz, local_ny, local_nx).
+    """
+    endian = draw(st.sampled_from([">", "<"]))
+    ncomp = draw(st.sampled_from([3, 6, 9]))
+    local_nx = draw(st.integers(min_value=1, max_value=8))
+    local_ny = draw(st.integers(min_value=1, max_value=8))
+    # local_nz > 1 distinguishes XYZTS from surface proc-local XYTS
+    local_nz = draw(st.integers(min_value=2, max_value=4))
+    nx = draw(st.integers(min_value=local_nx, max_value=20))
+    ny = draw(st.integers(min_value=local_ny, max_value=20))
+    nt = draw(st.integers(min_value=1, max_value=4))
+    payload = draw(
+        arrays(
+            dtype=np.float32,
+            shape=(nt, ncomp, local_nz, local_ny, local_nx),
+            elements=st.floats(allow_nan=False, allow_infinity=False, width=32),
+        )
+    )
+    return endian, ncomp, local_nx, local_ny, local_nz, nx, ny, nt, payload
 
 
 @pytest.fixture(scope="session")
@@ -192,3 +249,99 @@ def test_tslice_get(
     test_output = xyts_file.tslice_get(step, comp=comp)
     sample_array = np.fromfile(sample_file, dtype="3<f4")
     assert test_output == pytest.approx(sample_array[:, -1].reshape(test_output.shape))
+
+
+@given(data=xyzts_file_data())
+def test_xyzts_roundtrip(data: tuple) -> None:
+    """XYTSFile correctly detects and parses a synthetic XYZTS file (round-trip).
+
+    Checks auto-detection, header field parsing, 5-D data shape, and payload
+    value fidelity across all valid ncomp values and both endiannesses.
+    """
+    endian, ncomp, local_nx, local_ny, local_nz, nx, ny, nt, payload = data
+    header = _make_proc_local_header(
+        endian,
+        x0=0, y0=0, z0=0, t0=0,
+        local_nx=local_nx, local_ny=local_ny, local_nz=local_nz,
+        nx=nx, ny=ny, nz=local_nz, nt=nt,
+        dx=0.4, dy=0.4, hh=0.1, dt=0.02,
+        mrot=0.0, mlat=-43.5, mlon=172.0,
+    )
+    file_bytes = header + payload.astype(f"{endian}f4").tobytes()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fpath = Path(tmpdir) / "test_xyzts-0"
+        fpath.write_bytes(file_bytes)
+        xf = xyts.XYTSFile(fpath)
+        assert int(xf.local_nz) == local_nz
+        assert int(xf.local_ny) == local_ny
+        assert int(xf.local_nx) == local_nx
+        assert xf.ncomp == ncomp
+        assert int(xf.nt) == nt
+        assert xf.data is not None
+        assert xf.data.ndim == 5
+        assert xf.data.shape == (nt, ncomp, local_nz, local_ny, local_nx)
+        assert xf.data == pytest.approx(payload)
+
+
+@given(data=xyzts_file_data())
+def test_xyzts_tslice_get_raises(data: tuple) -> None:
+    """tslice_get should raise ValueError for volumetric XYZTS files."""
+    endian, ncomp, local_nx, local_ny, local_nz, nx, ny, nt, payload = data
+    header = _make_proc_local_header(
+        endian,
+        x0=0, y0=0, z0=0, t0=0,
+        local_nx=local_nx, local_ny=local_ny, local_nz=local_nz,
+        nx=nx, ny=ny, nz=local_nz, nt=nt,
+        dx=0.4, dy=0.4, hh=0.1, dt=0.02,
+        mrot=0.0, mlat=-43.5, mlon=172.0,
+    )
+    file_bytes = header + payload.astype(f"{endian}f4").tobytes()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fpath = Path(tmpdir) / "test_xyzts-0"
+        fpath.write_bytes(file_bytes)
+        xf = xyts.XYTSFile(fpath)
+        with pytest.raises(ValueError, match="tslice_get"):
+            xf.tslice_get(0)
+
+
+@given(data=xyzts_file_data())
+def test_xyzts_pgv_raises(data: tuple) -> None:
+    """pgv() should raise ValueError for volumetric XYZTS files."""
+    endian, ncomp, local_nx, local_ny, local_nz, nx, ny, nt, payload = data
+    header = _make_proc_local_header(
+        endian,
+        x0=0, y0=0, z0=0, t0=0,
+        local_nx=local_nx, local_ny=local_ny, local_nz=local_nz,
+        nx=nx, ny=ny, nz=local_nz, nt=nt,
+        dx=0.4, dy=0.4, hh=0.1, dt=0.02,
+        mrot=0.0, mlat=-43.5, mlon=172.0,
+    )
+    file_bytes = header + payload.astype(f"{endian}f4").tobytes()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fpath = Path(tmpdir) / "test_xyzts-0"
+        fpath.write_bytes(file_bytes)
+        xf = xyts.XYTSFile(fpath)
+        with pytest.raises(ValueError, match="pgv"):
+            xf.pgv()
+
+
+@given(data=xyzts_file_data())
+def test_xyzts_meta_only(data: tuple) -> None:
+    """meta_only=True should work for XYZTS files and leave data=None."""
+    endian, ncomp, local_nx, local_ny, local_nz, nx, ny, nt, payload = data
+    header = _make_proc_local_header(
+        endian,
+        x0=0, y0=0, z0=0, t0=0,
+        local_nx=local_nx, local_ny=local_ny, local_nz=local_nz,
+        nx=nx, ny=ny, nz=local_nz, nt=nt,
+        dx=0.4, dy=0.4, hh=0.1, dt=0.02,
+        mrot=0.0, mlat=-43.5, mlon=172.0,
+    )
+    file_bytes = header + payload.astype(f"{endian}f4").tobytes()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fpath = Path(tmpdir) / "test_xyzts-0"
+        fpath.write_bytes(file_bytes)
+        xf = xyts.XYTSFile(fpath, meta_only=True)
+        assert xf.data is None
+        assert int(xf.local_nz) == local_nz
+        assert xf.ncomp == ncomp
