@@ -37,6 +37,7 @@ pipeline {
                     cd ${env.WORKSPACE}
                     source .venv/bin/activate
                     cd qcore/test
+                    export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
                     pytest -s
                 """
             }
