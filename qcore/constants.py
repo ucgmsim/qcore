@@ -2,7 +2,7 @@
 
 from collections.abc import Generator
 from enum import Enum
-from typing import Any
+from typing import Any, Self
 
 from typing_extensions import deprecated  # type: ignore
 
@@ -12,22 +12,21 @@ class ExtendedEnum(Enum):
     """DEPRECATED: Utility enum extension. Use built-in Enum."""
 
     @classmethod
-    def has_value(cls, value: Any) -> bool:
+    def has_value(cls, value: Any) -> bool:  # noqa: D102
         return any(value == item.value for item in cls)
 
     @classmethod
     def is_substring(cls, parent_string: str) -> bool:
         """Check if an enum's string value is contained in the given string"""
         return any(
-            isinstance(item.value, str) and item.value in parent_string
-            for item in cls
+            isinstance(item.value, str) and item.value in parent_string for item in cls
         )
 
     @classmethod
-    def get_names(cls) -> list[str]:
+    def get_names(cls) -> list[str]:  # noqa: D102
         return [item.name for item in cls]
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D105
         return self.name
 
 
@@ -45,11 +44,11 @@ class ExtendedStrEnum(ExtendedEnum):  # type: ignore
         return obj
 
     @classmethod
-    def has_str_value(cls, str_value: str) -> bool:
+    def has_str_value(cls, str_value: str) -> bool:  # noqa: D102
         return any(str_value == item.str_value for item in cls)
 
     @classmethod
-    def from_str(cls, str_value):
+    def from_str(cls, str_value: str) -> Self:  # noqa: D102
         if not cls.has_str_value(str_value):
             raise ValueError(f"{str_value} is not a valid {cls.__name__}")
         else:

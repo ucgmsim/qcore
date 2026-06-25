@@ -122,16 +122,16 @@ def gen_mat(mrot: float, mlon: float, mlat: float) -> tuple[np.ndarray, np.ndarr
     mlat: model centre latitude
     """
     arg = radians(mrot)
-    cosA = cos(arg)
-    sinA = sin(arg)
+    cosA = cos(arg)  # noqa: N806
+    sinA = sin(arg)  # noqa: N806
 
     arg = radians(90.0 - mlat)
-    cosT = cos(arg)
-    sinT = sin(arg)
+    cosT = cos(arg)  # noqa: N806
+    sinT = sin(arg)  # noqa: N806
 
     arg = radians(mlon)
-    cosP = cos(arg)
-    sinP = sin(arg)
+    cosP = cos(arg)  # noqa: N806
+    sinP = sin(arg)  # noqa: N806
 
     amat = np.array(
         [
@@ -161,9 +161,9 @@ def xy2ll(xy_km: np.ndarray, amat: np.ndarray) -> np.ndarray:
     amat: from gen_mat function
     """
     x = xy_km[:, 0] / R_EARTH
-    sinB = np.sin(x)
+    sinB = np.sin(x)  # noqa: N806
     y = xy_km[:, 1] / R_EARTH
-    sinG = np.sin(y)
+    sinG = np.sin(y)  # noqa: N806
     z = np.sqrt(1.0 + sinB * sinB * sinG * sinG)
     xp = sinG * np.cos(x) * z
     yp = sinB * np.cos(y) * z
@@ -200,7 +200,6 @@ def ll2xy(ll: np.ndarray, ainv: np.ndarray) -> np.ndarray:
 
     xp = xg * ainv[0] + yg * ainv[1] + zg * ainv[2]
     yp = xg * ainv[3] + yg * ainv[4] + zg * ainv[5]
-    zp = xg * ainv[6] + yg * ainv[7] + zg * ainv[8]
 
     # X km offsets from centre origin, Y km offsets from centre origin
     return np.column_stack(

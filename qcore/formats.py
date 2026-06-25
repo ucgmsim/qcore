@@ -4,7 +4,6 @@ Functions and classes to load data that doesn't belong elsewhere.
 
 import argparse
 from pathlib import Path
-from typing import overload
 
 import pandas as pd
 from typing_extensions import deprecated
