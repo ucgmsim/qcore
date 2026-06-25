@@ -158,13 +158,14 @@ def load_generic_station_file(
         # we will be loading columns of these indices (order doesn't matter)
         usecols=list(cols.values()),
         names=sorted(
-            cols, key=cols.get
-        ),  # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"] # type: ignore[no-matching-overload]
+            cols,
+            key=cols.get,
+        ),  # ty: ignore[no-matching-overload] # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"] # type: ignore[no-matching-overload]
         index_col=stat_name_col,
         sep=sep,
         header=None,
         skiprows=skiprows,
-    )  # type: ignore
+    )
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
@@ -181,14 +182,14 @@ def load_station_file(station_file: str) -> pd.DataFrame:
     pd.DataFrame
         station as index and columns lon, lat
     """
-    return pd.read_csv(
+    return pd.read_csv(  # ty: ignore[no-matching-overload]
         station_file,
         header=None,
         index_col=2,
         names=["lon", "lat"],
         engine="c",
         delim_whitespace=True,
-    )  # type: ignore[no-matching-overload]
+    )
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")

@@ -4,7 +4,7 @@ from collections.abc import Generator
 from enum import Enum
 from typing import Any, Self
 
-from typing_extensions import deprecated  # type: ignore
+from typing_extensions import deprecated
 
 
 @deprecated("Use built-in Enum")
@@ -48,7 +48,7 @@ class ExtendedStrEnum(ExtendedEnum):  # type: ignore
         return any(str_value == item.str_value for item in cls)
 
     @classmethod
-    def from_str(cls, str_value: str) -> Self:  # noqa: D102
+    def from_str(cls, str_value: str) -> Self | None:  # noqa: D102
         if not cls.has_str_value(str_value):
             raise ValueError(f"{str_value} is not a valid {cls.__name__}")
         else:

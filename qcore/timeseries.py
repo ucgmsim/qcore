@@ -340,14 +340,14 @@ class LFSeisParser:
             }
         )
         station_headers = np.fromfile(self.handle, dtype=dtype_header, count=nstat)
-        x_coords: npt.NDArray[np.int32] = station_headers["x"]
-        y_coords: npt.NDArray[np.int32] = station_headers["y"]
-        lat_coords: npt.NDArray[np.int32] = station_headers["lat"]
-        lon_coords: npt.NDArray[np.int32] = station_headers["lon"]
+        x_coords: npt.NDArray[np.int32] = station_headers["x"]  # ty: ignore[invalid-argument-type]
+        y_coords: npt.NDArray[np.int32] = station_headers["y"]  # ty: ignore[invalid-argument-type]
+        lat_coords: npt.NDArray[np.int32] = station_headers["lat"]  # ty: ignore[invalid-argument-type]
+        lon_coords: npt.NDArray[np.int32] = station_headers["lon"]  # ty: ignore[invalid-argument-type]
         # Decode station names from UTF-8 encoded bytes.
         station_names: list[str] = [
             station_name.decode("utf-8", errors="replace").strip("\x00")
-            for station_name in station_headers["station"]
+            for station_name in station_headers["station"]  # ty: ignore[invalid-argument-type]
         ]
         return pd.DataFrame(
             {
