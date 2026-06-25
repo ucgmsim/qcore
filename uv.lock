@@ -1313,7 +1313,6 @@ dependencies = [
     { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "typer" },
     { name = "typing-extensions" },
-    { name = "typing-extensions" },
     { name = "xarray" },
 ]
 
@@ -1359,7 +1358,6 @@ requires-dist = [
     { name = "scipy-stubs", marker = "extra == 'types'" },
     { name = "ty", marker = "extra == 'dev'" },
     { name = "typer" },
-    { name = "typing-extensions", specifier = ">=4.9.0" },
     { name = "types-pyyaml", marker = "extra == 'types'" },
     { name = "typing-extensions", specifier = ">=4.9.0" },
     { name = "xarray" },
