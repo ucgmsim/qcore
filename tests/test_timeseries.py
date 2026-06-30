@@ -894,7 +894,7 @@ def test_timeseries_to_text_full(tmp_path: Path) -> None:
   7.12346e+00   8.98765e+00
 """
 
-    timeseries.timeseries_to_text(**params)  # type: ignore
+    timeseries.timeseries_to_text(**params)
 
     assert test_file.exists()
     actual_output = test_file.read_bytes()
@@ -939,19 +939,23 @@ def test_ampdeamp_zero_amplification_factor() -> None:
     """Test that ZeroDivisionError is raised when de-amplifying with zero amplification factor."""
     waveform = np.ones(100, dtype=np.float32)
     amplification_factor = np.zeros(25, dtype=np.float32)
-    
-    with pytest.raises(ZeroDivisionError, match="Would divide by zero in amplification factor"):
+
+    with pytest.raises(
+        ZeroDivisionError, match="Would divide by zero in amplification factor"
+    ):
         timeseries.ampdeamp(waveform, amplification_factor, amplify=False, taper=False)
 
 
 def test_lfseis_parser_invalid_file() -> None:
     """Test that ValueError is raised for invalid LFSeis file."""
     invalid_data = b"\x00\x00\x00\x00" * 100  # Create invalid file data
-    
+
     with tempfile.TemporaryFile() as f:
         f.write(invalid_data)
         f.seek(0)
-        with pytest.raises(ValueError, match="Handle does not read from an LFSeis file"):
+        with pytest.raises(
+            ValueError, match="Handle does not read from an LFSeis file"
+        ):
             _ = timeseries.LFSeisParser(f)  # Constructor triggers endianness detection
 
 
@@ -959,6 +963,6 @@ def test_read_lfseis_directory_no_files(tmp_path: Path) -> None:
     """Test that ValueError is raised when no LF seis files are found."""
     empty_dir = tmp_path / "empty_dir"
     empty_dir.mkdir()
-    
+
     with pytest.raises(ValueError, match="No LF seis files found"):
         timeseries.read_lfseis_directory(empty_dir)

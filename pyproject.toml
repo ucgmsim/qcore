@@ -15,7 +15,6 @@ dependencies = [
   "pyproj",
   "pooch",
   "scipy",
-  "matplotlib",
   "numpy",
   "numba>=0.57.0; python_version == '3.11'",
   "numba>=0.59.0; python_version == '3.12'",
@@ -25,6 +24,7 @@ dependencies = [
   "docstring_parser",
   "xarray",
   "pyyaml",
+  "typing-extensions>=4.9.0",                # Last change to the @deprecated module
 ]
 
 [project.optional-dependencies]
@@ -37,7 +37,6 @@ pep621_dev_dependency_groups = ["test", "dev", "types"]
 
 [tool.coverage.run]
 omit = ["qcore/constants.py", "qcore/formats.py"]
-
 
 [tool.setuptools_scm]
 

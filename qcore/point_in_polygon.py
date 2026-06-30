@@ -1,10 +1,17 @@
-from numba import jit, njit
+from typing import Literal
+
 import numba
 import numpy as np
+import numpy.typing as npt
+from numba import jit, njit
+
+from qcore.typing import TNFloat
 
 
 @jit(nopython=True)
-def is_inside_postgis(polygon: np.ndarray, point: np.ndarray):
+def is_inside_postgis(
+    polygon: npt.NDArray[TNFloat], point: npt.NDArray[TNFloat]
+) -> Literal[0, 1, 2]:  # pragma: no cover
     """
     Function that checks if a point is inside a polygon
     Based on solutions found here
@@ -38,7 +45,7 @@ def is_inside_postgis(polygon: np.ndarray, point: np.ndarray):
         dy2 = point[1] - polygon[jj][1]
 
         # Check if the point is on the polygon
-        F = (dx - dx2) * dy - dx * (dy - dy2)
+        F = (dx - dx2) * dy - dx * (dy - dy2)  # noqa: N806
         if 0.0 == F and dx * dx2 <= 0 and dy * dy2 <= 0:
             return 2
 
@@ -50,11 +57,13 @@ def is_inside_postgis(polygon: np.ndarray, point: np.ndarray):
 
         jj += 1
 
-    return intersections != 0
+    return 1 if intersections != 0 else 0
 
 
 @njit(parallel=True)
-def is_inside_postgis_parallel(points: np.ndarray, polygon: np.ndarray):
+def is_inside_postgis_parallel(
+    points: npt.NDArray[TNFloat], polygon: npt.NDArray[TNFloat]
+) -> npt.NDArray[np.bool_]:  # pragma: no cover
     """
     Function that checks if a set of points is inside a polygon in parallel
 
@@ -71,7 +80,7 @@ def is_inside_postgis_parallel(points: np.ndarray, polygon: np.ndarray):
         List of boolean values that indicate if the point is inside the polygon
     """
     ln = len(points)
-    D = np.empty(ln, dtype=numba.boolean)
-    for i in numba.prange(ln):
+    D = np.empty(ln, dtype=np.bool_)  # noqa: N806
+    for i in numba.prange(ln):  # type: ignore
         D[i] = is_inside_postgis(polygon, points[i])
     return D

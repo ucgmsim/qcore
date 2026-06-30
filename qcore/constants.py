@@ -1,34 +1,41 @@
 """DEPRECATED - Global constants and Enum helper."""
 
+from collections.abc import Generator
 from enum import Enum
-from typing import Any
-from warnings import deprecated  # type: ignore
+from typing import Any, Self
+
+from typing_extensions import deprecated
 
 
-@deprecated
+@deprecated("Use built-in Enum")
 class ExtendedEnum(Enum):
     """DEPRECATED: Utility enum extension. Use built-in Enum."""
 
     @classmethod
-    def has_value(cls, value):
+    def has_value(cls, value: Any) -> bool:  # noqa: D102
         return any(value == item.value for item in cls)
 
     @classmethod
-    def is_substring(cls, parent_string):
+    def is_substring(cls, parent_string: str) -> bool:
         """Check if an enum's string value is contained in the given string"""
-        return any(item.value in parent_string for item in cls)
+        return any(
+            isinstance(item.value, str) and item.value in parent_string for item in cls
+        )
 
     @classmethod
-    def get_names(cls):
+    def get_names(cls) -> list[str]:  # noqa: D102
         return [item.name for item in cls]
 
-    def __str__(self):
+    def __str__(self) -> str:  # noqa: D105
         return self.name
 
 
-@deprecated
-class ExtendedStrEnum(ExtendedEnum):
+@deprecated("Use built-in StrEnum")
+class ExtendedStrEnum(ExtendedEnum):  # type: ignore
     """DEPRECATED: Utility Enum extension for string mappings. Use built-in StrEnum."""
+
+    _value_: Any
+    str_value: str
 
     def __new__(cls, value: Any, str_value: str):  # noqa: D102 # numpydoc ignore=GL08
         obj = object.__new__(cls)
@@ -37,11 +44,11 @@ class ExtendedStrEnum(ExtendedEnum):
         return obj
 
     @classmethod
-    def has_str_value(cls, str_value):
+    def has_str_value(cls, str_value: str) -> bool:  # noqa: D102
         return any(str_value == item.str_value for item in cls)
 
     @classmethod
-    def from_str(cls, str_value):
+    def from_str(cls, str_value: str) -> Self | None:  # noqa: D102
         if not cls.has_str_value(str_value):
             raise ValueError(f"{str_value} is not a valid {cls.__name__}")
         else:
@@ -50,7 +57,7 @@ class ExtendedStrEnum(ExtendedEnum):
                     return item
 
     @classmethod
-    def iterate_str_values(cls, ignore_none=True):
+    def iterate_str_values(cls, ignore_none: bool = True) -> Generator[Any, None, None]:
         """Iterates over the string values of the enum,
         ignores entries without a string value by default
         """

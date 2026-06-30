@@ -39,13 +39,14 @@ _, mmi_values = xyts_file.pgv(mmi=True)
 """
 
 import dataclasses
+from enum import Enum
 from math import cos, radians, sin
 from pathlib import Path
+from typing import Literal, overload
 
 import numpy as np
 
 from qcore import geo
-from enum import Enum
 
 
 class Component(Enum):
@@ -142,14 +143,22 @@ class XYTSFile:
     nx_sim: int
     dip: float
     comps: dict[str, float]
-    cosR: float
-    sinR: float
-    cosP: float
-    sinP: float
+
+    cos_r: float
+
+    sin_r: float
+
+    cos_p: float
+
+    sin_p: float
+
     rot_matrix: np.ndarray
+
     # proc-local files only
     local_nx: int | None = None
+
     local_ny: int | None = None
+
     local_nz: int | None = None
 
     # contents
@@ -159,13 +168,13 @@ class XYTSFile:
 
     ll_map: np.ndarray | None = None
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         xyts_path: Path | str,
         meta_only: bool = False,
         proc_local_file: bool = False,
         round_dt: bool = True,
-    ):
+    ):  # numpydoc ignore=GL08
         """Initializes the XYTSFile object.
 
         Parameters
@@ -239,11 +248,11 @@ class XYTSFile:
             "Z": radians(90 - self.dip),
         }
         # rotation of components so Y is true north
-        self.cosR = cos(self.comps["X"])
-        self.sinR = sin(self.comps["X"])
+        self.cos_r = cos(self.comps["X"])
+        self.sin_r = sin(self.comps["X"])
         # simulation plane always flat, dip = 0
-        self.cosP = 0  # cos(self.comps['Z'])
-        self.sinP = 1  # sin(self.comps['Z'])
+        self.cos_p = 0  # cos(self.comps['Z'])
+        self.sin_p = 1  # sin(self.comps['Z'])
         # xy dual component rotation matrix
         # must also flip vertical axis
         theta = radians(self.mrot)
@@ -256,6 +265,10 @@ class XYTSFile:
             return
 
         if proc_local_file:
+            if not self.local_ny or not self.local_nx:
+                raise ValueError(
+                    "Local nx, ny must be set when parsing a process local XYTS file."
+                )
             self.data = np.memmap(
                 xyts_path,
                 dtype="%sf4" % (endian),
@@ -288,6 +301,18 @@ class XYTSFile:
             ll_map[ll_map[:, :, 0] < 0, 0] += 360
         self.ll_map = ll_map
 
+    @overload
+    def corners(
+        self, gmt_format: Literal[True]
+    ) -> tuple[list[list[float]], str]: ...  # numpydoc ignore=GL08
+
+    @overload
+    def corners(
+        self, gmt_format: Literal[False]
+    ) -> list[list[float]]: ...  # numpydoc ignore=GL08
+
+    @overload
+    def corners(self) -> list[list[float]]: ...  # numpydoc ignore=GL08
     def corners(
         self, gmt_format: bool = False
     ) -> list[list[float]] | tuple[list[list[float]], str]:
@@ -347,7 +372,7 @@ class XYTSFile:
             The simulation region as a tuple (x_min, x_max, y_min, y_max).
         """
         if corners is None:
-            corners = self.corners()
+            corners: np.ndarray = np.asarray(self.corners())
         x_min, y_min = np.min(corners, axis=0)
         x_max, y_max = np.max(corners, axis=0)
 
@@ -372,18 +397,22 @@ class XYTSFile:
         np.ndarray
             Retrieved timeslice data.
         """
+        if self.data is None:
+            raise AttributeError(
+                "The data attribute must be set to use `tslice_get`. Did you set `meta_only=True` when you initialised the class?"
+            )
         match comp:
             case Component.MAGNITUDE:
                 return np.linalg.norm(self.data[step, :3, :, :], axis=0)
             case Component.X:
                 return (
-                    self.data[step, 0, :, :] * self.sinR
-                    + self.data[step, 1, :, :] * self.cosR
+                    self.data[step, 0, :, :] * self.sin_r
+                    + self.data[step, 1, :, :] * self.cos_r
                 )
             case Component.Y:
                 return (
-                    self.data[step, 0, :, :] * self.cosR
-                    - self.data[step, 1, :, :] * self.sinR
+                    self.data[step, 0, :, :] * self.cos_r
+                    - self.data[step, 1, :, :] * self.sin_r
                 )
             case Component.Z:
                 return self.data[step, 2, :, :] * -1
@@ -411,6 +440,11 @@ class XYTSFile:
             PGV map or tuple of (PGV map, MMI map) or None (if both are written to a
             file).
         """
+
+        if self.data is None or self.ll_map is None:
+            raise AttributeError(
+                "The data and ll_map attributes must be set to use `pgv`. Did you set `meta_only=True` when you initialised the class?"
+            )
         # PGV as timeslices reduced to maximum value at each point
         pgv = np.zeros(self.nx * self.ny)
         for ts in range(self.t0, self.nt):

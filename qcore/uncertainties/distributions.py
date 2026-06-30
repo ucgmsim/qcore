@@ -13,13 +13,40 @@ Functions:
 - rand_shyp: Generates random hypocentre values along the length of a fault.
 """
 
-from typing import Optional
+from typing import Literal, overload
 
 import numpy as np
+import numpy.typing as npt
 import scipy as sp
 
 
-def truncated_normal(mean: float, std_dev: float, std_dev_limit: float = 2) -> float:
+@overload
+def truncated_normal(
+    mean: float,
+    std_dev: float,
+    std_dev_limit: float = ...,
+    size: Literal[1] = 1,
+    seed: int | None = None,
+) -> float: ...  # numpydoc ignore=GL08
+
+
+@overload
+def truncated_normal(
+    mean: float,
+    std_dev: float,
+    std_dev_limit: float = ...,
+    size: int = 1,
+    seed: int | None = None,
+) -> np.ndarray: ...  # numpydoc ignore=GL08
+
+
+def truncated_normal(
+    mean: float,
+    std_dev: float,
+    std_dev_limit: float = 2,
+    size: int = 1,
+    seed: int | None = None,
+) -> float | np.ndarray:
     """
     Generate a random value from a truncated normal distribution.
 
@@ -31,23 +58,53 @@ def truncated_normal(mean: float, std_dev: float, std_dev_limit: float = 2) -> f
         Standard deviation of the normal distribution.
     std_dev_limit : float, optional
         Number of standard deviations to limit the truncation (default is 2).
+    size : int, optional
+        The number of samples to take (default is 1).
+    seed : int or None, optional
+        Random seed for reproducibility (default is None).
+
 
     Returns
     -------
-    float
+    float or array of floats
         Random value from the truncated normal distribution.
     """
-    return sp.stats.truncnorm(
-        -std_dev_limit, std_dev_limit, loc=mean, scale=std_dev
-    ).rvs()
+    x = sp.stats.truncnorm(-std_dev_limit, std_dev_limit, loc=mean, scale=std_dev).rvs(
+        size=size, random_state=seed
+    )
+    if x.size == 1:
+        return float(x.item())
+    else:
+        return x
+
+
+@overload
+def truncated_weibull(
+    upper_value: float,
+    c: float = ...,
+    scale_factor: float = ...,
+    size: Literal[1] = 1,
+    seed: int | None = ...,
+) -> float: ...  # numpydoc ignore=GL08
+
+
+@overload
+def truncated_weibull(
+    upper_value: float,
+    c: float = ...,
+    scale_factor: float = ...,
+    size: int = 1,
+    seed: int | None = ...,
+) -> np.ndarray: ...  # numpydoc ignore=GL08
 
 
 def truncated_weibull(
     upper_value: float,
     c: float = 3.353,
     scale_factor: float = 0.612,
-    seed: Optional[int] = None,
-) -> float:
+    size: int = 1,
+    seed: int | None = None,
+) -> float | np.ndarray:
     """
     Generate a random value from a truncated Weibull distribution.
 
@@ -59,17 +116,23 @@ def truncated_weibull(
         Shape parameter of the Weibull distribution (default is 3.353).
     scale_factor : float, optional
         Scale factor of the Weibull distribution (default is 0.612).
+    size : int, optional
+        The number of samples to take (default is 1).
     seed : int or None, optional
         Random seed for reproducibility (default is None).
 
     Returns
     -------
-    float
+    float or array of floats
         Random value from the truncated Weibull distribution.
     """
-    return upper_value * sp.stats.truncweibull_min(
+    x = upper_value * sp.stats.truncweibull_min(
         c, 0, 1 / scale_factor, scale=scale_factor
-    ).rvs(random_state=seed)
+    ).rvs(random_state=seed, size=size)
+    if x.size == 1:
+        return float(x.item())
+    else:
+        return x
 
 
 def truncated_weibull_expected_value(
@@ -92,15 +155,39 @@ def truncated_weibull_expected_value(
     float
         Expected value for the truncated Weibull distribution.
     """
-    return (
+    return float(
         upper_value
         * sp.stats.truncweibull_min(c, 0, 1 / scale_factor, scale=scale_factor).expect()
     )
 
 
+@overload
 def truncated_log_normal(
-    mean: float, std_dev: float, std_dev_limit: float = 2, seed: Optional[int] = None
-) -> float:
+    mean: npt.ArrayLike,
+    std_dev: float,
+    std_dev_limit: float = ...,
+    size: Literal[1] = 1,
+    seed: int | None = ...,
+) -> float: ...  # numpydoc ignore=GL08
+
+
+@overload
+def truncated_log_normal(
+    mean: npt.ArrayLike,
+    std_dev: float,
+    std_dev_limit: float = ...,
+    size: int = ...,
+    seed: int | None = ...,
+) -> np.ndarray: ...  # numpydoc ignore=GL08
+
+
+def truncated_log_normal(
+    mean: npt.ArrayLike,
+    std_dev: float,
+    std_dev_limit: float = 2,
+    size: int = 1,
+    seed: int | None = None,
+) -> float | np.ndarray:
     """
     Generate a random value from a truncated log-normal distribution.
 
@@ -112,6 +199,8 @@ def truncated_log_normal(
         Standard deviation of the log-normal distribution.
     std_dev_limit : float, optional
         Number of standard deviations to limit the truncation (default is 2).
+    size : int, optional
+        The number of samples to take (default is 1).
     seed : int or None, optional
         Random seed for reproducibility (default is None).
 
@@ -120,17 +209,33 @@ def truncated_log_normal(
     float
         Random value from the truncated log-normal distribution.
     """
-    return np.exp(
+    x = np.exp(
         sp.stats.truncnorm(
             -std_dev_limit,
             std_dev_limit,
             loc=np.log(np.asarray(mean).astype(np.float64)),
             scale=std_dev,
-        ).rvs(random_state=seed)
+        ).rvs(size=size, random_state=seed)
     )
+    if x.size == 1:
+        return float(x.item())
+    else:
+        return x
 
 
-def rand_shyp() -> float:
+@overload
+def rand_shyp(
+    size: Literal[1] = 1, seed: int | None = ...
+) -> float: ...  # numpydoc ignore=GL08
+
+
+@overload
+def rand_shyp(
+    size: int = 1, seed: int | None = ...
+) -> np.ndarray: ...  # numpydoc ignore=GL08
+
+
+def rand_shyp(size: int = 1, seed: int | None = None) -> float | np.ndarray:
     """
     Generate a random hypocentre value along the length of a fault.
 
@@ -139,4 +244,4 @@ def rand_shyp() -> float:
     float
         Random value from a truncated normal distribution (mean=0, std_dev=0.25).
     """
-    return truncated_normal(0, 0.25)
+    return truncated_normal(0, 0.25, size=size, seed=seed)

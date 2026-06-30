@@ -3,7 +3,7 @@ qcore geometry utilities.
 """
 
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
-from typing import Optional, Union
+from typing import overload
 
 import numpy as np
 import numpy.typing as npt
@@ -12,7 +12,7 @@ R_EARTH = 6378.139
 
 
 def get_distances(
-    locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
+    locations: np.ndarray, lon: float | np.ndarray, lat: float | np.ndarray
 ) -> np.ndarray:
     """
     Calculates the distance between the array of locations and
@@ -53,7 +53,7 @@ def closest_location(
     d = get_distances(locations, lon, lat)
     i = np.argmin(d)
 
-    return i, d[i]
+    return int(i), d[i]
 
 
 def oriented_bearing_wrt_normal(
@@ -122,16 +122,16 @@ def gen_mat(mrot: float, mlon: float, mlat: float) -> tuple[np.ndarray, np.ndarr
     mlat: model centre latitude
     """
     arg = radians(mrot)
-    cosA = cos(arg)
-    sinA = sin(arg)
+    cosA = cos(arg)  # noqa: N806
+    sinA = sin(arg)  # noqa: N806
 
     arg = radians(90.0 - mlat)
-    cosT = cos(arg)
-    sinT = sin(arg)
+    cosT = cos(arg)  # noqa: N806
+    sinT = sin(arg)  # noqa: N806
 
     arg = radians(mlon)
-    cosP = cos(arg)
-    sinP = sin(arg)
+    cosP = cos(arg)  # noqa: N806
+    sinP = sin(arg)  # noqa: N806
 
     amat = np.array(
         [
@@ -161,9 +161,9 @@ def xy2ll(xy_km: np.ndarray, amat: np.ndarray) -> np.ndarray:
     amat: from gen_mat function
     """
     x = xy_km[:, 0] / R_EARTH
-    sinB = np.sin(x)
+    sinB = np.sin(x)  # noqa: N806
     y = xy_km[:, 1] / R_EARTH
-    sinG = np.sin(y)
+    sinG = np.sin(y)  # noqa: N806
     z = np.sqrt(1.0 + sinB * sinB * sinG * sinG)
     xp = sinG * np.cos(x) * z
     yp = sinB * np.cos(y) * z
@@ -200,7 +200,6 @@ def ll2xy(ll: np.ndarray, ainv: np.ndarray) -> np.ndarray:
 
     xp = xg * ainv[0] + yg * ainv[1] + zg * ainv[2]
     yp = xg * ainv[3] + yg * ainv[4] + zg * ainv[5]
-    zp = xg * ainv[6] + yg * ainv[7] + zg * ainv[8]
 
     # X km offsets from centre origin, Y km offsets from centre origin
     return np.column_stack(
@@ -345,12 +344,30 @@ def avg_wbearing(angles: list[list[float]]) -> float:
     return degrees(atan(x / y) + q_diff)
 
 
+@overload
 def path_from_corners(
     corners: list[tuple[float, float]],
-    output: str = "sim.modelpath_hr",
+    output: str | None = None,
+    min_edge_points: int = ...,
+    close: bool = ...,
+) -> list[tuple[float, float]]: ...
+
+
+@overload
+def path_from_corners(
+    corners: list[tuple[float, float]],
+    output: str = ...,
+    min_edge_points: int = ...,
+    close: bool = ...,
+) -> None: ...
+
+
+def path_from_corners(
+    corners: list[tuple[float, float]],
+    output: str | None = "sim.modelpath_hr",
     min_edge_points: int = 100,
     close: bool = True,
-):
+) -> list[tuple[float, float]] | None:
     """
     corners: python list (4 by 2) containing (lon, lat) in order
         otherwise take from velocity model
@@ -446,9 +463,9 @@ def ll_cross_along_track_dist(
     lat2: float,
     lon3: float,
     lat3: float,
-    a12: Optional[float] = None,
-    a13: Optional[float] = None,
-    d13: Optional[float] = None,
+    a12: float | None = None,
+    a13: float | None = None,
+    d13: float | None = None,
 ) -> tuple[float, float]:
     """
     Returns both the distance of point 3 to the nearest point on the great circle line that passes through point 1 and
