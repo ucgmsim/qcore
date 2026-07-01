@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 import sys
 import tarfile
 from urllib.request import urlretrieve
@@ -58,7 +58,7 @@ else:
 setup(
     name=PACKAGE_NAME,
     version="1.2",
-    packages=[PACKAGE_NAME],
+    packages=find_packages(),
     url=PACKAGE_URL,
     description="QuakeCoRE Library",
     package_data={
