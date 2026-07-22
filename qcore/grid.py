@@ -18,6 +18,7 @@ from typing import Optional
 import numpy as np
 
 from qcore import coordinates
+from qcore.typing import TFloat
 
 
 def grid_corners(
@@ -148,8 +149,8 @@ def coordinate_meshgrid(
     length_x = np.linalg.norm(x_upper - origin)
     length_y = np.linalg.norm(y_bottom - origin)
 
-    nx = nx or gridpoint_count_in_length(length_x, resolution)
-    ny = ny or gridpoint_count_in_length(length_y, resolution)
+    nx = nx or gridpoint_count_in_length(float(length_x), resolution)
+    ny = ny or gridpoint_count_in_length(float(length_y), resolution)
 
     # We first create a meshgrid of coordinates across a flat rectangle like the following
     #
@@ -203,7 +204,7 @@ def coordinate_patchgrid(
     origin: np.ndarray,
     x_upper: np.ndarray,
     y_bottom: np.ndarray,
-    resolution: Optional[float] = None,
+    resolution: Optional[TFloat] = None,
     nx: Optional[int] = None,
     ny: Optional[int] = None,
 ) -> np.ndarray:
@@ -261,8 +262,11 @@ def coordinate_patchgrid(
     len_x = np.linalg.norm(v_x)
     len_y = np.linalg.norm(v_y)
 
-    nx = nx or max(1, round(len_x / resolution))
-    ny = ny or max(1, round(len_y / resolution))
+    if not resolution and not (nx and ny):
+        raise ValueError("If resolution is not provided, nx and ny must be.")
+
+    nx = nx or max(1, round(float(len_x / resolution)))  # type: ignore
+    ny = ny or max(1, round(float(len_y / resolution)))  # type: ignore
 
     alpha, beta = np.meshgrid(
         # The 1 / (2 * nx) term is to ensure that the patches are centred on the grid points.
