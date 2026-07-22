@@ -894,7 +894,7 @@ def test_timeseries_to_text_full(tmp_path: Path) -> None:
   7.12346e+00   8.98765e+00
 """
 
-    timeseries.timeseries_to_text(**params)  # type: ignore
+    timeseries.timeseries_to_text(**params)
 
     assert test_file.exists()
     actual_output = test_file.read_bytes()

@@ -165,7 +165,7 @@ def load_generic_station_file(
         sep=sep,
         header=None,
         skiprows=skiprows,
-    )  # type: ignore
+    )
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
