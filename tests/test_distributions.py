@@ -66,7 +66,9 @@ def test_truncated_weibull_expected_value_bounds(upper: float) -> None:
     seed=st.integers(0, 1_000_000),
 )
 @settings(max_examples=20)
-def test_truncated_log_normal_vectorized(mean: float, std_dev: float, seed: int):
+def test_truncated_log_normal_vectorized(
+    mean: float, std_dev: float, seed: int
+) -> None:
     samples = truncated_log_normal(mean, std_dev, size=200, seed=seed)
     assert np.all(np.isfinite(samples))
     log_mean = np.log(mean)

@@ -22,6 +22,15 @@ def xyts_file() -> xyts.XYTSFile:
 
 
 @pytest.fixture(scope="session")
+def meta_only_xyts_file() -> xyts.XYTSFile:
+    """Provide a meta-only XYTSFile instance."""
+    test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
+    if not test_file.exists():
+        pytest.skip("Test file not available")
+    return xyts.XYTSFile(str(test_file), meta_only=True)
+
+
+@pytest.fixture(scope="session")
 def sample_data_dir() -> Path:
     """Provide path to sample output directory."""
     return Path(__file__).parent / "sample1" / "output"
@@ -209,29 +218,17 @@ def test_xyts_invalid_file(tmp_path: Path) -> None:
         xyts.XYTSFile(str(invalid_file))
 
 
-def test_tslice_get_meta_only() -> None:
+def test_tslice_get_meta_only(meta_only_xyts_file: xyts.XYTSFile) -> None:
     """Test that AttributeError is raised when tslice_get is called on meta-only instance."""
-    test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
-    if not test_file.exists():
-        pytest.skip("Test file not available")
-
-    xyts_file = xyts.XYTSFile(str(test_file), meta_only=True)
-
     with pytest.raises(
         AttributeError, match="The data attribute must be set to use `tslice_get`"
     ):
-        xyts_file.tslice_get(10, comp=xyts.Component.MAGNITUDE)
+        meta_only_xyts_file.tslice_get(10, comp=xyts.Component.MAGNITUDE)
 
 
-def test_pgv_meta_only() -> None:
+def test_pgv_meta_only(meta_only_xyts_file: xyts.XYTSFile) -> None:
     """Test that AttributeError is raised when pgv is called on meta-only instance."""
-    test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
-    if not test_file.exists():
-        pytest.skip("Test file not available")
-
-    xyts_file = xyts.XYTSFile(str(test_file), meta_only=True)
-
     with pytest.raises(
         AttributeError, match="The data and ll_map attributes must be set to use `pgv`"
     ):
-        xyts_file.pgv()
+        meta_only_xyts_file.pgv()

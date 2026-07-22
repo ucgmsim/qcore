@@ -133,39 +133,38 @@ def longitude(
     )
 
 
-def test_wgs_depth_to_nztm_invalid_coordinates() -> None:
+@pytest.mark.parametrize(
+    "invalid_coords",
+    [
+        np.array([-180.0, 0.0]),
+        np.array([np.nan, np.nan]),
+    ],
+)
+def test_wgs_depth_to_nztm_invalid_coordinates(invalid_coords: np.ndarray) -> None:
     with pytest.raises(
         ValueError,
         match=re.escape(
             "Latitude and longitude coordinates given are invalid (did you input lon, lat instead of lat, lon?)"
         ),
     ):
-        coordinates.wgs_depth_to_nztm(np.array([-180.0, 0.0]))
-
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "Latitude and longitude coordinates given are invalid (did you input lon, lat instead of lat, lon?)"
-        ),
-    ):
-        coordinates.wgs_depth_to_nztm(np.array([np.nan, np.nan]))
+        coordinates.wgs_depth_to_nztm(invalid_coords)
 
 
-def test_nztm_wgs_depth_invalid_coordinates() -> None:
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "NZTM coordinates given are invalid (did you input x, y instead of y, x?)"
-        ),
-    ):
-        coordinates.nztm_to_wgs_depth(np.array([1e10, 1e10]))
+@pytest.mark.parametrize(
+    "invalid_coords",
+    [
+        np.array([1e10, 1e10]),
+        np.array([np.nan, np.nan]),
+    ],
+)
+def test_nztm_wgs_depth_invalid_coordinates(invalid_coords: np.ndarray) -> None:
     with pytest.raises(
         ValueError,
         match=re.escape(
             "NZTM coordinates given are invalid (did you input x, y instead of y, x?)"
         ),
     ):
-        coordinates.nztm_to_wgs_depth(np.array([np.nan, np.nan]))
+        coordinates.nztm_to_wgs_depth(invalid_coords)
 
 
 GEOD = pyproj.Geod(ellps="sphere", a=R_EARTH * 1000.0, b=R_EARTH * 1000.0)
