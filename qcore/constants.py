@@ -121,7 +121,7 @@ class ExtendedStrEnum(ExtendedEnum):  # type: ignore
         raise ValueError(f"{str_value} is not a valid {cls.__name__}")
 
     @classmethod
-    def iterate_str_values(cls, ignore_none: bool = True) -> Generator[Any, None, None]:
+    def iterate_str_values(cls, ignore_none: bool = True) -> Generator[str, None, None]:
         """Iterates over the member variables of the enum.
 
         Parameters
@@ -135,5 +135,7 @@ class ExtendedStrEnum(ExtendedEnum):  # type: ignore
             An enum member variable.
         """
         yield from (
-            item for item in cls if not (ignore_none and item.str_value is None)
+            item.str_value
+            for item in cls
+            if not (ignore_none and item.str_value is None)
         )
