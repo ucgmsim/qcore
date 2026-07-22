@@ -10,15 +10,27 @@ from qcore import xyts
 
 
 @pytest.fixture(scope="session")
-def xyts_file() -> xyts.XYTSFile:
-    """Provide path to the XYTS test file."""
+def xyts_file_path() -> Path:
+    """Provide path to the XYTS test file, downloading it if required."""
     # Assuming the test file exists in the test directory
     test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
     if not test_file.exists():
         request.urlretrieve(
             "https://www.dropbox.com/s/zge70zvntzxatpo/xyts.e3d?dl=1", test_file
         )
-    return xyts.XYTSFile(str(test_file))
+    return test_file
+
+
+@pytest.fixture(scope="session")
+def xyts_file(xyts_file_path: Path) -> xyts.XYTSFile:
+    """Provide an XYTSFile instance."""
+    return xyts.XYTSFile(str(xyts_file_path))
+
+
+@pytest.fixture(scope="session")
+def meta_only_xyts_file(xyts_file_path: Path) -> xyts.XYTSFile:
+    """Provide a meta-only XYTSFile instance."""
+    return xyts.XYTSFile(str(xyts_file_path), meta_only=True)
 
 
 @pytest.fixture(scope="session")
@@ -207,3 +219,19 @@ def test_xyts_invalid_file(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="File is not an XY timeslice file"):
         xyts.XYTSFile(str(invalid_file))
+
+
+def test_tslice_get_meta_only(meta_only_xyts_file: xyts.XYTSFile) -> None:
+    """Test that AttributeError is raised when tslice_get is called on meta-only instance."""
+    with pytest.raises(
+        AttributeError, match="The data attribute must be set to use `tslice_get`"
+    ):
+        meta_only_xyts_file.tslice_get(10, comp=xyts.Component.MAGNITUDE)
+
+
+def test_pgv_meta_only(meta_only_xyts_file: xyts.XYTSFile) -> None:
+    """Test that AttributeError is raised when pgv is called on meta-only instance."""
+    with pytest.raises(
+        AttributeError, match="The data and ll_map attributes must be set to use `pgv`"
+    ):
+        meta_only_xyts_file.pgv()
