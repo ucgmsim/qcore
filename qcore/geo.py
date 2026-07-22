@@ -337,11 +337,11 @@ def ll_mid(lon1: float, lat1: float, lon2: float, lat2: float) -> tuple[float, f
     # functions based on radians
     lon1, lat1, lat2, dlon = list(map(radians, [lon1, lat1, lat2, (lon2 - lon1)]))
 
-    Bx = cos(lat2) * cos(dlon)
-    By = cos(lat2) * sin(dlon)
+    b_x = cos(lat2) * cos(dlon)
+    b_y = cos(lat2) * sin(dlon)
 
-    lat3 = atan2(sin(lat1) + sin(lat2), sqrt((cos(lat1) + Bx) ** 2 + By**2))
-    lon3 = lon1 + atan2(By, cos(lat1) + Bx)
+    lat3 = atan2(sin(lat1) + sin(lat2), sqrt((cos(lat1) + b_x) ** 2 + b_y**2))
+    lon3 = lon1 + atan2(b_y, cos(lat1) + b_x)
 
     return degrees(lon3), degrees(lat3)
 
