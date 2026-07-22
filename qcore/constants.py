@@ -97,7 +97,7 @@ class ExtendedStrEnum(ExtendedEnum):  # type: ignore
         return any(str_value == item.str_value for item in cls)
 
     @classmethod
-    def from_str(cls, str_value: str) -> Any:
+    def from_str(cls, str_value: str) -> Self:
         """Lookup an enum member from its str_value.
 
         Parameters

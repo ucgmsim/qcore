@@ -81,7 +81,7 @@ class XYTSFile:
     Raises
     ------
     ValueError
-        ValueError: If the file is not an XY timeslice file.
+        If the file is not an XY timeslice file.
     """
 
     # Header values
