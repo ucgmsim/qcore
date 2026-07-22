@@ -83,7 +83,7 @@ def amplification_uncertainty(
 def _fs_low(
     t_idx: int,
     vs30: float,
-    a1100: np.ndarray,
+    a1100: np.ndarray | float,
     c10: np.ndarray,
     k1: np.ndarray,
     k2: np.ndarray,
@@ -165,7 +165,7 @@ def _fs_high(
 def _compute_fs_value(
     t_idx: int,
     vs30: float,
-    a1100: np.ndarray,
+    a1100: np.ndarray | float,
     c10: np.ndarray,
     k1: np.ndarray,
     k2: np.ndarray,
@@ -506,10 +506,10 @@ def cb_amp_multi(
         raise KeyError(f"Missing required columns: {missing_cols}")
 
     # Extract arrays from DataFrame
-    vref = df[vref_col].values
-    vsite = df[vsite_col].values
-    vpga = df[vpga_col].values
-    pga = df[pga_col].values
+    vref = df[vref_col].to_numpy()
+    vsite = df[vsite_col].to_numpy()
+    vpga = df[vpga_col].to_numpy()
+    pga = df[pga_col].to_numpy()
 
     # Check for missing values
     arrays = [vref, vsite, vpga, pga]

@@ -2,9 +2,9 @@
 
 from collections.abc import Generator
 from enum import Enum
-from typing import Any
+from typing import Any, Self
 
-from typing_extensions import deprecated  # type: ignore
+from typing_extensions import deprecated
 
 
 @deprecated("Use built-in Enum")
@@ -42,8 +42,7 @@ class ExtendedEnum(Enum):
             True if any enum value is a substring of `parent_string`.
         """
         return any(
-            isinstance(item.value, str) and item.value in parent_string
-            for item in cls
+            isinstance(item.value, str) and item.value in parent_string for item in cls
         )
 
     @classmethod
@@ -75,7 +74,7 @@ class ExtendedStrEnum(ExtendedEnum):  # type: ignore
     _value_: Any
     str_value: str
 
-    def __new__(cls, value: Any, str_value: str):  # noqa: D102 # numpydoc ignore=GL08
+    def __new__(cls, value: Any, str_value: str) -> Self:  # noqa: D102 # numpydoc ignore=GL08
         obj = object.__new__(cls)
         obj._value_ = value
         obj.str_value = str_value

@@ -195,6 +195,27 @@ class XYTSFile:
         proc_local_file: bool = False,
         round_dt: bool = True,
     ):  # numpydoc ignore=GL08
+        """Initializes the XYTSFile object.
+
+        Parameters
+        ----------
+        xyts_path : Path | str
+            Path to the xyts file.
+        meta_only : bool
+            If True, only loads metadata and doesn't prepare gridpoint datum
+            locations (slower).
+        proc_local_file : bool
+            If True, indicates a proc-local file.
+        round_dt : bool
+            If True, round the dt value to 4dp (present only for backwards
+            compatibility).
+
+        Raises
+        ------
+        ValueError
+            ValueError: If the file is not an XY timeslice file.
+        """
+
         xytf = open(xyts_path, "rb")
 
         self.xyts_path = xyts_path
