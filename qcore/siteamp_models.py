@@ -519,16 +519,16 @@ def cb_amp_multi(
             raise ValueError(f"Column '{name}' contains NaN values")
         if not np.all(np.isfinite(arr)):
             raise ValueError(f"Column '{name}' contains infinite values")
-        if np.any(arr <= 0):
+        if np.any(arr <= 0):  # ty: ignore[unsupported-operator]
             raise ValueError(f"Column '{name}' contains non-positive values")
-        if not np.issubdtype(arr.dtype, np.floating):
+        if not np.issubdtype(arr.dtype, np.floating):  # ty: ignore[invalid-argument-type]
             raise ValueError(
                 f"Column '{name}' has incorrect kind, must be real floating"
             )
 
     # Use pga for reference dtype because it is more reliably a float,
     # where vref can sometimes be an int.
-    freqs = freqs.astype(pga.dtype)  # type: ignore[no-matching-overload]
+    freqs = freqs.astype(pga.dtype)  # ty: ignore[no-matching-overload]
     # Call the numba-accelerated function
     results = _cb_amp_multi(
         vref=vref,

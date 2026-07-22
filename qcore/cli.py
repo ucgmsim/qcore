@@ -124,7 +124,7 @@ def from_docstring(
 
         # NOTE: Typer requires the dynamic signature update for runtime reflection,
         # but the type checker uses the P, R generics.
-        wrapper.__signature__ = new_sig
+        wrapper.__signature__ = new_sig  # ty: ignore[unresolved-attribute]
 
         return wrapper
 
