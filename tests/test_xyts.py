@@ -10,24 +10,27 @@ from qcore import xyts
 
 
 @pytest.fixture(scope="session")
-def xyts_file() -> xyts.XYTSFile:
-    """Provide path to the XYTS test file."""
+def xyts_file_path() -> Path:
+    """Provide path to the XYTS test file, downloading it if required."""
     # Assuming the test file exists in the test directory
     test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
     if not test_file.exists():
         request.urlretrieve(
             "https://www.dropbox.com/s/zge70zvntzxatpo/xyts.e3d?dl=1", test_file
         )
-    return xyts.XYTSFile(str(test_file))
+    return test_file
 
 
 @pytest.fixture(scope="session")
-def meta_only_xyts_file() -> xyts.XYTSFile:
+def xyts_file(xyts_file_path: Path) -> xyts.XYTSFile:
+    """Provide an XYTSFile instance."""
+    return xyts.XYTSFile(str(xyts_file_path))
+
+
+@pytest.fixture(scope="session")
+def meta_only_xyts_file(xyts_file_path: Path) -> xyts.XYTSFile:
     """Provide a meta-only XYTSFile instance."""
-    test_file = Path(__file__).parent / "sample1" / "xyts.e3d"
-    if not test_file.exists():
-        pytest.skip("Test file not available")
-    return xyts.XYTSFile(str(test_file), meta_only=True)
+    return xyts.XYTSFile(str(xyts_file_path), meta_only=True)
 
 
 @pytest.fixture(scope="session")

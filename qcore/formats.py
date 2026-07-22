@@ -189,7 +189,7 @@ def load_station_file(station_file: str) -> pd.DataFrame:
         names=["lon", "lat"],
         engine="c",
         delim_whitespace=True,
-    )  # type: ignore[no-matching-overload]
+    )
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
