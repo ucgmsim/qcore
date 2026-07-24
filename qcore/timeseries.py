@@ -74,11 +74,11 @@ def bwfilter(
     np.ndarray
         The filtered waveform.
 
-    See Also
-    --------
-    https://en.wikipedia.org/wiki/Butterworth_filter
-    https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html
-    (specifically, the examples comparing sosfilt and sosfiltfilt)
+    References
+    ----------
+    - https://en.wikipedia.org/wiki/Butterworth_filter
+    - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html
+      (specifically, the examples comparing sosfilt and sosfiltfilt)
     """
 
     cutoff_frequencies: np.ndarray | float = taper_frequency
@@ -130,7 +130,7 @@ def ampdeamp(
     Returns
     -------
     np.ndarray
-        The input waveform (de)ampilfied at frequencies according to
+        The input waveform (de)amplified at frequencies according to
         the values of `amplification_factor`.
     """
 
@@ -384,12 +384,12 @@ def _read_lfseis_file(seis_file: Path) -> xr.Dataset:
     Parameters
     ----------
     seis_file : Path
-            Path to the LF seis file.
+        Path to the LF seis file.
 
     Returns
     -------
     xr.Dataset
-            xarray Dataset containing LF seis data.
+        Dataset containing LF seis data.
     """
 
     with open(seis_file, "rb") as f:
@@ -497,11 +497,16 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
     ----------
     outbin : Pathlike
         Path to the OutBin directory containing seis files. Should contain `*seis-*.e3d` files.
+    start_sec : float, optional
+        The real-time start second of the simulation. EMOD3D simulations have
+        a settle time that is included in the broadband simulation. Setting
+        this to a non-zero number will cause alignment to occur in the
+        broadband simulation.
 
     Returns
     -------
     xr.Dataset
-        xarray Dataset containing LF seis data.
+        Dataset containing LF seis data.
 
     Raises
     ------
@@ -560,37 +565,36 @@ def timeseries_to_text(
     baz: float = 0.0,
     title: str = "",
 ) -> None:
-    """
-    Store timeseries data into a text file.
+    """Store timeseries data into a text file.
 
     Parameters
     ----------
     timeseries : np.ndarray
-        The timeseries data to store
+        The timeseries data to store.
     filename : Path
-        The full file path to store the file
+        The full file path to store the file.
     dt : float
-        The time step of the data
+        The time step of the data.
     stat : str
-        The station name
+        The station name.
     comp : str
-        The component name
+        The component name.
     values_per_line : int, optional
-        The number of values per line, by default 6
+        The number of values per line, by default 6.
     start_hr : int, optional
-        The start hour of the data, by default 0
+        The start hour of the data, by default 0.
     start_min : int, optional
-        The start minute of the data, by default 0
+        The start minute of the data, by default 0.
     start_sec : float, optional
-        The start second of the data, by default 0.0
+        The start second of the data, by default 0.0.
     edist : float, optional
-        The epicentral distance, by default 0.0
+        The epicentral distance, by default 0.0.
     az : float, optional
-        The azimuth forward A->B in degrees, by default 0.0
+        The azimuth forward A->B in degrees, by default 0.0.
     baz : float, optional
-        The azimuth backwards B->A in degrees, by default 0.0
+        The azimuth backwards B->A in degrees, by default 0.0.
     title : str, optional
-        The optional title added to header
+        The optional title added to header.
     """
     nt = timeseries.shape[0]
     with open(filename, "wb") as txt:

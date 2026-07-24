@@ -1,3 +1,5 @@
+"Numba routines for point-in-polygon checks."
+
 from typing import Literal
 
 import numba
@@ -12,17 +14,14 @@ from qcore.typing import TNFloat
 def is_inside_postgis(
     polygon: npt.NDArray[TNFloat], point: npt.NDArray[TNFloat]
 ) -> Literal[0, 1, 2]:  # pragma: no cover
-    """
-    Function that checks if a point is inside a polygon
-    Based on solutions found here
-    (https://stackoverflow.com/questions/36399381/whats-the-fastest-way-of-checking-if-a-point-is-inside-a-polygon-in-python)
+    """Function that checks if a point is inside a polygon.
 
     Parameters
     ----------
     polygon : np.ndarray
-        List of points that define the polygon e.g. [[x1, y1], [x2, y2], ...]
+        List of points that define the polygon e.g. [[x1, y1], [x2, y2], ...].
     point : np.ndarray
-        List of points that define the point e.g. [x, y]
+        Point to test [x, y].
 
     Returns
     -------

@@ -22,7 +22,7 @@ param2 : Optional[str]
 
 def test_from_docstring(capsys: pytest.CaptureFixture[str]):
     """Test the from_docstring decorator applies help texts correctly."""
-    pytest.skip("Broken")
+
     app = typer.Typer()
 
     @cli.from_docstring(app)

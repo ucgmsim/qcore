@@ -528,7 +528,7 @@ def cb_amp_multi(
 
     # Use pga for reference dtype because it is more reliably a float,
     # where vref can sometimes be an int.
-    freqs = freqs.astype(pga.dtype)
+    freqs = freqs.astype(pga.dtype)  # type: ignore[no-matching-overload]
     # Call the numba-accelerated function
     results = _cb_amp_multi(
         vref=vref,
@@ -561,8 +561,6 @@ def cb2014_to_fas_amplification_factors(
 
     Parameters
     ----------
-    freqs : np.ndarray
-        The SA frequencies corresponding to site-amplification factors.
     ampf0 : np.ndarray
         The amplification factors.
     dt : float
@@ -571,6 +569,8 @@ def cb2014_to_fas_amplification_factors(
         The number of timesteps of the waveforms.
     fmin, fmidbot, fhightop, fmax : float, optional
         Bandpass filter parameters, see `amp_bandpass`.
+    freqs : np.ndarray, optional
+        The SA frequencies corresponding to site-amplification factors.
 
     Returns
     -------

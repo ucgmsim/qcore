@@ -2,13 +2,6 @@
 Module for coordinate conversions between WGS84 (latitude and longitude) and
 NZTM (New Zealand Transverse Mercator) coordinate systems.
 
-Functions
-----------
-- wgs_depth_to_nztm(wgs_depth_coordinates: np.ndarray) -> np.ndarray:
-    Converts WGS84 coordinates (latitude, longitude, depth) to NZTM coordinates.
-- nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
-    Converts NZTM coordinates (y, x, depth) to WGS84 coordinates.
-
 References
 ----------
 This module provides functions for converting coordinates between WGS84 and NZTM coordinate systems.
@@ -197,7 +190,7 @@ def great_circle_bearing_to_nztm_bearing(
         The origin point to compute the bearing from.
     distance : float
         The distance to shift.
-    ll_bearing : float
+    great_circle_bearing : float
         The great circle bearing for the final point.
 
     Returns
