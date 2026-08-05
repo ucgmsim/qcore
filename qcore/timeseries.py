@@ -89,7 +89,7 @@ def bwfilter(
         case Band.LOWPASS:
             cutoff_frequencies = taper_frequency * _BW_LOWPASS_SHIFT
 
-    btype: Literal["highpass"] | Literal["lowpass"] = (
+    btype: Literal["highpass", "lowpass"] = (
         "highpass" if band == Band.HIGHPASS else "lowpass"
     )
     return sp.signal.sosfiltfilt(
@@ -485,9 +485,10 @@ def _postprocess_waveform(
     # general. But, the rotation matrix is symmetric, so this is
     # unnecessary.
 
-    # Differentiate waveform to get acceleration
-    acceleration = np.gradient(rotated, dt, axis=-1)
-    return acceleration
+    # # Differentiate waveform to get acceleration
+    # acceleration = np.gradient(rotated, dt, axis=-1)
+    return rotated
+    # return acceleration
 
 
 def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Dataset:
@@ -514,7 +515,7 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
         If the directory does not contain LF seis files.
     """
     outbin = Path(outbin)
-    seis_files = list(sorted(outbin.glob("*seis-*.e3d")))
+    seis_files = sorted(outbin.glob("*seis-*.e3d"))
 
     if not seis_files:
         raise ValueError(f"No LF seis files found in {outbin}")
