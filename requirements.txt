@@ -1,7 +1,6 @@
 pandas
 pyfftw
 pytest
-pytest-black
 alphashape
 descartes
 filelock

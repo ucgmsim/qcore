@@ -3,7 +3,6 @@ qcore geometry utilities.
 """
 
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
-from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -12,7 +11,7 @@ R_EARTH = 6378.139
 
 
 def get_distances(
-    locations: np.ndarray, lon: Union[float, np.ndarray], lat: Union[float, np.ndarray]
+    locations: np.ndarray, lon: float | np.ndarray, lat: float | np.ndarray
 ) -> np.ndarray:
     """
     Calculates the distance between the array of locations and
@@ -374,8 +373,7 @@ def path_from_corners(
     # write points the make the path
     if output is not None:
         with open(output, "w", encoding="utf-8") as mp:
-            for point in corners:
-                mp.write(f"{point[0]} {point[1]}\n")
+            mp.writelines(f"{point[0]} {point[1]}\n" for point in corners)
     else:
         return corners
 
@@ -399,14 +397,14 @@ def rotation_matrix(angle: float) -> np.ndarray:
 def point_to_segment_distance(
     p: npt.ArrayLike, q: npt.ArrayLike, r: npt.ArrayLike
 ) -> float:
-    """Compute the shortest distance between a point and a line segment.
+    """Compute the shortest distance between a set of points and a line segment.
 
     See [1] for a concise explanation of the calculations involved.
 
     Parameters
     ----------
     p : npt.ArrayLike
-        A point to measure distance to.
+        Point(s) to measure distance to.
     q : npt.ArrayLike
         The first point of the line segment.
     r : npt.ArrayLike
@@ -414,29 +412,31 @@ def point_to_segment_distance(
 
     Returns
     -------
-    float
-        The distance between r and the closest point on the line
-        segment pq to r.
+    float | np.ndarray
+        The distance(s) between the point(s) and the line segment.
 
     References
     ----------
     [1]: https://math.stackexchange.com/questions/2193720/find-a-point-on-a-line-segment-which-is-the-closest-to-other-point-not-on-the-li/2193733#2193733
     """
-    p = np.asarray(p)
+    p = np.atleast_2d(np.asarray(p))
     q = np.asarray(q)
     r = np.asarray(r)
 
     qr = r - q
-    qp = p - q
+    qp = p - q[None, :]
 
     if np.allclose(qr, 0):
         raise ValueError("Degenerate line segment q -> r!")
 
     t = np.clip(np.dot(qp, qr) / np.dot(qr, qr), 0, 1)
 
-    closest_point = q + t * qr
+    closest_points = q + t[:, None] * qr
+    distance = np.linalg.norm(p - closest_points, axis=1)
+    if distance.size == 1:
+        return distance.item()
 
-    return float(np.linalg.norm(p - closest_point))
+    return distance
 
 
 def ll_cross_along_track_dist(
@@ -446,9 +446,9 @@ def ll_cross_along_track_dist(
     lat2: float,
     lon3: float,
     lat3: float,
-    a12: Optional[float] = None,
-    a13: Optional[float] = None,
-    d13: Optional[float] = None,
+    a12: float | None = None,
+    a13: float | None = None,
+    d13: float | None = None,
 ) -> tuple[float, float]:
     """
     Returns both the distance of point 3 to the nearest point on the great circle line that passes through point 1 and
