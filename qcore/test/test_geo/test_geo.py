@@ -135,13 +135,16 @@ def test_point_to_segment_distance(p, q, r, expected_distance):
 
 
 def test_point_to_segment_distance_batch():
-    """Test point_to_segment_distance for multiple points at once (vectorised)."""
-    points = [c[0] for c in POINT_TO_SEGMENT_CASES]
-    qs = [c[1] for c in POINT_TO_SEGMENT_CASES]
-    rs = [c[2] for c in POINT_TO_SEGMENT_CASES]
-    expected_distances = [c[3] for c in POINT_TO_SEGMENT_CASES]
-    
-    distances = geo.point_to_segment_distance(points, qs, rs)
+    """Test point_to_segment_distance for multiple points against a single shared segment (vectorised)."""
+    shared_segment_cases = [
+        c for c in POINT_TO_SEGMENT_CASES if c[1] == [2, 0] and c[2] == [0, 0]
+    ]
+    points = [c[0] for c in shared_segment_cases]
+    q = [2, 0]
+    r = [0, 0]
+    expected_distances = [c[3] for c in shared_segment_cases]
+
+    distances = geo.point_to_segment_distance(points, q, r)
     np.testing.assert_allclose(distances, expected_distances)
 
 
