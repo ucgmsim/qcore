@@ -162,7 +162,9 @@ POINT_TO_SEGMENT_CASES = [
 
 
 @pytest.mark.parametrize("p, q, r, expected_distance", POINT_TO_SEGMENT_CASES)
-def test_point_to_segment_distance(p, q, r, expected_distance):
+def test_point_to_segment_distance(
+    p: list[float], q: list[float], r: list[float], expected_distance: float
+) -> None:
     """Test the point_to_segment_distance function with various cases."""
     assert geo.point_to_segment_distance(p, q, r) == pytest.approx(expected_distance)
 

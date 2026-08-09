@@ -5,7 +5,6 @@ qcore geometry utilities.
 from math import acos, asin, atan, atan2, cos, degrees, pi, radians, sin, sqrt
 from typing import overload
 
-
 import numpy as np
 import numpy.typing as npt
 
