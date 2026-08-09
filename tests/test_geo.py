@@ -143,30 +143,42 @@ def test_oriented_bearing_wrt_normal(target_bearing: float) -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "p, q, r, expected_distance",
-    [
-        # Point lies on the segment
-        ([1, 0], [2, 0], [0, 0], 0.0),
-        # Point is off the segment, perpendicular distance
-        ([1, 1], [2, 0], [0, 0], 1.0),
-        # Point coincides with one endpoint
-        ([0, 0], [2, 0], [0, 0], 0.0),
-        # Closest point is one of the end points
-        ([3, 4], [2, 0], [0, 0], np.sqrt((3 - 2) ** 2 + 4**2)),
-        # Vertical segment
-        ([1, 1], [0, 2], [0, 0], 1.0),
-        # Horizontal segment
-        ([1, 1], [2, 0], [0, 0], 1.0),
-        # Diagonal segment
-        ([1, 0], [2, 2], [0, 0], np.sqrt(0.5)),
-    ],
-)
-def test_point_to_segment_distance(
-    p: list[float], q: list[float], r: list[float], expected_distance: float
-) -> None:
+POINT_TO_SEGMENT_CASES = [
+    # Point lies on the segment
+    ([1, 0], [2, 0], [0, 0], 0.0),
+    # Point is off the segment, perpendicular distance
+    ([1, 1], [2, 0], [0, 0], 1.0),
+    # Point coincides with one endpoint
+    ([0, 0], [2, 0], [0, 0], 0.0),
+    # Closest point is one of the end points
+    ([3, 4], [2, 0], [0, 0], np.sqrt((3 - 2) ** 2 + 4**2)),
+    # Vertical segment
+    ([1, 1], [0, 2], [0, 0], 1.0),
+    # Horizontal segment
+    ([1, 1], [2, 0], [0, 0], 1.0),
+    # Diagonal segment
+    ([1, 0], [2, 2], [0, 0], np.sqrt(0.5)),
+]
+
+
+@pytest.mark.parametrize("p, q, r, expected_distance", POINT_TO_SEGMENT_CASES)
+def test_point_to_segment_distance(p, q, r, expected_distance):
     """Test the point_to_segment_distance function with various cases."""
     assert geo.point_to_segment_distance(p, q, r) == pytest.approx(expected_distance)
+
+
+def test_point_to_segment_distance_batch():
+    """Test point_to_segment_distance for multiple points against a single shared segment (vectorised)."""
+    shared_segment_cases = [
+        c for c in POINT_TO_SEGMENT_CASES if c[1] == [2, 0] and c[2] == [0, 0]
+    ]
+    points = [c[0] for c in shared_segment_cases]
+    q = [2, 0]
+    r = [0, 0]
+    expected_distances = [c[3] for c in shared_segment_cases]
+
+    distances = geo.point_to_segment_distance(points, q, r)
+    np.testing.assert_allclose(distances, expected_distances)
 
 
 def test_point_to_segement_degenerate() -> None:
