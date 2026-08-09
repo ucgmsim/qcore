@@ -83,11 +83,11 @@ def amplification_uncertainty(
 def _fs_low(
     t_idx: int,
     vs30: float,
-    a1100: np.ndarray,
+    a1100: np.ndarray | float,
     c10: np.ndarray,
     k1: np.ndarray,
     k2: np.ndarray,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """Compute site factor based on vs30 value - low code path
 
     Parameters
@@ -139,7 +139,9 @@ def _fs_mid(
 
 
 @njit
-def _fs_high(t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray):
+def _fs_high(
+    t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray
+):  # pragma: no cover
     """Compute site factor based on vs30 value - high code path
 
     Parameters
@@ -163,11 +165,11 @@ def _fs_high(t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray):
 def _compute_fs_value(
     t_idx: int,
     vs30: float,
-    a1100: np.ndarray,
+    a1100: np.ndarray | float,
     c10: np.ndarray,
     k1: np.ndarray,
     k2: np.ndarray,
-):
+):  # pragma: no cover
     """Compute site factor based on vs30 value
 
     Parameters
@@ -201,7 +203,7 @@ def _cb_amp(
     version: int = 2014,
     flowcap: float = 0.0,
     freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """
     Numba translation of cb_amp.
 
@@ -375,7 +377,7 @@ def _cb_amp_multi(
     version: int,
     flowcap: float,
     freqs: np.ndarray,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """Numba version of cb_amp that processes multiple parameter sets.
 
     Parameters
@@ -504,10 +506,10 @@ def cb_amp_multi(
         raise KeyError(f"Missing required columns: {missing_cols}")
 
     # Extract arrays from DataFrame
-    vref = df[vref_col].values
-    vsite = df[vsite_col].values
-    vpga = df[vpga_col].values
-    pga = df[pga_col].values
+    vref = df[vref_col].to_numpy()
+    vsite = df[vsite_col].to_numpy()
+    vpga = df[vpga_col].to_numpy()
+    pga = df[pga_col].to_numpy()
 
     # Check for missing values
     arrays = [vref, vsite, vpga, pga]
@@ -526,7 +528,7 @@ def cb_amp_multi(
 
     # Use pga for reference dtype because it is more reliably a float,
     # where vref can sometimes be an int.
-    freqs = freqs.astype(pga.dtype)
+    freqs = freqs.astype(pga.dtype)  # type: ignore[no-matching-overload]
     # Call the numba-accelerated function
     results = _cb_amp_multi(
         vref=vref,
@@ -559,8 +561,6 @@ def cb2014_to_fas_amplification_factors(
 
     Parameters
     ----------
-    freqs : np.ndarray
-        The SA frequencies corresponding to site-amplification factors.
     ampf0 : np.ndarray
         The amplification factors.
     dt : float
@@ -569,6 +569,8 @@ def cb2014_to_fas_amplification_factors(
         The number of timesteps of the waveforms.
     fmin, fmidbot, fhightop, fmax : float, optional
         Bandpass filter parameters, see `amp_bandpass`.
+    freqs : np.ndarray, optional
+        The SA frequencies corresponding to site-amplification factors.
 
     Returns
     -------
@@ -584,7 +586,9 @@ def cb2014_to_fas_amplification_factors(
 @njit(
     parallel=True,
 )
-def interp_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+def interp_2d(
+    x: np.ndarray, xp: np.ndarray, fp: np.ndarray
+) -> np.ndarray:  # pragma: no cover
     """Perform interpolation of a vector-valued function f at `x` with interpolation nodes `xp` and `fp`.
 
     This handles the case where `fp` is not 1-D. Interpolation is
@@ -688,7 +692,7 @@ def amp_bandpass(
     fmidbot: float,
     fmin: float,
     fftfreq: np.ndarray,
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """Frequency-dependent amplification adjustment for site amplification factors.
 
     This function applies frequency-dependent amplification adjustments
@@ -722,7 +726,7 @@ def amp_bandpass(
         logarithmically between (fmin, fmidbot].
     fmin : float
         The minimum frequency. Amplification is set to 1 below this frequency.
-    ftfreq : np.ndarray
+    fftfreq : np.ndarray
         A 1D array of Fourier transform frequencies corresponding to
         the amplification values.
 
