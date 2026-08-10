@@ -1,5 +1,5 @@
 import inspect
-from typing import Annotated, Optional
+from typing import Annotated
 
 import pytest
 import typer
@@ -28,7 +28,7 @@ def test_from_docstring(capsys: pytest.CaptureFixture[str]):
     @cli.from_docstring(app)
     def example_command(
         param1: Annotated[int, typer.Argument()],
-        param2: Annotated[Optional[str], typer.Option()] = "a",
+        param2: Annotated[str | None, typer.Option()] = "a",
     ) -> None:
         """Example command.
 
@@ -78,7 +78,7 @@ def test_from_docstring_oldstyle_and_no_docstring() -> None:
     @cli.from_docstring(app, name="oldstyle_command")
     def oldstyle_command(
         param1: int = typer.Argument(...),
-        param2: Optional[str] = typer.Option("a"),
+        param2: str | None = typer.Option("a"),
     ) -> None:
         """Old-style command.
 

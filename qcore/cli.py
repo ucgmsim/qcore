@@ -81,9 +81,8 @@ def from_docstring(
                 param_type, *metadata = get_args(param_type)
                 new_metadata = []
                 for m in metadata:
-                    if isinstance(m, ArgumentInfo | OptionInfo):
-                        if not m.help:
-                            m.help = help_text
+                    if isinstance(m, ArgumentInfo | OptionInfo) and not m.help:
+                        m.help = help_text
                     new_metadata.append(m)
                 new_param = param.replace(
                     annotation=Annotated[param_type, *new_metadata]

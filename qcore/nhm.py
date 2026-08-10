@@ -1,6 +1,7 @@
 """NHM Model Module."""
 
 import datetime
+import itertools
 import math
 from dataclasses import dataclass
 from typing import TextIO
@@ -12,7 +13,7 @@ import pooch
 from qcore import geo
 from qcore.uncertainties.distributions import truncated_normal as sample_trunc_norm_dist
 
-NHM_HEADER = f"""FAULT SOURCES - (created {datetime.datetime.now().strftime("%d-%b-%Y")})
+NHM_HEADER = f"""FAULT SOURCES - (created {datetime.datetime.now(datetime.UTC).astimezone().strftime("%d-%b-%Y")})
 Row 1: FaultName
 Row 2: TectonicType , FaultType
 Row 3: LengthMean , LengthSigma (km)
@@ -240,8 +241,7 @@ class NHMFault:
         out_fp.write(f"{self.coupling_coeff:10.3f}{self.coupling_coeff_sigma:10.3f}\n")
         out_fp.write(f"{self.mw:10.3f}{self.recur_int_median:10.3e}\n")
         out_fp.write(f"{len(self.trace):10d}\n")
-        for lat, lon in self.trace:
-            out_fp.write(f"{lat:10.5f} {lon:10.5f}\n")
+        out_fp.writelines(f"{lat:10.5f} {lon:10.5f}\n" for lat, lon in self.trace)
 
 
 def load_nhm(
@@ -307,7 +307,6 @@ def load_nhm(
                 (-1, 2)
             ),
         )
-        nhm_fault = nhm_fault
         faults[nhm_fault.name] = nhm_fault
 
     return faults
@@ -400,7 +399,7 @@ def get_fault_header_points(
     )
 
     plane_offset = 0
-    for i, i2 in zip(indexes[:-1], indexes[1:]):
+    for i, i2 in itertools.pairwise(indexes[:-1], indexes[1:]):
         lon1, lat1 = fault.trace[i]
         lon2, lat2 = fault.trace[i2]
 
@@ -420,7 +419,7 @@ def get_fault_header_points(
         width = abs(height / np.tan(np.deg2rad(fault.dip)))
         dip_dist = height / np.sin(np.deg2rad(fault.dip))
 
-        ndip = int(round(dip_dist * POINTS_PER_KILOMETER))
+        ndip = round(dip_dist * POINTS_PER_KILOMETER)
         hdip_dist = width / ndip
         vdip_dist = height / ndip
 

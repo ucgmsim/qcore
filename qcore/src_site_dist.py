@@ -276,7 +276,7 @@ def calc_rx_ry_GC2_multi_hypocentre(  # noqa: N802
     srf_points: np.ndarray,
     plane_infos: list[dict],
     locations: np.ndarray,
-    origin_offsets: np.ndarray = np.asarray([0]),
+    origin_offsets: np.ndarray | None = None,
 ):  # pragma: no cover
     """
     Vectorised version of the GC2 calculation along multiple hypocentre locations.
@@ -301,6 +301,9 @@ def calc_rx_ry_GC2_multi_hypocentre(  # noqa: N802
     np.ndarray
         Two arrays with shape (o, m) giving the Rx, Ry values for each of the given locations for each hypocentre.
     """
+    if origin_offsets is None:
+        origin_offsets = np.asarray([0])
+
     # Separate the srf points into the different plane traces
     pnt_counts = [plane["nstrike"] * plane["ndip"] for plane in plane_infos]
     pnt_counts.insert(0, 0)

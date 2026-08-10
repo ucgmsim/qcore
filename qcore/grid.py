@@ -2,8 +2,6 @@
 This module provides functions for working with planar regions defined by geographical coordinates.
 """
 
-from typing import Optional
-
 import numpy as np
 
 from qcore import coordinates
@@ -82,8 +80,8 @@ def coordinate_meshgrid(
     x_upper: np.ndarray,
     y_bottom: np.ndarray,
     resolution: float,
-    nx: Optional[int] = None,
-    ny: Optional[int] = None,
+    nx: int | None = None,
+    ny: int | None = None,
 ) -> np.ndarray:
     """Creates a meshgrid of points in a bounded plane region.
 
@@ -193,9 +191,9 @@ def coordinate_patchgrid(
     origin: np.ndarray,
     x_upper: np.ndarray,
     y_bottom: np.ndarray,
-    resolution: Optional[TFloat] = None,
-    nx: Optional[int] = None,
-    ny: Optional[int] = None,
+    resolution: TFloat | None = None,
+    nx: int | None = None,
+    ny: int | None = None,
 ) -> np.ndarray:
     """
     Creates a grid of patches in a bounded plane region.

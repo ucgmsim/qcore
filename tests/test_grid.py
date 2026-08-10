@@ -73,7 +73,7 @@ def test_coordinate_meshgrid_x_boundary() -> None:
     assert isinstance(resolution, np.floating)
     meshgrid = grid.coordinate_patchgrid(origin, x_upper, y_bottom, resolution)
     assert meshgrid.shape[2] == 3  # Should have shape (ny, nx, 3) for (lat, lon, depth)
-    ny, nx = meshgrid.shape[:2]
+    _ny, _nx = meshgrid.shape[:2]
     assert meshgrid.shape == (1, 1, 3)
     # This one grid point should be the centre of the trapezium
     origin_nztm = coordinates.wgs_depth_to_nztm(origin)
