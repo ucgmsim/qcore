@@ -611,7 +611,7 @@ def interp_2d(
         `fp`.
     """
     out = np.zeros((fp.shape[0], len(x)), dtype=fp.dtype)
-    for i in range(0, fp.shape[0]):
+    for i in range(fp.shape[0]):
         out[i] = np.interp(x, xp, fp[i])
     return out
 

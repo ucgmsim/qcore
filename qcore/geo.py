@@ -514,8 +514,7 @@ def path_from_corners(
     # write points the make the path
     if output is not None:
         with open(output, "w", encoding="utf-8") as mp:
-            for point in corners:
-                mp.write(f"{point[0]} {point[1]}\n")
+            mp.writelines(f"{point[0]} {point[1]}\n" for point in corners)
     else:
         return corners
 
@@ -538,15 +537,15 @@ def rotation_matrix(angle: float) -> np.ndarray:
 
 def point_to_segment_distance(
     p: npt.ArrayLike, q: npt.ArrayLike, r: npt.ArrayLike
-) -> float:
-    """Compute the shortest distance between a point and a line segment.
+) -> float | np.ndarray:
+    """Compute the shortest distance between a set of points and a line segment.
 
     See [1] for a concise explanation of the calculations involved.
 
     Parameters
     ----------
     p : npt.ArrayLike
-        A point to measure distance to.
+        Point(s) to measure distance to.
     q : npt.ArrayLike
         The first point of the line segment.
     r : npt.ArrayLike
@@ -554,29 +553,31 @@ def point_to_segment_distance(
 
     Returns
     -------
-    float
-        The distance between r and the closest point on the line
-        segment pq to r.
+    float | np.ndarray
+        The distance(s) between the point(s) and the line segment.
 
     References
     ----------
     [1]: https://math.stackexchange.com/questions/2193720/find-a-point-on-a-line-segment-which-is-the-closest-to-other-point-not-on-the-li/2193733#2193733
     """
-    p = np.asarray(p)
+    p = np.atleast_2d(np.asarray(p))
     q = np.asarray(q)
     r = np.asarray(r)
 
     qr = r - q
-    qp = p - q
+    qp = p - q[None, :]
 
     if np.allclose(qr, 0):
         raise ValueError("Degenerate line segment q -> r!")
 
     t = np.clip(np.dot(qp, qr) / np.dot(qr, qr), 0, 1)
 
-    closest_point = q + t * qr
+    closest_points = q + t[:, None] * qr
+    distance = np.linalg.norm(p - closest_points, axis=1)
+    if distance.size == 1:
+        return distance.item()
 
-    return float(np.linalg.norm(p - closest_point))
+    return distance
 
 
 def ll_cross_along_track_dist(

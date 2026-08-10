@@ -1,0 +1,11 @@
+name: CI
+
+on: [pull_request]
+
+jobs:
+  ci:
+    uses: ucgmsim/meta-ci-action/.github/workflows/ci.yml@main
+    with:
+      package-dir: qcore
+      enable-coverage: true
+      cov-package: qcore

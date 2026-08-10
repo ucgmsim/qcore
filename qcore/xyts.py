@@ -182,13 +182,8 @@ class XYTSFile:
     """Longitude-latitude map for data."""
 
     # contents
-    data: np.memmap | None = (
-        None  # NOTE: this is distinct (but nearly identical to) a np.ndarray
-    )
 
-    ll_map: np.ndarray | None = None
-
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         xyts_path: Path | str,
         meta_only: bool = False,
@@ -216,47 +211,44 @@ class XYTSFile:
             ValueError: If the file is not an XY timeslice file.
         """
 
-        xytf = open(xyts_path, "rb")
-
         self.xyts_path = xyts_path
 
-        # determine endianness, an x-y timeslice has 1 z value
-        nz = np.fromfile(xytf, dtype=">i4", count=7)[-1]
-        if nz == 0x00000001:
-            endian = ">"
-        elif nz == 0x01000000:
-            endian = "<"
-        else:
-            xytf.close()
-            raise ValueError("File is not an XY timeslice file: %s" % (xyts_path))
-        xytf.seek(0)
+        with open(xyts_path, "rb") as xytf:
+            # determine endianness, an x-y timeslice has 1 z value
+            nz = np.fromfile(xytf, dtype=">i4", count=7)[-1]
+            if nz == 0x00000001:
+                endian = ">"
+            elif nz == 0x01000000:
+                endian = "<"
+            else:
+                raise ValueError(f"File is not an XY timeslice file: {xyts_path}")
+            xytf.seek(0)
 
-        # read header
-        (self.x0, self.y0, self.z0, self.t0) = np.fromfile(
-            xytf, dtype="%si4" % (endian), count=4
-        )
-        if proc_local_file:
-            (self.local_nx, self.local_ny, self.local_nz) = np.fromfile(
-                xytf, dtype="%si4" % (endian), count=3
+            # read header
+            (self.x0, self.y0, self.z0, self.t0) = np.fromfile(
+                xytf, dtype=f"{endian}i4", count=4
             )
+            if proc_local_file:
+                (self.local_nx, self.local_ny, self.local_nz) = np.fromfile(
+                    xytf, dtype=f"{endian}i4", count=3
+                )
 
-        (
-            self.nx,
-            self.ny,
-            self.nz,
-            self.nt,
-        ) = np.fromfile(xytf, dtype="%si4" % (endian), count=4)
-        self.dx, self.dy, self.hh, self.dt, self.mrot, self.mlat, self.mlon = (
-            np.fromfile(xytf, dtype="%sf4" % (endian), count=7)
-        )
-        xytf.close()
+            (
+                self.nx,
+                self.ny,
+                self.nz,
+                self.nt,
+            ) = np.fromfile(xytf, dtype=f"{endian}i4", count=4)
+            self.dx, self.dy, self.hh, self.dt, self.mrot, self.mlat, self.mlon = (
+                np.fromfile(xytf, dtype=f"{endian}f4", count=7)
+            )
         # dt is sensitive to float error eg 0.2 stores as 0.199999 (dangerous)
         if round_dt:
             self.dt = np.around(self.dt, decimals=4)
 
         # determine original sim parameters
-        self.dxts = int(round(self.dx / self.hh))
-        self.dyts = int(round(self.dy / self.hh))
+        self.dxts = round(self.dx / self.hh)
+        self.dyts = round(self.dy / self.hh)
         self.nx_sim = self.nx * self.dxts
         self.ny_sim = self.ny * self.dyts
 

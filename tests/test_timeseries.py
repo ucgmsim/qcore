@@ -330,7 +330,7 @@ def test_ampdeamp_reversibility(inputs: tuple[np.ndarray, np.ndarray]) -> None:
 
 
 def make_seis_file(
-    endianness: Literal["<"] | Literal[">"],
+    endianness: Literal["<", ">"],
     header: timeseries.LFSeisHeader,
     stations: pd.DataFrame,
     waveform: np.ndarray,
@@ -380,21 +380,19 @@ def make_seis_file(
         ]
     ].to_records(
         index=False,
-        column_dtypes=dict(
-            [
-                ("index", i4),
-                ("x", i4),
-                ("y", i4),
-                ("z", i4),
-                ("nt", i4),
-                ("dt", f4),
-                ("resolution", f4),
-                ("rotation", f4),
-                ("lat", f4),
-                ("lon", f4),
-                ("station", "|S8"),
-            ]
-        ),
+        column_dtypes={
+            "index": i4,
+            "x": i4,
+            "y": i4,
+            "z": i4,
+            "nt": i4,
+            "dt": f4,
+            "resolution": f4,
+            "rotation": f4,
+            "lat": f4,
+            "lon": f4,
+            "station": "|S8",
+        },
     )
 
     array.extend(station_array.tobytes())

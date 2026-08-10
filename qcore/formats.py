@@ -311,7 +311,7 @@ def load_fault_selection_file(fault_selection_file: str | Path) -> dict[str, int
                     f"Error encountered on line {lineno} when loading fault selection file {fault_selection_file}. "
                     f"Line content: {line}"
                 )
-            if fault in faults.keys():
+            if fault in faults:
                 raise ValueError(
                     f"Fault {fault} has been found twice in the fault selection file, please check the file"
                 )

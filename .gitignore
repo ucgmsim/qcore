@@ -7,6 +7,9 @@ qcore.egg-info
 *.idea/
 .pytest_cache
 
+# Ignore test file
+xyts.e3d 
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python

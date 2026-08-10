@@ -7,15 +7,15 @@ import subprocess
 import sys
 from io import FileIO
 from pathlib import Path
-from typing import AnyStr, Optional, Union
+from typing import AnyStr
 
 import pandas as pd
 from typing_extensions import deprecated
 
 
 def get_stations(
-    station_ffp: Union[Path, str], locations: bool = False
-) -> Union[list[str], tuple[list[str], list[str], list[str]]]:
+    station_ffp: Path | str, locations: bool = False
+) -> list[str] | tuple[list[str], list[str], list[str]]:
     """Parse a station list file.
 
     Sample line in source file:
@@ -56,8 +56,8 @@ def get_stations(
 
 
 def get_corners(
-    model_params_ffp: Union[Path, str], gmt_format: bool = False
-) -> Union[list[tuple[float, float]], tuple[list[tuple[float, float]], str]]:
+    model_params_ffp: Path | str, gmt_format: bool = False
+) -> list[tuple[float, float]] | tuple[list[tuple[float, float]], str]:
     """
     Retrieve corners of simulation domain from model params file.
 
@@ -102,10 +102,10 @@ def get_corners(
 
 @deprecated("use subprocess.run or subprocess.check_call")
 def non_blocking_exe(
-    cmd: Union[str, list[str]],
+    cmd: str | list[str],
     debug: bool = True,
-    stdout: Union[bool, FileIO] = True,
-    stderr: Union[bool, FileIO] = True,
+    stdout: bool | FileIO = True,
+    stderr: bool | FileIO = True,
     **kwargs,
 ) -> subprocess.Popen:  # pragma: no cover
     r"""Run a command without blocking the calling thread.
@@ -170,11 +170,11 @@ def non_blocking_exe(
 
 @deprecated("use subprocess.run or subprocess.check_call")
 def exe(
-    cmd: Union[str, list[str]],
+    cmd: str | list[str],
     debug: bool = True,
-    stdin: Optional[AnyStr] = None,
+    stdin: AnyStr | None = None,
     **kwargs,
-) -> Union[tuple[str, str], tuple[bytes, bytes]]:  # pragma: no cover
+) -> tuple[str, str] | tuple[bytes, bytes]:  # pragma: no cover
     """
     Runs a command in the shell using the provided parameters.
 

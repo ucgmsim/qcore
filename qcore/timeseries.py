@@ -89,7 +89,7 @@ def bwfilter(
         case Band.LOWPASS:
             cutoff_frequencies = taper_frequency * _BW_LOWPASS_SHIFT
 
-    btype: Literal["highpass"] | Literal["lowpass"] = (
+    btype: Literal["highpass", "lowpass"] = (
         "highpass" if band == Band.HIGHPASS else "lowpass"
     )
     return sp.signal.sosfiltfilt(
@@ -514,7 +514,7 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
         If the directory does not contain LF seis files.
     """
     outbin = Path(outbin)
-    seis_files = list(sorted(outbin.glob("*seis-*.e3d")))
+    seis_files = sorted(outbin.glob("*seis-*.e3d"))
 
     if not seis_files:
         raise ValueError(f"No LF seis files found in {outbin}")
@@ -599,12 +599,10 @@ def timeseries_to_text(
     nt = timeseries.shape[0]
     with open(filename, "wb") as txt:
         # same format strings as fdbin2wcc
-        txt.write(("%-10s %3s %s\n" % (stat, comp, title)).encode())
+        txt.write(f"{stat:<10s} {comp:>3s} {title}\n".encode())
         txt.write(
-            (
-                "%d %12.5e %d %d %12.5e %12.5e %12.5e %12.5e\n"
-                % (nt, dt, start_hr, start_min, start_sec, edist, az, baz)
-            ).encode()
+            f"{nt:d} {dt:12.5e} {start_hr:d} {start_min:d} "
+            f"{start_sec:12.5e} {edist:12.5e} {az:12.5e} {baz:12.5e}\n".encode()
         )
         # values below header lines, split into lines
         divisible = nt - nt % values_per_line

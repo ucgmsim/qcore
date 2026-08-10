@@ -4,14 +4,14 @@ Mostly related to file system operations and other non-specific functionality.
 """
 
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import yaml
 from typing_extensions import deprecated
 
 
 @deprecated("use yaml.safe_load")
-def load_yaml(yaml_file: Union[Path, str]) -> Any:
+def load_yaml(yaml_file: Path | str) -> Any:
     """Load YAML from a file.
 
     *DO NOT USE*. This function exists for backwards compatibility only. Just
