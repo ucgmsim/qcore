@@ -537,7 +537,7 @@ def rotation_matrix(angle: float) -> np.ndarray:
 
 def point_to_segment_distance(
     p: npt.ArrayLike, q: npt.ArrayLike, r: npt.ArrayLike
-) -> float:
+) -> float | np.ndarray:
     """Compute the shortest distance between a set of points and a line segment.
 
     See [1] for a concise explanation of the calculations involved.

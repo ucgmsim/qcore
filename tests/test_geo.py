@@ -169,7 +169,7 @@ def test_point_to_segment_distance(
     assert geo.point_to_segment_distance(p, q, r) == pytest.approx(expected_distance)
 
 
-def test_point_to_segment_distance_batch():
+def test_point_to_segment_distance_batch() -> None:
     """Test point_to_segment_distance for multiple points against a single shared segment (vectorised)."""
     shared_segment_cases = [
         c for c in POINT_TO_SEGMENT_CASES if c[1] == [2, 0] and c[2] == [0, 0]
