@@ -399,7 +399,7 @@ def get_fault_header_points(
     )
 
     plane_offset = 0
-    for i, i2 in itertools.pairwise(indexes[:-1], indexes[1:]):
+    for i, i2 in itertools.pairwise(indexes):
         lon1, lat1 = fault.trace[i]
         lon2, lat2 = fault.trace[i2]
 
