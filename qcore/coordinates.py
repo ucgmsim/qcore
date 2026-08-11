@@ -106,7 +106,7 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
 
 def distance_between_wgs_depth_coordinates(
     point_a: npt.ArrayLike, point_b: npt.ArrayLike
-) -> npt.ArrayLike:
+) -> float | np.ndarray:
     """Return the distance between two points in lat, lon, depth format.
 
     Valid only for points that can be converted into NZTM format.
