@@ -133,7 +133,9 @@ def distance_between_wgs_depth_coordinates(
         return np.linalg.norm(
             wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=1
         )
-    return float(np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b)))
+    return float(
+        np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
+    )
 
 
 def nztm_bearing_to_great_circle_bearing(

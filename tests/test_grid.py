@@ -70,7 +70,7 @@ def test_coordinate_meshgrid_x_boundary() -> None:
     resolution = coordinates.distance_between_wgs_depth_coordinates(
         x_upper, origin
     )  # 1 km resolution
-    assert isinstance(resolution, np.floating)
+    assert isinstance(resolution, float)
     meshgrid = grid.coordinate_patchgrid(origin, x_upper, y_bottom, resolution)
     assert meshgrid.shape[2] == 3  # Should have shape (ny, nx, 3) for (lat, lon, depth)
     _ny, _nx = meshgrid.shape[:2]
@@ -119,8 +119,8 @@ def test_coordinate_patchgrid() -> None:
     ny, nx = meshgrid.shape[:2]
     width = coordinates.distance_between_wgs_depth_coordinates(y_bottom, origin)
     length = coordinates.distance_between_wgs_depth_coordinates(x_upper, origin)
-    assert isinstance(length, np.floating)
-    assert isinstance(width, np.floating)
+    assert isinstance(length, float)
+    assert isinstance(width, float)
     assert ny == round(length / resolution)
     assert nx == round(width / resolution)
 
