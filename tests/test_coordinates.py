@@ -88,7 +88,7 @@ def test_distance_between_wgs_depth_coordinates_multiple_points() -> None:
     dist = coordinates.distance_between_wgs_depth_coordinates(points_a, points_b)
     assert isinstance(dist, np.ndarray)
     assert dist.shape == (2,)
-    assert np.all(dist > 0)  # ty: ignore[unsupported-operator]
+    assert np.all(dist > 0)
 
 
 def test_nztm_to_gc_bearing_inverse() -> None:

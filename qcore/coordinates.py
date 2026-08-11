@@ -106,7 +106,7 @@ def nztm_to_wgs_depth(nztm_coordinates: np.ndarray) -> np.ndarray:
 
 def distance_between_wgs_depth_coordinates(
     point_a: npt.ArrayLike, point_b: npt.ArrayLike
-) -> npt.ArrayLike:
+) -> float | np.ndarray:
     """Return the distance between two points in lat, lon, depth format.
 
     Valid only for points that can be converted into NZTM format.
@@ -133,7 +133,9 @@ def distance_between_wgs_depth_coordinates(
         return np.linalg.norm(
             wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b), axis=1
         )
-    return np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
+    return float(
+        np.linalg.norm(wgs_depth_to_nztm(point_a) - wgs_depth_to_nztm(point_b))
+    )
 
 
 def nztm_bearing_to_great_circle_bearing(
