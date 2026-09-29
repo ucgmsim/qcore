@@ -12,10 +12,16 @@ from typing import (
     get_origin,
 )
 
-import docstring_parser
-import typer
-from docstring_parser.common import DocstringStyle
-from typer.models import ArgumentInfo, OptionInfo
+try:
+    import docstring_parser
+    import typer
+    from docstring_parser.common import DocstringStyle
+    from typer.models import ArgumentInfo, OptionInfo
+except ImportError as e:  # pragma: no cover
+    raise ImportError(
+        "qcore.cli requires the optional 'cli' dependencies (typer and "
+        "docstring_parser). Install them with: pip install 'qcore-utils[cli]'"
+    ) from e
 
 # P captures the parameters (args and kwargs) of the decorated function.
 P = ParamSpec("P")

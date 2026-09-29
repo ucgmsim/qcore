@@ -4,7 +4,6 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
-from numba import njit
 
 from qcore.uncertainties import distributions
 
@@ -79,159 +78,101 @@ def amplification_uncertainty(
     return amp_function_output
 
 
-@njit
-def _fs_low(
-    t_idx: int,
-    vs30: float,
+def _compute_fs_value(
+    vs30: np.ndarray | float,
     a1100: np.ndarray | float,
     c10: np.ndarray,
     k1: np.ndarray,
     k2: np.ndarray,
-) -> np.ndarray:  # pragma: no cover
-    """Compute site factor based on vs30 value - low code path
+) -> np.ndarray:
+    """Compute site factor based on vs30 value.
+
+    Vectorised over sites (leading axis) and periods (last axis): `vs30`
+    and `a1100` broadcast against the coefficient arrays `c10`, `k1` and
+    `k2`.
 
     Parameters
     ----------
-    t_idx : nt
-        The index to compute for.
-    vs30 : float
-        The reference vs30
-    a1100, c10, k1, k2 : np.ndarray
-        Parameters for calculation
+    vs30 : np.ndarray | float
+        The reference vs30, e.g. shape (N, 1).
+    a1100 : np.ndarray | float
+        Median PGA on rock (Vs30 = 1100 m/s), e.g. shape (N, 1).
+    c10, k1, k2 : np.ndarray
+        Model coefficients per period, shape (T,).
 
     Returns
     -------
     np.ndarray
-         Site amplification factor.
+         Site amplification factor, shape broadcast from the inputs, e.g. (N, T).
     """
-
     scon_c = 1.88
     scon_n = 1.18
-    return c10[t_idx] * np.log(vs30 / k1[t_idx]) + k2[t_idx] * np.log(
-        (a1100 + scon_c * np.exp(scon_n * np.log(vs30 / k1[t_idx]))) / (a1100 + scon_c)
+    vs30 = np.asarray(vs30, dtype=np.float64)
+    a1100 = np.asarray(a1100, dtype=np.float64)
+    log_vs30_k1 = np.log(vs30 / k1)
+    fs_low = c10 * log_vs30_k1 + k2 * np.log(
+        (a1100 + scon_c * np.exp(scon_n * log_vs30_k1)) / (a1100 + scon_c)
+    )
+    fs_mid = (c10 + k2 * scon_n) * log_vs30_k1
+    fs_high = (c10 + k2 * scon_n) * np.log(1100.0 / k1)
+    return np.where(
+        vs30 < k1,
+        fs_low,
+        np.where(vs30 < 1100.0, fs_mid, np.broadcast_to(fs_high, fs_mid.shape)),
     )
 
 
-@njit
-def _fs_mid(
-    t_idx: int, vs30: float, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray
+class CBModelVersion(Enum):
+    """Campbell and Bozorgnia model versions"""
+
+    CB2008 = 2008
+    CB2014 = 2014
+
+
+def _cb_amp_multi(
+    vref: np.ndarray,
+    vsite: np.ndarray,
+    vpga: np.ndarray,
+    pga: np.ndarray,
+    version: int,
+    flowcap: float,
+    freqs: np.ndarray,
 ) -> np.ndarray:
-    """Compute site factor based on vs30 value - mid code path
+    """Vectorised cb_amp that processes multiple parameter sets.
 
     Parameters
     ----------
-    t_idx : int
-        The index to compute for.
-    vs30 : float
-        The reference vs30
-    c10, k1, k2 : np.ndarray
-        Parameters for calculation
-
-    Returns
-    -------
-    np.ndarray
-         Site amplification factor.
-
-    """
-
-    scon_n = 1.18
-    return (c10[t_idx] + k2[t_idx] * scon_n) * np.log(vs30 / k1[t_idx])
-
-
-@njit
-def _fs_high(
-    t_idx: int, c10: np.ndarray, k1: np.ndarray, k2: np.ndarray
-):  # pragma: no cover
-    """Compute site factor based on vs30 value - high code path
-
-    Parameters
-    ----------
-    t_idx : int
-        The index to compute for.
-    c10, k1, k2 : np.ndarray
-        Parameters for calculation
-
-    Returns
-    -------
-    np.ndarray
-         Site amplification factor.
-
-    """
-    scon_n = 1.18
-    return (c10[t_idx] + k2[t_idx] * scon_n) * np.log(1100.0 / k1[t_idx])
-
-
-@njit
-def _compute_fs_value(
-    t_idx: int,
-    vs30: float,
-    a1100: np.ndarray | float,
-    c10: np.ndarray,
-    k1: np.ndarray,
-    k2: np.ndarray,
-):  # pragma: no cover
-    """Compute site factor based on vs30 value
-
-    Parameters
-    ----------
-    t_idx : int
-        The index to compute for.
-    vs30 : float
-        The reference vs30
-    a1100, c10, k1, k2 : np.ndarray
-        Parameters for calculation
-
-    Returns
-    -------
-    np.ndarray
-         Site amplification factor.
-    """
-    if vs30 < k1[t_idx]:
-        return _fs_low(t_idx, vs30, a1100, c10, k1, k2)
-    elif vs30 < 1100.0:
-        return _fs_mid(t_idx, vs30, c10, k1, k2)
-    else:
-        return _fs_high(t_idx, c10, k1, k2)
-
-
-@njit
-def _cb_amp(
-    vref: float,
-    vsite: float,
-    vpga: float,
-    pga: float,
-    version: int = 2014,
-    flowcap: float = 0.0,
-    freqs: np.ndarray = AMPLIFICATION_FREQUENCIES,
-) -> np.ndarray:  # pragma: no cover
-    """
-    Numba translation of cb_amp.
-
-    Parameters
-    ----------
-    vref : float
-        Reference Vs30 value (m/s)
-    vsite : float
-        Site Vs30 value (m/s)
-    vpga : float
-        Vs30 value for PGA calculation (m/s)
-    pga : float
-        Peak ground acceleration value (g)
-    version : int, optional
-        CB version (2008 or 2014), default 2014
-    flowcap : float, optional
-        Flow capacity constraint, default 0.0
-    freqs : np.ndarray, optional
+    vref : array_like
+        Reference Vs30 values (m/s) - shape (N,)
+    vsite : array_like
+        Site Vs30 values (m/s) - shape (N,)
+    vpga : array_like
+        Vs30 values for PGA calculation (m/s) - shape (N,)
+    pga : array_like
+        Peak ground acceleration values (g) - shape (N,)
+    version : int
+        CB version (2008 or 2014)
+    flowcap : float
+        Flow capacity constraint
+    freqs : np.ndarray
         Frequencies to compute amplification values for using model
         explicitly.
 
     Returns
     -------
     np.ndarray
-        Amplification factors, shaped like `freqs`
+        Amplification factors, shape (N, freqs.size)
+        where N is the number of input parameter sets.
 
+    Raises
+    ------
+    ValueError
+        If `version` is not 2008 or 2014.
+
+    See Also
+    --------
+    cb_amp_multi : Public interface to this function. More details on the model are explained here.
     """
-
     # Version-specific constants (converted to integer logic)
     if version == 2008:
         c10 = np.array(
@@ -288,6 +229,8 @@ def _cb_amp(
                 -0.576,
             ]
         )
+    else:
+        raise ValueError(f"Unsupported CB model version: {version}")
 
     k1 = np.array(
         [
@@ -342,102 +285,32 @@ def _cb_amp(
         ]
     )
 
-    # Calculate a1100
-    # fs1100 - fs_vpga for T=0
-    fs_high_0 = _compute_fs_value(0, 1100.0, pga, c10, k1, k2)  # fs_high for T=0
-    fs_vpga_0 = _compute_fs_value(0, vpga, pga, c10, k1, k2)  # fs_auto for T=0
-    a1100 = pga * np.exp(fs_high_0 - fs_vpga_0)
-
-    # Calculate amplification factors for each period
-    ampf0 = np.zeros_like(freqs)
-    t_idx = 0
-    while t_idx < freqs.size and freqs[t_idx] > flowcap:
-        fs_site = _compute_fs_value(t_idx, vsite, a1100, c10, k1, k2)
-        fs_ref = _compute_fs_value(t_idx, vref, a1100, c10, k1, k2)
-        ampf0[t_idx] = np.exp(fs_site - fs_ref)
-        t_idx += 1
-    ampf0[t_idx:] = ampf0[t_idx]
-
-    return ampf0
-
-
-class CBModelVersion(Enum):
-    """Campbell and Bozorgnia model versions"""
-
-    CB2008 = 2008
-    CB2014 = 2014
-
-
-@njit(parallel=True)
-def _cb_amp_multi(
-    vref: np.ndarray,
-    vsite: np.ndarray,
-    vpga: np.ndarray,
-    pga: np.ndarray,
-    version: int,
-    flowcap: float,
-    freqs: np.ndarray,
-) -> np.ndarray:  # pragma: no cover
-    """Numba version of cb_amp that processes multiple parameter sets.
-
-    Parameters
-    ----------
-    vref : array_like
-        Reference Vs30 values (m/s) - shape (N,)
-    vsite : array_like
-        Site Vs30 values (m/s) - shape (N,)
-    vpga : array_like
-        Vs30 values for PGA calculation (m/s) - shape (N,)
-    pga : array_like
-        Peak ground acceleration values (g) - shape (N,)
-    version : CBModelVersion
-        CB version (2008 or 2014)
-    flowcap : float
-        Flow capacity constraint
-    freqs : np.ndarray
-        Frequencies to compute amplification values for using model
-        explicitly.
-
-    Returns
-    -------
-    np.ndarray
-        Amplification factors, shape (N, output_length)
-        where N is the number of input parameter sets
-        and output_length depends on dt and n
-
-    See Also
-    --------
-    cb_amp_multi : Public interface to this function. More details on the model are explained here.
-    """
-
-    # Convert inputs to arrays and get dimensions
     vref_arr = np.asarray(vref)
-    vsite_arr = np.asarray(vsite)
-    vpga_arr = np.asarray(vpga)
-    pga_arr = np.asarray(pga)
+    # Column vectors of shape (N, 1) so they broadcast against the (T,)
+    # per-period coefficients.
+    vref_col = vref_arr.reshape(-1, 1)
+    vsite_col = np.asarray(vsite).reshape(-1, 1)
+    vpga_col = np.asarray(vpga).reshape(-1, 1)
+    pga_col = np.asarray(pga).reshape(-1, 1).astype(np.float64)
 
-    n_cases = vref_arr.size
+    # Calculate a1100 from the T=0 (PGA) coefficients:
+    # fs1100 - fs_vpga for T=0
+    coeffs_0 = (c10[:1], k1[:1], k2[:1])
+    fs_high_0 = _compute_fs_value(1100.0, pga_col, *coeffs_0)
+    fs_vpga_0 = _compute_fs_value(vpga_col, pga_col, *coeffs_0)
+    a1100 = pga_col * np.exp(fs_high_0 - fs_vpga_0)
 
-    # Flatten arrays to handle both 1D and scalar inputs
-    vref_flat = vref_arr.flatten()
-    vsite_flat = vsite_arr.flatten()
-    vpga_flat = vpga_arr.flatten()
-    pga_flat = pga_arr.flatten()
+    # Amplification factors are computed for leading frequencies above
+    # flowcap. The remaining entries are filled with the value at the first
+    # frequency below the cap, which has not been computed and is therefore 0.
+    above_cap = np.asarray(freqs) > flowcap
+    n_computed = freqs.size if above_cap.all() else int(np.argmin(above_cap))
 
-    # Pre-allocate results array
-    results = np.zeros((n_cases, freqs.size), dtype=vref_arr.dtype)
-
-    for i in range(n_cases):
-        results[i, :] = _cb_amp(
-            vref_flat[i],
-            vsite_flat[i],
-            vpga_flat[i],
-            pga_flat[i],
-            version,
-            flowcap,
-            freqs,
-        )
-
+    results = np.zeros((vref_arr.size, freqs.size), dtype=vref_arr.dtype)
+    coeffs = (c10[:n_computed], k1[:n_computed], k2[:n_computed])
+    fs_site = _compute_fs_value(vsite_col, a1100, *coeffs)
+    fs_ref = _compute_fs_value(vref_col, a1100, *coeffs)
+    results[:, :n_computed] = np.exp(fs_site - fs_ref)
     return results
 
 
@@ -529,7 +402,6 @@ def cb_amp_multi(
     # Use pga for reference dtype because it is more reliably a float,
     # where vref can sometimes be an int.
     freqs = freqs.astype(pga.dtype)  # type: ignore[no-matching-overload]
-    # Call the numba-accelerated function
     results = _cb_amp_multi(
         vref=vref,
         vsite=vsite,
@@ -583,16 +455,11 @@ def cb2014_to_fas_amplification_factors(
     return amp_bandpass(interpolated, fhightop, fmax, fmidbot, fmin, ftfreq)
 
 
-@njit(
-    parallel=True,
-)
-def interp_2d(
-    x: np.ndarray, xp: np.ndarray, fp: np.ndarray
-) -> np.ndarray:  # pragma: no cover
+def interp_2d(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """Perform interpolation of a vector-valued function f at `x` with interpolation nodes `xp` and `fp`.
 
-    This handles the case where `fp` is not 1-D. Interpolation is
-    performed in parallel over the last axis.
+    This handles the case where `fp` is not 1-D. Each row of `fp` is
+    interpolated independently.
 
     Parameters
     ----------
@@ -682,9 +549,6 @@ def interpolate_amplification_factors(
     return ampv, ftfreq.astype(freqs.dtype)
 
 
-@njit(
-    parallel=True,
-)
 def amp_bandpass(
     ampv: np.ndarray,
     fhightop: float,
@@ -692,7 +556,7 @@ def amp_bandpass(
     fmidbot: float,
     fmin: float,
     fftfreq: np.ndarray,
-) -> np.ndarray:  # pragma: no cover
+) -> np.ndarray:
     """Frequency-dependent amplification adjustment for site amplification factors.
 
     This function applies frequency-dependent amplification adjustments
@@ -751,23 +615,46 @@ def amp_bandpass(
     [0] Kuncar, Felipe, et al. Methods to account for shallow site
     effects in hybrid broadband ground-motion simulations. Earthquake
     Spectra 41.2 (2025): 1272-1313."""
-    ampf = np.empty((ampv.shape[0], fftfreq.size + 1), dtype=ampv.dtype)
-    ampf[:, 0] = 1.0
+    n_freq = fftfreq.size
+    ampf = np.ones((ampv.shape[0], n_freq + 1), dtype=ampv.dtype)
 
-    log_fmax_diff = (np.log(fftfreq) - np.log(fhightop)) / (
-        np.log(fmax) - np.log(fhightop)
-    )
-    log_fmin_diff = (np.log(fftfreq) - np.log(fmin)) / (np.log(fmidbot) - np.log(fmin))
+    # Log-frequency weights are computed in double precision regardless of
+    # the input dtype.
+    log_fftfreq = np.log(fftfreq.astype(np.float64))
+    log_fmax_diff = (log_fftfreq - np.log(fhightop)) / (np.log(fmax) - np.log(fhightop))
+    log_fmin_diff = (log_fftfreq - np.log(fmin)) / (np.log(fmidbot) - np.log(fmin))
 
-    for i in range(ampf.shape[0]):
-        for j in range(1, fftfreq.size + 1):
-            if fhightop <= fftfreq[j - 1] < fmax:
-                ampf[i, j] = ampv[i, j] + log_fmax_diff[j] * (1 - ampv[i, j])
-            elif fmidbot <= fftfreq[j - 1] < fhightop:
-                ampf[i, j] = ampv[i, j]
-            elif fmin <= fftfreq[j - 1] < fmidbot:
-                ampf[i, j] = 1.0 + log_fmin_diff[j] * (ampv[i, j] - 1.0)
-            else:
-                ampf[i, j] = 1.0
+    # Output column j (1 <= j <= n_freq) is selected by the band containing
+    # fftfreq[j - 1], but takes its values from ampv[:, j] and the log
+    # differences at index j. For j = n_freq that index is one past the end
+    # of `fftfreq` (and of `ampv` when it has n_freq columns); in that case
+    # the last in-range value is used.
+    def shifted(values: np.ndarray, band: np.ndarray) -> np.ndarray:
+        """Select `values` at index j for each band column j - 1.
+
+        Parameters
+        ----------
+        values : np.ndarray
+            Array to select from along its last axis.
+        band : np.ndarray
+            Boolean mask over `fftfreq` selecting the columns j - 1.
+
+        Returns
+        -------
+        np.ndarray
+            `values[..., j]`, clamped to the last in-range index.
+        """
+        idx = np.minimum(np.flatnonzero(band) + 1, values.shape[-1] - 1)
+        return values[..., idx]
+
+    high = (fhightop <= fftfreq) & (fftfreq < fmax)
+    mid = (fmidbot <= fftfreq) & (fftfreq < fhightop)
+    low = (fmin <= fftfreq) & (fftfreq < fmidbot)
+
+    out = ampf[:, 1:]
+    ampv_high = shifted(ampv, high)
+    out[:, high] = ampv_high + shifted(log_fmax_diff, high) * (1 - ampv_high)
+    out[:, mid] = shifted(ampv, mid)
+    out[:, low] = 1.0 + shifted(log_fmin_diff, low) * (shifted(ampv, low) - 1.0)
 
     return ampf

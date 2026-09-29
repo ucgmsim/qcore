@@ -11,25 +11,17 @@ requires-python = ">=3.11"
 dynamic = ["version"]
 dependencies = [
   "pandas",
-  "pyfftw",
   "pyproj",
-  "pooch",
   "scipy",
   "numpy",
-  "numba>=0.57.0; python_version == '3.11'",
-  "numba>=0.59.0; python_version == '3.12'",
-  "numba>=0.61.0; python_version == '3.13'",
-  "numba>=0.63.0; python_version == '3.14'",
-  "typer",
-  "docstring_parser",
   "xarray",
-  "pyyaml",
   "typing-extensions>=4.9.0",                # Last change to the @deprecated module
 ]
 
 [project.optional-dependencies]
+cli = ["typer", "docstring_parser"]
 test = ["pytest", "hypothesis[numpy]", "pytest-cov"]
-types = ["pandas-stubs", "scipy-stubs", "types-PyYAML"]
+types = ["pandas-stubs", "scipy-stubs"]
 dev = ["ruff", "deptry", "ty"]
 
 [tool.deptry]

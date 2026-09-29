@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
-import pyfftw.interfaces.numpy_fft as pyfftw_fft
 import pytest
+import scipy.fft as sp_fft
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
@@ -38,7 +38,7 @@ def real_fourier_spectra(draw: st.DrawFn) -> np.ndarray:
     # 1. F(0) is real
     # 2. F(-w) = F(w)^* (NOTE: (2) implies (1), but this explicitly makes clear why `dc` is a float and not a complex number).
     #
-    # In the discrete case (i.e. with vectors or numpy arrays), the same applies to the outputs of np.fft.fft (or fftw, ...). If v is a numpy array, and w = np.fft.fft(v) the DFT, then:
+    # In the discrete case (i.e. with vectors or numpy arrays), the same applies to the outputs of np.fft.fft (or scipy.fft, ...). If v is a numpy array, and w = np.fft.fft(v) the DFT, then:
     # 1. v[0] is real
     # 2. v[i] == np.conj(v[-i])
     # The negative index is intentional, and implies the negative
@@ -121,7 +121,7 @@ def test_bwfilter_lowpass() -> None:
         + np.sin(2 * np.pi * high_frequency * t)
     )
 
-    fas = pyfftw_fft.rfft(signal)
+    fas = sp_fft.rfft(signal)
     frequencies = np.fft.rfftfreq(len(signal), d=dt)
     low_freq_idx = np.argmin(np.abs(frequencies - low_frequency))
     cutoff_freq_idx = np.argmin(np.abs(frequencies - cutoff_frequency))
@@ -142,7 +142,7 @@ def test_bwfilter_lowpass() -> None:
     filtered = timeseries.bwfilter(
         signal, dt, cutoff_frequency, timeseries.Band.LOWPASS
     )
-    filtered_fas = pyfftw_fft.rfft(filtered)
+    filtered_fas = sp_fft.rfft(filtered)
     # Low frequency should not be attenuated
     assert np.real(np.abs(filtered_fas[low_freq_idx])) == pytest.approx(
         signal_length / 2, rel=0.01
@@ -176,7 +176,7 @@ def test_bwfilter_highpass() -> None:
         + np.sin(2 * np.pi * high_frequency * t)
     )
 
-    fas = pyfftw_fft.rfft(signal)
+    fas = sp_fft.rfft(signal)
     frequencies = np.fft.rfftfreq(len(signal), d=dt)
     low_freq_idx = np.argmin(np.abs(frequencies - low_frequency))
     cutoff_freq_idx = np.argmin(np.abs(frequencies - cutoff_frequency))
@@ -197,7 +197,7 @@ def test_bwfilter_highpass() -> None:
     filtered = timeseries.bwfilter(
         signal, dt, cutoff_frequency, timeseries.Band.HIGHPASS
     )
-    filtered_fas = pyfftw_fft.rfft(filtered)
+    filtered_fas = sp_fft.rfft(filtered)
     # Low frequency should be almost eliminated
     assert (
         np.real(np.abs(filtered_fas[low_freq_idx])) < 16.0
@@ -239,7 +239,7 @@ def test_ampdeamp_with_fft_consistency(inputs: tuple[np.ndarray, np.ndarray]) ->
 
     # Compute the inverse FFT to generate the waveform
     n = 2 * amplification_factor.shape[-1]
-    waveform = pyfftw_fft.irfft(fourier_spectra, n=n, axis=-1)
+    waveform = sp_fft.irfft(fourier_spectra, n=n, axis=-1)
 
     # Apply ampdeamp to the waveform
     amplified_waveform = timeseries.ampdeamp(
@@ -247,7 +247,7 @@ def test_ampdeamp_with_fft_consistency(inputs: tuple[np.ndarray, np.ndarray]) ->
     )
 
     # Compute the FFT of the amplified waveform
-    amplified_fourier = pyfftw_fft.rfft(amplified_waveform, n=n, axis=-1)
+    amplified_fourier = sp_fft.rfft(amplified_waveform, n=n, axis=-1)
 
     # Verify that the amplified Fourier spectra matches the expected result
     assert amplified_fourier.shape[1] == expected_fourier.shape[1] + 1, "Shape mismatch"
@@ -275,8 +275,8 @@ def test_tapering_application() -> None:
     expected_waveform_after_taper[100 - expected_ntap :] = expected_hanning_window
 
     with (
-        patch("pyfftw.interfaces.numpy_fft.rfft") as mock_rfft,
-        patch("pyfftw.interfaces.numpy_fft.irfft") as mock_irfft,
+        patch("scipy.fft.rfft") as mock_rfft,
+        patch("scipy.fft.irfft") as mock_irfft,
     ):
         # Mock rfft and irfft to return predictable values, so we can focus on tapering
         mock_rfft.return_value = np.zeros(
@@ -312,7 +312,7 @@ def test_ampdeamp_reversibility(inputs: tuple[np.ndarray, np.ndarray]) -> None:
     """
     amplification_factor, fft = inputs
     n = 2 * amplification_factor.shape[-1]
-    waveform = pyfftw_fft.irfft(fft, n, axis=-1)
+    waveform = sp_fft.irfft(fft, n, axis=-1)
 
     # Apply amplification
     amplified_waveform = timeseries.ampdeamp(
