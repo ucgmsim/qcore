@@ -156,6 +156,28 @@ def test_frequency_range_calculation(dt: float, n: int):
         assert ftfreq[-1] == pytest.approx(expected_max_freq_actual)
 
 
+def test_frequency_range_odd_n():
+    """Odd waveform lengths hit the `n % 2 == 1` branch: the FFT has no
+    Nyquist bin to strip, so only the DC (0 Hz) term is dropped and the
+    top frequency stays strictly below what `2 * dt` would give as Nyquist.
+    """
+    freqs = np.array([1.0, 10.0, 100.0])
+    ampf0 = np.array([1.0, 2.0, 3.0])
+    dt = 0.01
+    n = 101
+
+    _, ftfreq = siteamp_models.interpolate_amplification_factors(freqs, ampf0, dt, n)
+
+    nyquist = 1.0 / (2 * dt)
+    freq_step = 1.0 / (n * dt)
+    # Odd n keeps n // 2 bins (only the DC term is dropped), whereas the
+    # equivalent even n would additionally drop the Nyquist bin.
+    assert ftfreq.size == n // 2
+    assert ftfreq[0] == pytest.approx(freq_step)
+    assert ftfreq[-1] == pytest.approx((n // 2) * freq_step)
+    assert ftfreq[-1] < nyquist
+
+
 @pytest.fixture
 def basic_setup() -> dict:
     """Basic test setup with typical parameters."""
