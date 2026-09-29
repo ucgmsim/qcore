@@ -74,7 +74,21 @@ class ExtendedStrEnum(ExtendedEnum):  # type: ignore
     _value_: Any
     str_value: str
 
-    def __new__(cls, value: Any, str_value: str) -> Self:  # noqa: D102 # numpydoc ignore=GL08
+    def __new__(cls, value: Any, str_value: str) -> Self:
+        """Create an enum member carrying a value and a string mapping.
+
+        Parameters
+        ----------
+        value : Any
+            The enum member's value.
+        str_value : str
+            The string the member maps to.
+
+        Returns
+        -------
+        Self
+            The new enum member.
+        """
         obj = object.__new__(cls)
         obj._value_ = value
         obj.str_value = str_value

@@ -269,6 +269,18 @@ def load_nhm(
         rows = list(map(str.strip, entry.split("\n")))
 
         def str2floats(line: str):
+            """Parse a whitespace-separated line of floats.
+
+            Parameters
+            ----------
+            line : str
+                The line to parse.
+
+            Returns
+            -------
+            list[float]
+                The floats on the line.
+            """
             return list(map(float, line.split()))
 
         tectonic_type, fault_type = rows[1].split()
