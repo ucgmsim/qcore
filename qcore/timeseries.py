@@ -6,7 +6,6 @@ Shared functions to work on time-series.
 """
 
 import io
-import multiprocessing
 import os
 from enum import StrEnum, auto
 from pathlib import Path
@@ -15,8 +14,6 @@ from typing import Literal, NamedTuple
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import pyfftw
-import pyfftw.interfaces.numpy_fft as pyfftw_fft
 import scipy as sp
 import xarray as xr
 
@@ -97,91 +94,6 @@ def bwfilter(
         waveform,
         padtype=None,
     )
-
-
-def ampdeamp(
-    waveform: np.ndarray,
-    amplification_factor: np.ndarray,
-    amplify: bool = True,
-    cores: int = multiprocessing.cpu_count(),
-    taper: bool = True,
-) -> np.ndarray:
-    """Apply amplification factor to waveforms.
-
-    Parameters
-    ----------
-    waveform : np.ndarray
-        The input waveform.
-    amplification_factor : np.ndarray
-        The frequency amplification factors. If `waveform` has
-        length `2^i`, then `amplification_factor` should have length `2^(ceil(i) -
-        1)`.
-    amplify : bool
-        Setting `amplify = False` is equivalent to setting
-        `amplification_factor = np.reciprocal(amplification_factor)`.
-    cores : int
-        The number of cores to use for FFT. Defaults to all cores
-        available on the system as reported by
-        `muliprocessing.cpu_count()`.
-    taper : bool, optional
-        If true, taper the waveform to avoid spectral leakage. Default
-        True.
-
-    Returns
-    -------
-    np.ndarray
-        The input waveform (de)amplified at frequencies according to
-        the values of `amplification_factor`.
-    """
-
-    # PyFFTW sets the globals in the config module dynamically.
-    # So type-checking must be ignored here.
-    pyfftw.config.NUM_THREADS = cores  # type: ignore
-
-    nt = waveform.shape[-1]
-    waveform_dtype = waveform.dtype
-
-    # Taper 5% on the right using the Hanning method
-    ntap = int(nt * 0.05)
-
-    if ntap > 0 and taper:
-        # Create a Hanning window for the taper, ensuring it's float32
-        hanning_window = np.hanning(ntap * 2 + 1)[ntap + 1 :].astype(waveform_dtype)
-        # Create a copy of the original waveform so-as not to modify it in-place.
-        waveform = waveform.copy()
-        waveform[..., nt - ntap :] *= hanning_window
-
-    n_fft = 2 * amplification_factor.shape[-1]
-
-    # NOTE: The old code had the following resizing behaviour
-    # timeseries = np.resize(timeseries, ft_len)
-    # timeseries[nt:] = 0
-    # this is actually unnecessary as setting `n=n_fft` will automatically do the same thing
-    # See: https://numpy.org/doc/stable/reference/generated/numpy.fft.rfft.html
-    # and the PYFFTW equivalent:
-    # https://pyfftw.readthedocs.io/en/latest/source/pyfftw/interfaces/numpy_fft.html#pyfftw.interfaces.numpy_fft.rfft
-
-    fourier = pyfftw_fft.rfft(waveform, n=n_fft, axis=-1)
-
-    # Amplification factor modified for de-amplification
-    if not amplify:
-        # Ensure ampf_modified is float32 for consistent operations.
-        # Handle potential division by zero if ampf contains zeros.
-        if np.any(np.isclose(amplification_factor, 0.0)):
-            raise ZeroDivisionError("Would divide by zero in amplification factor.")
-        ampf_modified = np.reciprocal(amplification_factor).astype(waveform_dtype)
-    else:
-        ampf_modified = amplification_factor.astype(waveform_dtype)
-
-    # Apply amplification/de-amplification. fourier[..., :-1]
-    # corresponds to the first `n_fft // 2` frequency bins.
-
-    fourier[..., :-1] *= ampf_modified
-
-    result_full = pyfftw_fft.irfft(fourier, n=n_fft, axis=-1)
-
-    # Trim to original length
-    return result_full[..., :nt]
 
 
 _HEAD_STAT = 48  # Header size per station

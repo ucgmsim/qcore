@@ -8,7 +8,6 @@ from typing import TextIO
 
 import numpy as np
 import pandas as pd
-import pooch
 
 from qcore import geo
 from qcore.uncertainties.distributions import truncated_normal as sample_trunc_norm_dist
@@ -245,14 +244,15 @@ class NHMFault:
 
 
 def load_nhm(
-    nhm_path: str | None = None, skiprows: int = len(NHM_HEADER.splitlines()) + 1
+    nhm_path: str, skiprows: int = len(NHM_HEADER.splitlines()) + 1
 ) -> dict[str, NHMFault]:
     """Reads the nhm_path and returns a dictionary of NHMFault by fault name.
 
     Parameters
     ----------
-    nhm_path : str, optional
-        NHM file to load. If not provided, a default will be downloaded from the QuakeCoRE Dropbox.
+    nhm_path : str
+        NHM file to load. The default NZ fault model can be downloaded
+        from `NHM_MODEL_URL` (SHA-256 `NHM_MODEL_HASH`).
     skiprows : int, optional
         Skip the first skiprows lines; default: 15.
 
@@ -261,8 +261,6 @@ def load_nhm(
     dict[str, NHMFault]
         NHMFault by name
     """
-    if not nhm_path:
-        nhm_path = pooch.retrieve(url=NHM_MODEL_URL, known_hash=NHM_MODEL_HASH)
     with open(nhm_path, "r") as f:
         rows = "".join(f.readlines()[skiprows:])
 
