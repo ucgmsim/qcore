@@ -257,8 +257,8 @@ def coordinate_patchgrid(
     if not resolution and not (nx and ny):
         raise ValueError("If resolution is not provided, nx and ny must be.")
 
-    nx = nx or max(1, round(float(len_x / resolution)))  # type: ignore
-    ny = ny or max(1, round(float(len_y / resolution)))  # type: ignore
+    nx = nx or max(1, round(float(len_x / resolution)))
+    ny = ny or max(1, round(float(len_y / resolution)))
 
     alpha, beta = np.meshgrid(
         # The 1 / (2 * nx) term is to ensure that the patches are centred on the grid points.
