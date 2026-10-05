@@ -1,0 +1,14 @@
+# lefthook.yml
+
+# Git hooks that run the same checks as CI, from ucgmsim/meta-ci-action's
+# lefthook/ci.yml (pinned to v2, like the CI workflow). Set up once per clone:
+
+#   uv sync --all-extras --dev
+#   uvx lefthook install
+
+# Turn shared checks off with `exclude_tags`; add repo-specific hooks under new names.
+remotes:
+  - git_url: https://github.com/ucgmsim/meta-ci-action
+    ref: v2
+    configs:
+      - lefthook/ci.yml

@@ -82,6 +82,11 @@ known-first-party = [
 "tests/**.py" = ["D"]
 "**/test*.py" = ["D"]
 
+[tool.npdlint]
+# Docstring linting covers the package only, matching the old
+# `package-dir: qcore` CI input; tests are exempt (see ruff's "D" ignore).
+include = ["qcore"]
+extend-exclude = ["**/__init__.py"]
 
 [tool.numpydoc_validation]
 checks = [
