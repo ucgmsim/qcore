@@ -1,5 +1,7 @@
+import dataclasses
 from io import StringIO
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -305,3 +307,114 @@ def test_get_fault_header_points() -> None:
     # Points should be a numpy array
     assert isinstance(points, np.ndarray)
     assert points.shape[1] == 3  # lon, lat, depth
+
+
+def _make_fault(**overrides: Any) -> nhm.NHMFault:
+    base = nhm.NHMFault(
+        name="TestFault",
+        tectonic_type="ACTIVE_SHALLOW",
+        fault_type="REVERSE",
+        length=50.0,
+        length_sigma=5.0,
+        dip=45.0,
+        dip_sigma=5.0,
+        dip_dir=90.0,
+        rake=90.0,
+        dbottom=20.0,
+        dbottom_sigma=2.0,
+        dtop=2.0,
+        dtop_min=0.0,
+        dtop_max=5.0,
+        slip_rate=5.0,
+        slip_rate_sigma=1.0,
+        coupling_coeff=0.9,
+        coupling_coeff_sigma=0.1,
+        mw=7.0,
+        recur_int_median=1000.0,
+        trace=np.array([[172.0, -43.0], [172.1, -43.1]]),
+    )
+    return dataclasses.replace(base, **overrides)
+
+
+def test_nhm_fault_sample_2012_zero_slip_rate_keeps_recurrence() -> None:
+    # With a zero mean slip rate the moment rate is not rescaled, so with an
+    # unperturbed magnitude the recurrence interval must be unchanged even
+    # though a non-zero slip rate is sampled.
+    np.random.seed(0)
+    fault = _make_fault(slip_rate=0.0, slip_rate_sigma=1.0)
+
+    sampled = fault.sample_2012(mw_area_scaling=False)
+
+    assert sampled.mw == fault.mw
+    assert sampled.slip_rate != 0.0
+    assert sampled.recur_int_median == pytest.approx(fault.recur_int_median)
+
+
+def test_nhm_fault_sample_2012_positive_slip_rate_scales_recurrence() -> None:
+    # A positive slip rate rescales the recurrence interval inversely with
+    # the sampled slip rate.
+    np.random.seed(0)
+    fault = _make_fault(slip_rate=5.0, slip_rate_sigma=1.0)
+
+    sampled = fault.sample_2012(mw_area_scaling=False)
+
+    assert sampled.recur_int_median == pytest.approx(
+        fault.recur_int_median * fault.slip_rate / sampled.slip_rate
+    )
+
+
+def _write_nhm(path: Path, faults: list[nhm.NHMFault]) -> None:
+    with open(path, "w") as f:
+        for i, fault in enumerate(faults):
+            fault.write(f, header=i == 0)
+
+
+def test_load_nhm_df_round_trip(tmp_path: Path) -> None:
+    faults = [
+        _make_fault(name="FaultB", mw=6.5, recur_int_median=500.0),
+        _make_fault(name="FaultA", mw=7.2, recur_int_median=2000.0, dip=60.0),
+    ]
+    nhm_file = tmp_path / "faults.nhm"
+    _write_nhm(nhm_file, faults)
+
+    df = nhm.load_nhm_df(str(nhm_file))
+
+    # Index is the bare fault name (no ERF suffix) and is sorted
+    assert list(df.index) == ["FaultA", "FaultB"]
+    assert list(df["name"]) == ["FaultA", "FaultB"]
+    assert df.loc["FaultA", "tectonic_type"] == "ACTIVE_SHALLOW"
+    assert df.loc["FaultA", "dip"] == pytest.approx(60.0)
+    assert df.loc["FaultA", "mw"] == pytest.approx(7.2)
+    assert df.loc["FaultB", "mw"] == pytest.approx(6.5)
+    assert df.loc["FaultA", "recur_int_median"] == pytest.approx(2000.0)
+    assert df.loc["FaultA", "exceedance"] == pytest.approx(1 / 2000.0)
+    assert df.loc["FaultB", "exceedance"] == pytest.approx(1 / 500.0)
+
+
+def test_load_nhm_df_erf_name_suffix(tmp_path: Path) -> None:
+    nhm_file = tmp_path / "faults.nhm"
+    _write_nhm(nhm_file, [_make_fault(name="FaultA")])
+
+    df = nhm.load_nhm_df(str(nhm_file), erf_name="NHM2010")
+
+    assert list(df.index) == ["FaultA_NHM2010"]
+    # The name column keeps the bare fault name
+    assert df.loc["FaultA_NHM2010", "name"] == "FaultA"
+
+
+def test_load_nhm_df_zero_recurrence_is_nan(tmp_path: Path) -> None:
+    nhm_file = tmp_path / "faults.nhm"
+    _write_nhm(
+        nhm_file,
+        [
+            _make_fault(name="ZeroRecur", recur_int_median=0.0),
+            _make_fault(name="Recur", recur_int_median=100.0),
+        ],
+    )
+
+    df = nhm.load_nhm_df(str(nhm_file))
+
+    # A zero recurrence interval is undefined, rather than an infinite rate
+    assert np.isnan(df.loc["ZeroRecur", "recur_int_median"])
+    assert np.isnan(df.loc["ZeroRecur", "exceedance"])
+    assert df.loc["Recur", "exceedance"] == pytest.approx(0.01)
