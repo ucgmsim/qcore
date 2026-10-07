@@ -7,94 +7,13 @@ Shared functions to work on time-series.
 
 import io
 import os
-from enum import StrEnum, auto
 from pathlib import Path
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import scipy as sp
 import xarray as xr
-
-# The `sosfiltfilt` function So we instead shift the cutoff frequency
-# up for a highpass filter (resp. down for a lowpass filter) so that
-# power at the cutoff frequencies becomes 1/sqrt(2). The factor by
-# which we have to shift the cutoff factors for an order 4 highpass
-# butterworth filter is (sqrt(2) - 1) ^ (1/8). Symmetrically, we have
-# to shift by (sqrt(2) - 1) ^ (-1/8) = 1 / highpass shift for a
-# lowpass filter. See https://dsp.stackexchange.com/a/19491 for a more
-# detailed explanation. Note that `sosfiltfilt` applies the filter
-# twice, so the attenuation at the target frequency is usually
-# 1/sqrt(2) * 1/sqrt(2) = 1/2!
-_BW_HIGHPASS_SHIFT = (np.sqrt(2) - 1) ** (1 / 8)
-_BW_LOWPASS_SHIFT = 1 / _BW_HIGHPASS_SHIFT
-
-
-class Band(StrEnum):
-    """Filter types for `bwfilter`."""
-
-    HIGHPASS = auto()
-    """High-pass filter, filters all frequencies lower than taper frequency."""
-    LOWPASS = auto()
-    """Low-pass filter, filters all frequencies greater than taper frequencies."""
-
-
-def bwfilter(
-    waveform: np.ndarray,
-    dt: float,
-    taper_frequency: float | np.ndarray,
-    band: Band,
-) -> np.ndarray:
-    """Construct and apply a Butterworth filter to a waveform.
-
-    This function constructs an order-4 Butterworth filter with cutoff
-    frequencies. It is applied forward and backward to eliminate phase
-    lag. The `taper_frequency` is used to set cutoff frequencies for
-    the filter such that the power at `taper_frequency` is 1/sqrt(2)
-    of the original power.
-
-    Parameters
-    ----------
-    waveform : np.ndarray
-        The input waveform.
-    dt : float
-        The timestep of the input waveform.
-    taper_frequency : float
-        The tapering frequency. If `band` is highpass or lowpass then
-        `taper_frequency` is the upper or lower tapering frequency, respectively.
-    band : Band
-        Changes the kind of filter. See `Band` for details.
-
-    Returns
-    -------
-    np.ndarray
-        The filtered waveform.
-
-    References
-    ----------
-    - https://en.wikipedia.org/wiki/Butterworth_filter
-    - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.sosfiltfilt.html
-      (specifically, the examples comparing sosfilt and sosfiltfilt)
-    """
-
-    cutoff_frequencies: np.ndarray | float = taper_frequency
-
-    match band:
-        case Band.HIGHPASS:
-            cutoff_frequencies = taper_frequency * _BW_HIGHPASS_SHIFT
-        case Band.LOWPASS:
-            cutoff_frequencies = taper_frequency * _BW_LOWPASS_SHIFT
-
-    btype: Literal["highpass", "lowpass"] = (
-        "highpass" if band == Band.HIGHPASS else "lowpass"
-    )
-    return sp.signal.sosfiltfilt(
-        sp.signal.butter(4, cutoff_frequencies, btype=btype, output="sos", fs=1.0 / dt),
-        waveform,
-        padtype=None,
-    )
-
 
 _HEAD_STAT = 48  # Header size per station
 _N_COMP = 9  # Number of components in LF seis files
