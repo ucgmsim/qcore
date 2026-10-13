@@ -237,3 +237,126 @@ def test_pgv_meta_only(meta_only_xyts_file: xyts.XYTSFile) -> None:
         AttributeError, match="The data and ll_map attributes must be set to use `pgv`"
     ):
         meta_only_xyts_file.pgv()
+
+
+def _write_xyts(
+    path: Path,
+    data: np.ndarray,
+    endian: str = "<",
+    mrot: float = 30.0,
+    mlat: float = -43.5,
+    mlon: float = 172.5,
+    hh: float = 0.1,
+    dxts: int = 5,
+    local_shape: tuple[int, int] | None = None,
+) -> None:
+    """Write a synthetic XYTS file with the given data and header values.
+
+    `data` has shape (nt, 3, ny, nx). If `local_shape` (local_nx, local_ny) is
+    given, a process-local header is written instead of a merged one.
+    """
+    nt, _, ny, nx = data.shape
+    ints = [0, 0, 0, 0]
+    if local_shape is not None:
+        ints += [*local_shape, 1]
+    ints += [nx, ny, 1, nt]
+    floats = [hh * dxts, hh * dxts, hh, 0.1, mrot, mlat, mlon]
+    with open(path, "wb") as f:
+        np.asarray(ints, dtype=f"{endian}i4").tofile(f)
+        np.asarray(floats, dtype=f"{endian}f4").tofile(f)
+        data.astype(f"{endian}f4").tofile(f)
+
+
+@pytest.fixture
+def synthetic_data() -> np.ndarray:
+    """Provide deterministic (nt, 3, ny, nx) velocity data."""
+    rng = np.random.default_rng(0)
+    return rng.uniform(0.1, 2.0, size=(4, 3, 3, 5)).astype(np.float32)
+
+
+def test_endianness_detected(tmp_path: Path, synthetic_data: np.ndarray) -> None:
+    """Little- and big-endian files with the same contents read identically."""
+    little = tmp_path / "little.e3d"
+    big = tmp_path / "big.e3d"
+    _write_xyts(little, synthetic_data, endian="<")
+    _write_xyts(big, synthetic_data, endian=">")
+    # The two files really are byte-swapped versions of each other.
+    assert little.read_bytes() != big.read_bytes()
+
+    little_file = xyts.XYTSFile(little)
+    big_file = xyts.XYTSFile(big)
+
+    for xyts_file in (little_file, big_file):
+        assert (xyts_file.nx, xyts_file.ny, xyts_file.nz, xyts_file.nt) == (5, 3, 1, 4)
+        assert xyts_file.hh == pytest.approx(0.1)
+        assert xyts_file.dxts == 5
+        assert xyts_file.mlon == pytest.approx(172.5)
+        assert xyts_file.data is not None
+        assert np.array_equal(xyts_file.data, synthetic_data)
+        assert xyts_file.tslice_get(2) == pytest.approx(
+            np.linalg.norm(synthetic_data[2], axis=0)
+        )
+
+    assert little_file.ll_map is not None and big_file.ll_map is not None
+    assert np.array_equal(little_file.ll_map, big_file.ll_map)
+    assert little_file.pgv() == pytest.approx(big_file.pgv())
+
+
+def test_proc_local_file(tmp_path: Path, synthetic_data: np.ndarray) -> None:
+    """A process-local file uses the local dimensions for its data section."""
+    local_data = synthetic_data[:, :, :2, :3]
+    path = tmp_path / "local.e3d"
+    _write_xyts(path, local_data, local_shape=(3, 2))
+    # Make the header claim the global (merged) domain is 5x3.
+    with open(path, "r+b") as f:
+        f.seek(28)
+        np.asarray([5, 3], dtype="<i4").tofile(f)
+
+    xyts_file = xyts.XYTSFile(path, proc_local_file=True)
+
+    assert (xyts_file.local_nx, xyts_file.local_ny, xyts_file.local_nz) == (3, 2, 1)
+    assert (xyts_file.nx, xyts_file.ny, xyts_file.nt) == (5, 3, 4)
+    assert xyts_file.data is not None
+    assert xyts_file.data.shape == (4, 3, 2, 3)
+    assert np.array_equal(xyts_file.data, local_data)
+    assert xyts_file.tslice_get(1, comp=xyts.Component.Z) == pytest.approx(
+        -local_data[1, 2]
+    )
+    # The lon/lat map still covers the global domain.
+    assert xyts_file.ll_map is not None
+    assert xyts_file.ll_map.shape == (3, 5, 2)
+
+
+def test_proc_local_file_missing_local_dims(
+    tmp_path: Path, synthetic_data: np.ndarray
+) -> None:
+    """A process-local file with zero local nx is rejected unless meta only."""
+    path = tmp_path / "local.e3d"
+    _write_xyts(path, synthetic_data, local_shape=(0, 3))
+
+    with pytest.raises(ValueError, match="Local nx, ny must be set"):
+        xyts.XYTSFile(path, proc_local_file=True)
+
+    meta = xyts.XYTSFile(path, proc_local_file=True, meta_only=True)
+    assert (meta.local_nx, meta.local_ny) == (0, 3)
+    assert meta.data is None
+
+
+def test_date_line_crossing(tmp_path: Path, synthetic_data: np.ndarray) -> None:
+    """Domains crossing the antimeridian report continuous longitudes past 180."""
+    path = tmp_path / "dateline.e3d"
+    _write_xyts(path, synthetic_data, mrot=0.0, mlat=-40.0, mlon=180.0, hh=1.0)
+
+    xyts_file = xyts.XYTSFile(path)
+
+    assert xyts_file.ll_map is not None
+    lons = xyts_file.ll_map[:, :, 0]
+    assert np.all((lons > 179) & (lons < 181))
+    assert lons.min() < 180 < lons.max()
+
+    corners = np.array(xyts_file.corners())
+    assert np.all((corners[:, 0] > 179) & (corners[:, 0] < 181))
+    assert corners[:, 0].min() < 180 < corners[:, 0].max()
+
+    x_min, x_max, _, _ = xyts_file.region()
+    assert 179 < x_min < 180 < x_max < 181
