@@ -193,7 +193,7 @@ def calc_rx_ry_GC1(  # noqa: N802
             greater_than_threshold = pnt_counts > point_ix
 
             # Get the first of these planes
-            plane_ix = greater_than_threshold.searchsorted(True) - 1
+            plane_ix = int(greater_than_threshold.searchsorted(True)) - 1
 
         else:
             # If there is only one plane we don't need to find the nearest plane
