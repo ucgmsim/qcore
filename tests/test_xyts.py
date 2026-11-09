@@ -370,7 +370,9 @@ def test_pgv_mmi_partial_output(
     path = tmp_path / "synthetic.e3d"
     _write_xyts(path, synthetic_data)
     xyts_file = xyts.XYTSFile(path)
-    expected_pgv, expected_mmi = xyts_file.pgv(mmi=True)
+    expected = xyts_file.pgv(mmi=True)
+    assert isinstance(expected, tuple)
+    expected_pgv, expected_mmi = expected
 
     pgvout = tmp_path / "pgv.bin"
     mmiout = tmp_path / "mmi.bin"
