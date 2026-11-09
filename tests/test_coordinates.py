@@ -269,3 +269,19 @@ def test_inverse_projection_preserves_depth() -> None:
     assert (
         pytest.approx(projected[2], abs=1e-6) == depth
     )  # Depth should remain unchanged
+
+
+def test_custom_radius_scales_projection() -> None:
+    # Projected distances should scale linearly with the sphere radius.
+    proj_default = SphericalProjection(172.0, -43.0, 0.0)
+    proj_custom = SphericalProjection(172.0, -43.0, 0.0, radius=1000.0)
+    out_default = proj_default(-43.1, 172.1)
+    out_custom = proj_custom(-43.1, 172.1)
+    assert out_custom == pytest.approx(out_default * 1000.0 / R_EARTH)
+
+
+def test_custom_radius_inverse_round_trips() -> None:
+    proj = SphericalProjection(172.0, -43.0, 30.0, radius=1000.0)
+    lat, lon = -43.1, 172.1
+    x, y = proj.project(lat, lon)
+    assert proj.inverse(x, y) == pytest.approx(np.array([lat, lon]))

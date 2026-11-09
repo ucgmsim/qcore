@@ -236,7 +236,7 @@ class SphericalProjection:
     mrot : float
         Rotation angle in the projected plane in degrees.
     radius : float, optional
-        Radius of the spherical Earth in kilometres. Default is `R_EARTH` (6378.0 km).
+        Radius of the spherical Earth in kilometres. Default is `R_EARTH` (6378.139 km).
 
     Attributes
     ----------
@@ -376,8 +376,8 @@ class SphericalProjection:
         # Rotate the coordinates
         x, y, w = np.linalg.solve(self.amat, ecef)
         x, y = (
-            R_EARTH * np.arctan2(y, w),
-            R_EARTH * np.arctan2(x, w),
+            self.radius * np.arctan2(y, w),
+            self.radius * np.arctan2(x, w),
         )
         if z is not None:
             out = np.column_stack((x, y, np.asarray(z)))
@@ -415,8 +415,8 @@ class SphericalProjection:
 
         x = np.asarray(x).copy()
         y = np.asarray(y).copy()
-        x /= R_EARTH
-        y /= R_EARTH
+        x /= self.radius
+        y /= self.radius
         tan_x = np.tan(x)
         tan_y = np.tan(y)
         w = 1 / np.sqrt(1 + tan_x**2 + tan_y**2)
