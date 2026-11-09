@@ -454,8 +454,9 @@ class XYTSFile:
         Returns
         -------
         None | np.ndarray | Tuple[np.ndarray, np.ndarray]
-            PGV map or tuple of (PGV map, MMI map) or None (if both are written to a
-            file).
+            The maps not written to a file: tuple of (PGV map, MMI map) if
+            neither is written, PGV map or MMI map if only the other is
+            written, or None if all requested maps are written to a file.
         """
 
         if self.data is None or self.ll_map is None:
@@ -499,8 +500,12 @@ class XYTSFile:
         if mmi and mmiout is not None:
             mmiv.astype(np.float32).tofile(mmiout)
 
-        if pgvout is None:
-            if not mmi:
-                return pgv
-            elif mmiout is None:
-                return pgv, mmiv
+        return_pgv = pgvout is None
+        return_mmi = mmi and mmiout is None
+        if return_pgv and return_mmi:
+            return pgv, mmiv
+        if return_pgv:
+            return pgv
+        if return_mmi:
+            return mmiv
+        return None
