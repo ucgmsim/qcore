@@ -52,7 +52,8 @@ def from_docstring(
 
     def decorator(command: Callable[P, R]) -> Callable[P, R]:  # numpydoc ignore=GL08
         if command.__doc__ is None:
-            return command
+            # No help text to add, but the command must still be registered.
+            return app.command(**kwargs)(command)
 
         # Parse the docstring and extract parameter descriptions
         docstring = docstring_parser.parse(

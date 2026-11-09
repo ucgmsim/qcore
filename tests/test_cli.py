@@ -69,6 +69,21 @@ def test_from_docstring_no_docstring_returns_same_function() -> None:
     assert decorated is func_no_docstring
 
 
+def test_from_docstring_no_docstring_registers_command() -> None:
+    """Test that a command without a docstring is still registered with the app."""
+    app = typer.Typer()
+
+    @cli.from_docstring(app)
+    def nodoc(x: int) -> None:
+        print(x + 1)
+
+    assert [c.callback for c in app.registered_commands] == [nodoc]
+
+    result = runner.invoke(app, ["4"])
+    assert result.exit_code == 0
+    assert result.stdout.strip() == "5"
+
+
 def test_from_docstring_oldstyle_and_no_docstring() -> None:
     """Test from_docstring with old-style Typer annotations and missing docstring."""
 
