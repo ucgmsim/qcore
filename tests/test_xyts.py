@@ -360,3 +360,29 @@ def test_date_line_crossing(tmp_path: Path, synthetic_data: np.ndarray) -> None:
 
     x_min, x_max, _, _ = xyts_file.region()
     assert 179 < x_min < 180 < x_max < 181
+
+
+@pytest.mark.parametrize("write_pgv", [True, False])
+def test_pgv_mmi_partial_output(
+    tmp_path: Path, synthetic_data: np.ndarray, write_pgv: bool
+) -> None:
+    """With mmi=True and one output file, the unwritten map is returned."""
+    path = tmp_path / "synthetic.e3d"
+    _write_xyts(path, synthetic_data)
+    xyts_file = xyts.XYTSFile(path)
+    expected = xyts_file.pgv(mmi=True)
+    assert isinstance(expected, tuple)
+    expected_pgv, expected_mmi = expected
+
+    pgvout = tmp_path / "pgv.bin"
+    mmiout = tmp_path / "mmi.bin"
+    if write_pgv:
+        result = xyts_file.pgv(mmi=True, pgvout=pgvout)
+        written, expected_written, expected_result = pgvout, expected_pgv, expected_mmi
+    else:
+        result = xyts_file.pgv(mmi=True, mmiout=mmiout)
+        written, expected_written, expected_result = mmiout, expected_mmi, expected_pgv
+
+    assert np.fromfile(written, dtype="3<f4") == pytest.approx(expected_written)
+    assert isinstance(result, np.ndarray)
+    assert result == pytest.approx(expected_result)
