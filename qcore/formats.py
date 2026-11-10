@@ -187,10 +187,10 @@ def load_station_file(station_file: str) -> pd.DataFrame:
     return pd.read_csv(  # ty: ignore[no-matching-overload]
         station_file,
         header=None,
-        index_col=2,
-        names=["lon", "lat"],
+        index_col="station",
+        names=["lon", "lat", "station"],
         engine="c",
-        delim_whitespace=True,
+        sep=r"\s+",
     )  # type: ignore[no-matching-overload]
 
 
