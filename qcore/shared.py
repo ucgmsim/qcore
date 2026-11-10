@@ -238,4 +238,4 @@ def is_virtual_station(station_name: str) -> bool:
     bool
         True if the station name is a virtual station identifier.
     """
-    return bool(re.match(r"[0-9a-f]{7}", station_name))
+    return bool(re.fullmatch(r"[0-9a-f]{7}", station_name))

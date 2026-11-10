@@ -163,7 +163,7 @@ def load_generic_station_file(
             cols,
             key=cols.get,
         ),  # ty: ignore[no-matching-overload] # eg. cols={stat_name:2, lon:0, lat:1} means names = ["lon","lat","stat_name"] # type: ignore[no-matching-overload]
-        index_col=stat_name_col,
+        index_col="stat_name",
         sep=sep,
         header=None,
         skiprows=skiprows,
