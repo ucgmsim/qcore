@@ -96,6 +96,9 @@ def test_get_corners_with_gmt_format() -> None:
         ("ABCDEF1", False),  # Contains capital
         ("abc123", False),  # Too short (only 6 chars)
         ("STAT01", False),  # Contains capitals
+        ("abcdef1234", False),  # Too long
+        ("0123456XYZ", False),  # Valid prefix, trailing capitals
+        ("abcdef1_extra", False),  # Valid prefix, trailing suffix
     ],
 )
 def test_is_virtual_station(station_name: str, expected: bool):
