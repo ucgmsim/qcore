@@ -184,14 +184,14 @@ def load_station_file(station_file: str) -> pd.DataFrame:
     pd.DataFrame
         DataFrame indexed by station, with longitude and latitude columns.
     """
-    return pd.read_csv(  # ty: ignore[no-matching-overload]
+    return pd.read_csv(
         station_file,
         header=None,
-        index_col=2,
-        names=["lon", "lat"],
+        index_col="station",
+        names=["lon", "lat", "station"],
         engine="c",
-        delim_whitespace=True,
-    )  # type: ignore[no-matching-overload]
+        sep=r"\s+",
+    )
 
 
 @deprecated("Will be removed after Cybershake investigation concludes.")
