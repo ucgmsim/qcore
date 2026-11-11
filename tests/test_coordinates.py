@@ -244,9 +244,10 @@ def test_projection_preserves_distance(
 
     x, y = proj.project(lat, lon)
     dist2 = np.hypot(x, y)
-    # The distances come from two different sources here, so we can
-    # only test this very roughly.
-    assert pytest.approx(dist1, abs=0.1) == dist2
+    # geod and the projection use the same sphere, so the only
+    # difference is the projection's own distortion, which is
+    # negligible (< 1e-5 km) for the nearby points drawn here.
+    assert pytest.approx(dist1, abs=1e-4) == dist2
 
 
 def test_projection_preserves_depth() -> None:
@@ -285,3 +286,19 @@ def test_custom_radius_inverse_round_trips() -> None:
     lat, lon = -43.1, 172.1
     x, y = proj.project(lat, lon)
     assert proj.inverse(x, y) == pytest.approx(np.array([lat, lon]))
+
+
+@pytest.mark.parametrize("radius", [R_EARTH, 1000.0])
+def test_geod_uses_radius_in_metres(radius: float) -> None:
+    geod = SphericalProjection(172.0, -43.0, 0.0, radius=radius).geod
+    assert geod.a == pytest.approx(radius * 1000.0)
+    assert geod.b == pytest.approx(radius * 1000.0)
+
+
+@pytest.mark.parametrize("lat, lon", [(-43.1, 172.1), (-43.5, 172.3)])
+def test_geod_agrees_with_projection_custom_radius(lat: float, lon: float) -> None:
+    mlon, mlat = 172.0, -43.0
+    proj = SphericalProjection(mlon, mlat, 30.0, radius=1000.0)
+    geod_dist = proj.geod.inv(mlon, mlat, lon, lat)[2] / 1000.0
+    proj_dist = np.hypot(*proj.project(lat, lon))
+    assert geod_dist == pytest.approx(proj_dist, rel=1e-4)
