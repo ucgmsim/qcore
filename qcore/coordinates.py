@@ -285,8 +285,13 @@ class SphericalProjection:
 
     @property
     def geod(self) -> pyproj.Geod:  # numpydoc ignore=RT01
-        """pyproj.Geod: A pyproj representation of the EMOD3D earth as a Geod."""
-        return pyproj.Geod(ellps="sphere", a=self.radius, b=self.radius)
+        """pyproj.Geod: A pyproj representation of the EMOD3D earth as a Geod.
+
+        The Geod is a sphere of radius `radius` (given in kilometres),
+        converted to metres as pyproj expects, so `geod.a == geod.b ==
+        radius * 1000`.
+        """
+        return pyproj.Geod(a=self.radius * 1000.0, b=self.radius * 1000.0)
 
     def cartesian(
         self,
