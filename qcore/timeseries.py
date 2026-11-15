@@ -342,17 +342,21 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
     Raises
     ------
     ValueError
-        If the directory does not contain LF seis files.
+        If the directory does not contain LF seis files with station data.
     """
     outbin = Path(outbin)
-    seis_files = sorted(outbin.glob("*seis-*.e3d"))
+    # Files of 4 bytes or fewer hold at most the `nstat` integer, so
+    # they contain no stations and are skipped.
+    seis_files = [
+        seis_file
+        for seis_file in sorted(outbin.glob("*seis-*.e3d"))
+        if seis_file.stat().st_size > 4
+    ]
 
     if not seis_files:
         raise ValueError(f"No LF seis files found in {outbin}")
 
-    header_file = next(
-        seis_file for seis_file in seis_files if seis_file.stat().st_size
-    )
+    header_file = seis_files[0]
     with open(header_file, "rb") as f:
         parser = LFSeisParser(f)
         header = parser.read_header()
