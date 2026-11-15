@@ -545,6 +545,42 @@ def test_read_lf_seis_file_plural(inputs: list[tuple], tmp_path: Path) -> None:
     assert dset.attrs["units"] == "cm/s^2"
 
 
+def test_read_lfseis_directory_time_axis_length(tmp_path: Path) -> None:
+    """Test the time axis has exactly nt points for a non-zero start_sec.
+
+    With start_sec=0.3, dt=0.005 (float32) and nt=1546, a float-step
+    ``np.arange`` produces nt + 1 time values.
+    """
+    nt = 1546
+    nstat = 2
+    header = timeseries.LFSeisHeader(
+        nstat=nstat,
+        nt=nt,
+        dt=float(np.float32(0.005)),
+        resolution=0.1,
+        rotation=0.0,
+    )
+    stations = pd.DataFrame(
+        {
+            "x": np.array([0, 1], dtype=np.int32),
+            "y": np.array([0, 1], dtype=np.int32),
+            "z": np.array([0, 0], dtype=np.int32),
+            "lat": np.array([-43.5, -43.6], dtype=np.float32),
+            "lon": np.array([172.6, 172.7], dtype=np.float32),
+            "station": ["STA1", "STA2"],
+        }
+    )
+    waveform = np.zeros((nt, nstat, timeseries._N_COMP), dtype="<f4")
+    with open(tmp_path / "file_seis-0.e3d", "wb") as f:
+        f.write(make_seis_file("<", header, stations, waveform))
+
+    start_sec = 0.3
+    dset = timeseries.read_lfseis_directory(tmp_path, start_sec=start_sec)
+    assert len(dset.time) == nt
+    assert dset.time.values[0] == pytest.approx(start_sec)
+    assert dset.time.values[-1] == pytest.approx(start_sec + (nt - 1) * header.dt)
+
+
 def test_timeseries_to_text_full(tmp_path: Path) -> None:
     """
     Tests the function with a timeseries that is not an even multiple
