@@ -418,3 +418,22 @@ def test_load_nhm_df_zero_recurrence_is_nan(tmp_path: Path) -> None:
     assert np.isnan(df.loc["ZeroRecur", "recur_int_median"])
     assert np.isnan(df.loc["ZeroRecur", "exceedance"])
     assert df.loc["Recur", "exceedance"] == pytest.approx(0.01)
+
+
+@pytest.mark.parametrize("trailing", ["", "\n", "\n\n\n", "\n  \n\n"])
+def test_load_nhm_trailing_blank_lines(tmp_path: Path, trailing: str) -> None:
+    expected = [_make_fault(name="FaultA"), _make_fault(name="FaultB", mw=6.5)]
+    nhm_file = tmp_path / "faults.nhm"
+    _write_nhm(nhm_file, expected)
+    with nhm_file.open("a") as f:
+        f.write(trailing)
+
+    actual = nhm.load_nhm(str(nhm_file))
+
+    assert list(actual) == [fault.name for fault in expected]
+    for fault in expected:
+        loaded = actual[fault.name]
+        for field in dataclasses.fields(fault):
+            np.testing.assert_equal(
+                getattr(loaded, field.name), getattr(fault, field.name)
+            )
