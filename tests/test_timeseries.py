@@ -1,5 +1,7 @@
 "Tests for the qcore.timeseries module"
 
+import shutil
+import struct
 import tempfile
 from pathlib import Path
 from typing import Literal
@@ -7,6 +9,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
@@ -674,3 +677,33 @@ def test_read_lfseis_directory_no_files(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="No LF seis files found"):
         timeseries.read_lfseis_directory(empty_dir)
+
+
+def test_read_lfseis_directory_skips_empty_files(tmp_path: Path) -> None:
+    """Test that seis files with no stations are ignored when reading a directory."""
+    valid_file = Path(__file__).parent / "R01_seis-00041.e3d"
+
+    valid_dir = tmp_path / "valid"
+    valid_dir.mkdir()
+    shutil.copy(valid_file, valid_dir / valid_file.name)
+    expected = timeseries.read_lfseis_directory(valid_dir)
+
+    mixed_dir = tmp_path / "mixed"
+    mixed_dir.mkdir()
+    shutil.copy(valid_file, mixed_dir / valid_file.name)
+    # Zero-byte file.
+    (mixed_dir / "R01_seis-00000.e3d").touch()
+    # File containing only nstat = 0.
+    (mixed_dir / "R01_seis-00001.e3d").write_bytes(struct.pack("<i", 0))
+
+    dset = timeseries.read_lfseis_directory(mixed_dir)
+    xr.testing.assert_identical(dset, expected)
+
+
+def test_read_lfseis_directory_only_empty_files(tmp_path: Path) -> None:
+    """Test that ValueError is raised when every seis file has no stations."""
+    (tmp_path / "R01_seis-00000.e3d").touch()
+    (tmp_path / "R01_seis-00001.e3d").write_bytes(struct.pack("<i", 0))
+
+    with pytest.raises(ValueError, match="No LF seis files found"):
+        timeseries.read_lfseis_directory(tmp_path)
