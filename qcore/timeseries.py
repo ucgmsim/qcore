@@ -361,9 +361,7 @@ def read_lfseis_directory(outbin: Path | str, start_sec: float = 0) -> xr.Datase
     ds = xr.concat(
         [_read_lfseis_file(seis_file) for seis_file in seis_files],
         dim="station",
-    ).assign_coords(
-        time=np.arange(start_sec, start_sec + header.nt * header.dt, header.dt)
-    )
+    ).assign_coords(time=start_sec + np.arange(header.nt) * header.dt)
 
     ds["waveform"] = (
         ("component", "station", "time"),
