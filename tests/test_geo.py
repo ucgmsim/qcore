@@ -324,6 +324,19 @@ def test_path_from_corners_output_file(tmp_path: Path) -> None:
     assert len(lines) >= 20
 
 
+def test_path_from_corners_does_not_mutate_input() -> None:
+    """Test path_from_corners leaves the caller's corners list unchanged."""
+    corners = [(172.0, -43.0), (173.0, -43.0), (173.0, -44.0), (172.0, -44.0)]
+    original = list(corners)
+
+    first = geo.path_from_corners(corners, output=None, min_edge_points=2)
+
+    assert corners == original
+    assert first is not corners
+    second = geo.path_from_corners(corners, output=None, min_edge_points=2)
+    assert second == first
+
+
 def test_ll_cross_along_track_dist() -> None:
     """Test ll_cross_along_track_dist function."""
     # Define a great circle path from point 1 to point 2
