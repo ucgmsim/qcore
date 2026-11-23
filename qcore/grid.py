@@ -22,7 +22,7 @@ def grid_corners(
     Parameters
     ----------
     centroid : np.ndarray
-        The centroid of the plane.
+        The (lat, lon) of the centroid of the plane (2-element array).
     strike : float
         The strike of the plane (degrees).
     dip_dir : float
@@ -34,7 +34,8 @@ def grid_corners(
     length : float
         The length of the plane (in km).
     width : float
-        The width of the plane (in km).
+        The projected (horizontal, surface) width of the plane in the dip
+        direction (in km). This is not the down-dip width.
 
     Returns
     -------
@@ -123,7 +124,7 @@ def coordinate_meshgrid(
     Returns
     -------
     np.ndarray
-        The meshgrid of the rectangular planar region. Has shape (ny, nx), where
+        The meshgrid of the rectangular planar region. Has shape (ny, nx, 3), where
         ny is the number of points in the origin->y_bottom direction and nx the number of
         points in the origin->x_upper direction.
     """
