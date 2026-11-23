@@ -457,7 +457,7 @@ def avg_wbearing(angles: list[list[float]]) -> float:
 @overload
 def path_from_corners(
     corners: list[tuple[float, float]],
-    output: str | None = None,
+    output: None,
     min_edge_points: int = ...,
     close: bool = ...,
 ) -> list[tuple[float, float]]: ...  # numpydoc ignore=GL08
@@ -497,6 +497,9 @@ def path_from_corners(
     list of tuple of float or None
         List of (lon, lat) coordinates if `output` is None, otherwise None.
     """
+
+    # work on a copy so the caller's list is not modified
+    corners = list(corners)
 
     # close the box by going back to origin
     if close:
