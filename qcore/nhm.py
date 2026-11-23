@@ -266,6 +266,8 @@ def load_nhm(
 
     faults = {}
     for entry in rows.split("\n\n"):
+        if not entry.strip():
+            continue
         rows = list(map(str.strip, entry.split("\n")))
 
         def str2floats(line: str):
